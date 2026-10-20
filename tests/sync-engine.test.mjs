@@ -16,3 +16,11 @@ test('comment-only edit is saved with separate event',async()=>{const d=new Memo
 test('reject folder policy is restricted to mock adapter',async()=>{const d=new MemoryDrive();await run(d,choices(d.rows),{testReject:true});assert.equal(d.rows[2].folder,'reject');d.mode='real';await assert.rejects(run(d,choices(d.rows),{testReject:true}),/模擬/)});
 test('duplicate choices cause a per-image error, not second history event',async()=>{const d=new MemoryDrive(),c=choices(d.rows);const r=await run(d,[c[0],c[0],c[1]]);assert.equal(r.saved.length,2);assert.equal(r.errors.length,1);assert.equal(d.events.size,2)});
 test('false readback never reports success',async()=>{const d=new MemoryDrive();d.complete=async()=>({ok:true});const r=await run(d);assert.equal(r.saved.length,0);assert.equal(r.errors.length,3)});
+test('progress identifies each image and never announces unverified completion',async()=>{
+ const d=new MemoryDrive(),progress=[];d.complete=async()=>({ok:true});
+ const r=await syncSelections(d,choices(d.rows),{confirmed:true,onProgress:x=>progress.push(x)});
+ assert.equal(progress[0].stage,'starting');assert.equal(r.errors.length,3);
+ assert.equal(progress.filter(x=>x.stage==='complete').length,0);
+ assert.deepEqual(progress.filter(x=>x.stage==='error').map(x=>x.index),[1,2,3]);
+ assert.ok(progress.every(x=>x.total===3));
+});

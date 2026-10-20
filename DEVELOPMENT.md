@@ -66,3 +66,13 @@ Additional automated coverage uses a REST-shaped Google fixture with the same en
 3. Open `index.html?drive=test` in Safari. Read the scope, authorize Google, load the three synthetic images, choose ratings, and explicitly confirm sync. Verify the displayed counts and the independent test journal, then retry to confirm no duplicates.
 
 A separate preview host and its OAuth origin configuration are not created by this commit. The existing production Pages origin cannot expose this development branch without changing its deployment. Actual login, browser-to-Google communication and physical iPhone behavior remain unverified until the isolated preview is available.
+
+## 2026-10-20: shared-origin storage correction
+
+The isolated preview is now served from the separate `sticker-selector-dev` repository. Real-device testing exposed that GitHub Pages projects share an origin: the preview loaded 39 pre-existing records, displayed seven unrelated images and rejected `v9_test_03.png` with an existing-ID mismatch.
+
+Real Drive test mode now uses dedicated localStorage, visible-ID and IndexedDB namespaces scoped to its path. Original keys are read-only and remain intact. Only drafts already matching all registered image/candidate/attempt/Drive IDs and the filename are copied; ambiguous old items are preserved at their source and the registered test PNG is loaded afresh. Ordinary local-import mode retains the original keys.
+
+Synchronization now reports per-image progress. Within one confirmed run, immutable journal bytes are reused only after actual readback; verified static folder/master reads are also reused. Every run starts fresh and releases the cache afterward. PNG metadata and actual upload readbacks remain checked, and retry/fault tests remain required. This reduces repeated Google reads without treating unverified work as complete.
+
+Browser regression tests seed 39 legacy records, including the exact conflicting image ID, and verify that old ratings remain byte-for-byte unchanged, unrelated images stay out of the test view, valid drafts are recovered, and PNGs decode successfully. Physical-device confirmation of the revised screen remains a separate check after deployment.

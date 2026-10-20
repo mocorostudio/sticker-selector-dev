@@ -14,6 +14,7 @@ const copy=x=>JSON.parse(JSON.stringify(x));
 export class GoogleTestDriveAdapter{
  mode='drive-test';
  #token;#fetch;#store;#records=[];#writes=false;
+ #foldersChecked=false;#sourceRows=null;#journalList=null;#documentCache=new Map();
  constructor({getToken,fetchImpl=globalThis.fetch,storage=globalThis.localStorage}={}){if(typeof getToken!=='function')throw Error('Google認証が必要です');this.#token=getToken;this.#fetch=(...args)=>fetchImpl(...args);this.#store=storage}
  async #request(url,options={}){
   const u=new URL(url);
@@ -24,18 +25,22 @@ export class GoogleTestDriveAdapter{
  }
  async #json(url,options){return(await this.#request(url,options)).json()}
  async folderGuard(){
+  if(this.#writes&&this.#foldersChecked)return;
   const root=await this.#json(API+'/files/'+TEST_DRIVE.root+'?fields=id,name,mimeType,trashed');
   if(root.id!==TEST_DRIVE.root||root.mimeType!=='application/vnd.google-apps.folder'||root.trashed||!root.name.includes('テスト'))throw Error('テスト領域不一致');
   for(const [key,id] of Object.entries(TEST_DRIVE.folders)){
    const f=await this.#json(API+'/files/'+id+'?fields=id,name,mimeType,parents,trashed');
    if(f.id!==id||f.mimeType!=='application/vnd.google-apps.folder'||f.trashed||f.parents?.length!==1||f.parents[0]!==TEST_DRIVE.root||!f.name.endsWith('_TEST'))throw Error(key+' テストフォルダ不一致');
   }
+  if(this.#writes)this.#foldersChecked=true;
  }
  async journalFiles(){
+  if(this.#writes&&this.#journalList)return this.#journalList;
   const all=[];let next='';
   do{const q=new URLSearchParams({q:"'"+TEST_DRIVE.root+"' in parents and trashed = false and mimeType = 'application/json' and name contains '"+PREFIX+"'",fields:'nextPageToken,files(id,name,mimeType,parents,trashed)',pageSize:'100',...(next?{pageToken:next}:{})});
    const data=await this.#json(API+'/files?'+q);all.push(...(data.files||[]));next=data.nextPageToken||'';
   }while(next);
+  if(this.#writes)this.#journalList=all;
   return all;
  }
  async readFile(file){
@@ -45,9 +50,13 @@ export class GoogleTestDriveAdapter{
   const data=JSON.parse(raw);if(data.scope!=='isolated-test'||data.schema!==9)throw Error('履歴形式不一致');return data;
  }
  async document(name){
+  if(this.#writes&&this.#documentCache.has(name))return this.#documentCache.get(name);
   const matches=(await this.journalFiles()).filter(f=>f.name===PREFIX+name+'.json');
   if(matches.length>1)throw Error('履歴ファイル重複：'+name);
-  return matches.length?this.readFile(matches[0]):null;
+  if(!matches.length)return null;
+  const value=await this.readFile(matches[0]);
+  if(this.#writes)this.#documentCache.set(name,value);
+  return value;
  }
  async createDocument(name,data){
   if(!this.#writes)throw Error('選抜確定操作が必要です');
@@ -66,20 +75,24 @@ export class GoogleTestDriveAdapter{
   const f=await this.#json(API+'/files/'+encodeURIComponent(id)+'?fields=id,name,mimeType,parents,trashed');
   if(f.name!==metadata.name)throw Error('保存ID不一致');
   const verified=await this.readFile(f);if(JSON.stringify(verified)!==JSON.stringify(data))throw Error('履歴保存照合失敗');
+  // These immutable bytes were read back from Google. Reuse that verified result in this run.
+  this.#documentCache.set(name,verified);
+  if(this.#journalList&&!this.#journalList.some(x=>x.id===f.id))this.#journalList.push(f);
   return verified;
  }
  async list(){
   await this.folderGuard();
   const url='https://sheets.googleapis.com/v4/spreadsheets/'+TEST_DRIVE.sheet+'/values/'+encodeURIComponent("'テスト選抜履歴'!A1:J1000");
-  const rows=(await this.#json(url)).values||[];
+  const rows=this.#writes&&this.#sourceRows?this.#sourceRows:(await this.#json(url)).values||[];
   if(rows[0]?.[0]!=='候補ID'||rows[0]?.[1]!=='画像ID'||rows[0]?.[7]!=='DriveファイルID')throw Error('テストマスター列不一致');
+  if(this.#writes)this.#sourceRows=rows;
   const records=TEST_DRIVE.fixtures.map(f=>{
    const matches=rows.slice(1).filter(r=>r[0]===f.candidate||r[7]===f.driveFileId);
    if(matches.length!==1||matches[0][0]!==f.candidate||matches[0][7]!==f.driveFileId||!matches[0][1]?.startsWith(f.filename+'|'))return {...f,imageId:'invalid:'+f.candidate,attemptId:'',folder:'pending',technicalPassed:false,testFixture:true,scope:'isolated-test'};
    const row=matches[0];return {...f,imageId:row[1],attemptId:row[1],phrase:row[2]||'',folder:({['01_採用予定_TEST']:'adopt',['02_保留_TEST']:'hold'})[row[8]]||'pending',technicalPassed:false,testFixture:true,scope:'isolated-test',rating:null,confirmed:false,comment:'',sourceRating:row[3]||'',sourceConfirmed:row[4]||''};
   });
   const results=[];
-  for(const f of (await this.journalFiles()).filter(x=>x.name.endsWith('-result.json'))){const value=await this.readFile(f);if(value.kind==='result')results.push(value)}
+  for(const f of (await this.journalFiles()).filter(x=>x.name.endsWith('-result.json'))){const name=f.name.slice(PREFIX.length,-5);const value=this.#writes?await this.document(name):await this.readFile(f);if(value.kind==='result')results.push(value)}
   for(const record of records){
    const updates=results.filter(x=>x.imageId===record.imageId&&x.candidate===record.candidate&&x.attemptId===record.attemptId&&x.driveFileId===record.driveFileId).sort((a,b)=>a.sequence-b.sequence||a.operationId.localeCompare(b.operationId));
    if(updates.length)Object.assign(record,updates.at(-1).patch);
@@ -122,6 +135,10 @@ export class GoogleTestDriveAdapter{
  }
  async confirmRun(fn){
   if(!globalThis.navigator?.locks)throw Error('このブラウザでは安全な同時実行制御を利用できません');
-  return navigator.locks.request('selector-v9-real-test-sync',{ifAvailable:true},async lock=>{if(!lock)throw Error('別画面で同期中です');this.#writes=true;try{return await fn()}finally{this.#writes=false}});
+  return navigator.locks.request('selector-v9-real-test-sync',{ifAvailable:true},async lock=>{
+   if(!lock)throw Error('別画面で同期中です');
+   this.#foldersChecked=false;this.#sourceRows=null;this.#journalList=null;this.#documentCache.clear();this.#writes=true;
+   try{return await fn()}finally{this.#writes=false;this.#foldersChecked=false;this.#sourceRows=null;this.#journalList=null;this.#documentCache.clear()}
+  });
  }
 }

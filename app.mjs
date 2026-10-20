@@ -1,16 +1,20 @@
-import {GoogleTestDriveAdapter} from './google-test-drive.mjs';
+import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261020-storage2';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
-import {syncSelections,assertIdentity} from './sync-engine.mjs';
+import {syncSelections,assertIdentity} from './sync-engine.mjs?v=20261020-storage2';
+import {storageKeys,recoverDraft} from './session-store.mjs';
 
 'use strict';
-// Keep original v9 localStorage + IndexedDB keys, image identities and ratings unchanged.
-const STORE='sticker-selector-v9',DB='sticker-selector-images-v9';
+const params=new URLSearchParams(location.search);
+const driveTest=params.get('drive')==='test';
+// GitHub Pages projects share an origin. Isolate test drafts without modifying legacy data.
+const {store:STORE,db:DB,view:VIEW_KEY}=storageKeys({driveTest,pathname:location.pathname});
+let legacyItems=[];
+if(driveTest){try{legacyItems=JSON.parse(localStorage.getItem('sticker-selector-v9'))?.items||[]}catch(e){}}
 const $=id=>document.getElementById(id);
 let state;try{state=JSON.parse(localStorage.getItem(STORE))}catch(e){}
 if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
-const VIEW_KEY='sticker-selector-v9-visible-ids';
 let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds=Array.isArray(saved)?saved:null}catch(e){shownIds=null}
 const visible=()=>shownIds===null?state.items:state.items.filter(x=>shownIds.includes(x.id));
 function setView(ids){const unique=[...new Set(ids)];shownIds=$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
@@ -76,7 +80,6 @@ $('csv').onclick=()=>{const rows=[['image_id','candidate_id','attempt_id','drive
 // Do not write state on initial page load: preserve original v9 localStorage content.
 openDb().then(redraw).catch(e=>$('error').textContent='端末内画像を読み込めません：'+errorText(e));
 
-const params=new URLSearchParams(location.search);
 const auth=params.get('drive')==='test'?googleTestAuth():null;
 const adapter=auth?new GoogleTestDriveAdapter({getToken:auth.getToken}):params.get('mock')==='1'?new MockDriveAdapter():null;
 let busy=false;
@@ -84,6 +87,7 @@ async function withBusy(fn){if(busy)return;busy=true;$('list').inert=true;docume
 function driveMessage(message){$('driveStatus').textContent=message}
 $('loadPending').onclick=()=>withBusy(async()=>{
  if(!adapter){driveMessage('実Drive連携は未有効です。PNG・ZIPの選抜は補助機能から利用できます。');return}
+ driveMessage('保存済みの評価を確認中…');
  const records=await adapter.list(),ids=[],errors=[];
  for(const r of records.filter(x=>adapter.mode==='drive-test' ? x.testFixture&&!x.confirmed : x.folder==='pending'&&!x.confirmed)){
   try{
@@ -94,7 +98,7 @@ $('loadPending').onclick=()=>withBusy(async()=>{
    const old=state.items.find(x=>x.id===r.imageId);
    if(old&&(old.candidate!==r.candidate||old.attemptId!==r.attemptId||old.driveFileId!==r.driveFileId))throw Error('保存済みID不一致');
    await put(r.imageId,blob);
-   if(!old)state.items.push({id:r.imageId,imageId:r.imageId,candidate:r.candidate,attemptId:r.attemptId,driveFileId:r.driveFileId,name:r.filename,phrase:r.phrase||'',rating:'o',touched:false,comment:''});
+   if(!old)state.items.push((driveTest&&recoverDraft(legacyItems,r))||{id:r.imageId,imageId:r.imageId,candidate:r.candidate,attemptId:r.attemptId,driveFileId:r.driveFileId,name:r.filename,phrase:r.phrase||'',rating:'o',touched:false,comment:''});
    ids.push(r.imageId);save();
   }catch(e){errors.push(r.filename+': '+errorText(e))}
  }
@@ -109,7 +113,10 @@ $('sync').onclick=()=>withBusy(async()=>{
  const choices=selected.map(x=>({imageId:x.imageId,candidate:x.candidate,attemptId:x.attemptId,rating:x.rating,comment:x.comment||'',touched:x.touched,revision:x.revision,evaluatedAt:x.evaluatedAt}));
  if(!confirm(choices.length+'枚の選抜を確定して'+(adapter.mode==='drive-test'?'テスト用Google Drive':'模擬Drive')+'へ同期します。✕のPNGは移動・削除しません。'))return;
  driveMessage('同期中…');
- const run=()=>syncSelections(adapter,choices,{confirmed:true});
+ const steps={starting:'保存済みの評価を確認中',checking:'画像を確認中',recording:'選択を記録中',moving:'フォルダを整理中',saving:'評価を保存中',complete:'保存完了',unchanged:'保存済み・変更なし',error:'この画像は未完了'};
+ const run=()=>syncSelections(adapter,choices,{confirmed:true,onProgress:p=>{
+  driveMessage(p.stage==='starting'?steps.starting+'…':p.index+'/'+p.total+'枚目：'+(steps[p.stage]||p.stage)+'（'+(p.candidate||'')+'）');
+ }});
  const result=await (adapter.confirmRun?adapter.confirmRun(run):run());
  driveMessage('同期 '+result.saved.length+'件／一致 '+result.unchanged.length+'件／失敗 '+result.errors.length+'件'+(result.errors.length?'\n'+result.errors.map(x=>x.imageId+': '+x.message).join('\n'):''));
 });

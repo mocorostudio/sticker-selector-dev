@@ -10,15 +10,19 @@ export async function operationId(choice){
  const hash=await crypto.subtle.digest('SHA-256',data);
  return 'v9-'+Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
 }
-export async function syncSelections(adapter,choices,{confirmed=false,testReject=false}={}){
+export async function syncSelections(adapter,choices,{confirmed=false,testReject=false,onProgress}={}){
  if(!confirmed)throw Error('選抜確定操作が必要です');
  if(testReject && adapter.mode!=='mock')throw Error('没フォルダは模擬テスト専用です');
+ const progress=(stage,index=0,choice={})=>onProgress?.({stage,index,total:choices.length,imageId:choice.imageId,candidate:choice.candidate});
+ progress('starting');
  const records=await adapter.list(),result={saved:[],unchanged:[],errors:[],ignored:[]};
  // Refuse every ambiguous identity, while allowing unrelated images to proceed.
  const imageCounts=new Map(),fileCounts=new Map();
  for(const r of records){imageCounts.set(r.imageId,(imageCounts.get(r.imageId)||0)+1);fileCounts.set(r.driveFileId,(fileCounts.get(r.driveFileId)||0)+1)}
  const seen=new Set();
+ let index=0;
  for(const choice of choices){
+  index++;progress('checking',index,choice);
   try{
    if(seen.has(choice.imageId))throw Error('重複する選抜');seen.add(choice.imageId);
    const record=records.find(r=>r.imageId===choice.imageId);
@@ -32,22 +36,25 @@ export async function syncSelections(adapter,choices,{confirmed=false,testReject
    if(plan.action==='error')throw Error(plan.reason);
    const id=await operationId(choice),event=await adapter.event(id);
    if(event?.status==='complete' && record.operationId===id && plan.action==='unchanged'){
-    result.unchanged.push(choice.imageId);continue;
+    result.unchanged.push(choice.imageId);progress('unchanged',index,choice);continue;
    }
    // Stable event ID + put-if-absent journal tolerates lost responses and reloads.
+   progress('recording',index,choice);
    await adapter.begin({id,imageId:record.imageId,candidate:record.candidate,attemptId:record.attemptId,
     driveFileId:record.driveFileId,createdAt:new Date().toISOString(),evaluatedAt:choice.evaluatedAt||null,previousComment:record.comment||'',previousFolder:file.folder,previousRating:record.rating||null,rating:choice.rating,comment:choice.comment||'',destination:plan.destination});
    if(!await adapter.event(id))throw Error('開始履歴未確認');
-   if(file.folder!==plan.destination)await adapter.move(record.driveFileId,file.folder,plan.destination);
+   if(file.folder!==plan.destination){progress('moving',index,choice);await adapter.move(record.driveFileId,file.folder,plan.destination)}
    const after=await adapter.metadata(record.driveFileId);assertIdentity(record,after);
    if(after.folder!==plan.destination)throw Error('移動後照合失敗');
+   progress('saving',index,choice);
    await adapter.save(record.imageId,{rating:choice.rating,comment:choice.comment||'',folder:plan.destination,confirmed:true,operationId:id});
    const saved=(await adapter.list()).filter(r=>r.imageId===record.imageId);
    if(saved.length!==1||saved[0].operationId!==id||saved[0].rating!==choice.rating||saved[0].folder!==plan.destination||saved[0].comment!==(choice.comment||'')||saved[0].confirmed!==true)throw Error('評価保存照合失敗');
    await adapter.complete(id);
    if((await adapter.event(id))?.status!=='complete')throw Error('完了履歴未確認');
    result.saved.push(choice.imageId);
-  }catch(error){result.errors.push({imageId:choice.imageId,message:error.message})}
+   progress('complete',index,choice);
+  }catch(error){result.errors.push({imageId:choice.imageId,message:error.message});progress('error',index,choice)}
  }
  return result;
 }

@@ -87,6 +87,33 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   await page.waitForFunction(()=>document.querySelector('#driveStatus').textContent.includes('同期 0件／一致 3件／失敗 0件'));
   assert.equal([...rest.files.values()].filter(f=>f.data).length,9);
  });
+ await scenario(browser,engine+' Google REST legacy isolation and exact draft recovery',async(page,rest)=>{
+  const row=rest.rows[3];
+  const draft={id:row[1],imageId:row[1],candidate:row[0],attemptId:row[1],driveFileId:row[7],name:'v9_test_03.png',rating:'x',touched:true,revision:'legacy-revision',comment:'未同期の評価'};
+  const legacy=JSON.stringify({items:[...Array.from({length:38},(_,i)=>({id:'old-'+i,name:'v9_test_06.png',rating:'h',touched:true})),draft],background:'black'});
+  await page.evaluate(value=>{localStorage.setItem('sticker-selector-v9',value);localStorage.setItem('sticker-selector-v9-visible-ids',JSON.stringify(['old-0','old-1','old-2','old-3','old-4','old-5','old-6']))},legacy);
+  await page.reload();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('表示0枚'));
+  assert.equal(await page.locator('.card').count(),0);
+  await page.locator('#loadPending').click();await page.waitForFunction(()=>document.querySelectorAll('.card').length===3);
+  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].every(x=>x.complete&&x.naturalWidth>0));
+  assert.equal(await page.locator('.card').nth(2).locator('.chosen').textContent(),'✕');
+  assert.equal(await page.locator('.card').nth(2).locator('.comment').inputValue(),'未同期の評価');
+  await page.locator('.card').first().locator('.choices label').first().click();
+  assert.equal(await page.evaluate(()=>localStorage.getItem('sticker-selector-v9')),legacy);
+  assert.equal(rest.writes().length,0);
+ });
+ await scenario(browser,engine+' Google REST legacy image ID conflict stays preserved and loads cleanly',async(page,rest)=>{
+  const row=rest.rows[3];
+  const legacy=JSON.stringify({items:[...Array.from({length:38},(_,i)=>({id:'old-'+i,name:'old.png',rating:'o',touched:true})),{id:row[1],name:'v9_test_03.png',rating:'h',touched:true}],background:'black'});
+  await page.evaluate(value=>localStorage.setItem('sticker-selector-v9',value),legacy);
+  await page.reload();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('表示0枚'));
+  await page.locator('#loadPending').click();
+  await page.waitForFunction(()=>document.querySelector('#driveStatus').textContent.includes('読込 3枚／失敗 0件'));
+  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].every(x=>x.complete&&x.naturalWidth>0));
+  assert.equal(await page.locator('.card').count(),3);assert.equal(await page.locator('.chosen').count(),0);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('sticker-selector-v9')),legacy);
+  assert.equal(rest.writes().length,0);
+ });
  }finally{await browser.close()}
 }}finally{await new Promise(resolve=>service.server.close(resolve))}
 console.log('Browser scenarios: '+passed+' passed, '+failed+' failed');process.exitCode=failed?1:0;
