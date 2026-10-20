@@ -1,0 +1,1 @@
+Dynamic sync integration checkpoint. Test only. No production writes.

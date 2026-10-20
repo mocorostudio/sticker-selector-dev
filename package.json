@@ -1,0 +1,12 @@
+{
+  "devDependencies": {
+    "jszip": "3.10.1",
+    "playwright": "1.58.2"
+  },
+  "private": true,
+  "scripts": {
+    "test": "node tests/check-stickers.mjs && node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser-smoke.mjs",
+    "dev": "node tests/server.mjs"
+  }
+}
