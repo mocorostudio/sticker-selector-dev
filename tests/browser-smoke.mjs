@@ -32,6 +32,17 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
   await page.reload();await page.locator('.card').first().waitFor();
   assert.equal(await page.locator('.chosen').count(),3);assert.equal(await page.locator('.comment').first().inputValue(),'履歴を保持');assert.match(await page.locator('.stage').first().getAttribute('class'),/black/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  assert.equal(await page.locator('#syncCount').textContent(),'確定する画像：3枚');
+  // The confirmation stays reachable at either end, without covering the final comment.
+  for(const atBottom of [false,true]){
+   await page.evaluate(bottom=>window.scrollTo(0,bottom?document.body.scrollHeight:0),atBottom);
+   await page.waitForTimeout(100);
+   const layout=await page.evaluate(()=>({bar:document.querySelector('#syncBar').getBoundingClientRect().toJSON(),button:document.querySelector('#sync').getBoundingClientRect().toJSON(),last:document.querySelector('.card:last-child').getBoundingClientRect().toJSON(),height:innerHeight}));
+   assert.ok(layout.button.top>=0&&layout.button.bottom<=layout.height);
+   assert.ok(Math.abs(layout.bar.bottom-layout.height)<2);
+   if(atBottom)assert.ok(layout.last.bottom<=layout.bar.top);
+  }
+  await page.screenshot({path:'test-results/'+engine+'-bottom-actions.png'});
   await page.locator('#sync').click();await page.waitForFunction(()=>document.querySelector('#driveStatus').textContent.includes('同期 3件'));
   assert.equal(service.drive.events.size,3);assert.deepEqual(service.drive.rows.map(x=>x.folder),['adopt','hold','pending']);
   await page.locator('#sync').click();await page.waitForFunction(()=>document.querySelector('#driveStatus').textContent.includes('一致 3件'));assert.equal(service.drive.events.size,3);

@@ -4,3 +4,10 @@
 .primary{background:#225b42;color:white;font-weight:700;flex:1} .actions{position:sticky;top:0;z-index:2;background:#faf9f6;padding:10px 0}.actions button{min-width:140px}#driveStatus,#error{white-space:pre-wrap;overflow-wrap:anywhere}button:disabled{opacity:.5}summary{padding:14px 0;cursor:pointer}#mode{color:#795008} .stage{height:280px}.choices label{min-height:48px}
 
 .actions{display:grid;grid-template-columns:1fr;gap:8px}.actions button{width:100%}
+.actions{position:static}
+body{padding-bottom:250px}
+#syncBar{position:fixed;inset:auto 0 0;z-index:5;max-width:none;margin:0;padding:10px max(12px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-right));display:grid;justify-items:stretch;gap:6px;background:#faf9f6;border-top:1px solid #d6ded8;box-shadow:0 -3px 12px #0000000d}
+#syncBar>*{width:100%;max-width:620px;margin:0 auto}
+#syncCount{font-size:13px;font-weight:600}
+#syncBar #sync{min-height:50px}
+#syncBar #driveStatus{font-size:12px;line-height:1.5;max-height:4.5em;overflow:auto}

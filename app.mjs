@@ -12,6 +12,10 @@ const {store:STORE,db:DB,view:VIEW_KEY}=storageKeys({driveTest,pathname:location
 let legacyItems=[];
 if(driveTest){try{legacyItems=JSON.parse(localStorage.getItem('sticker-selector-v9'))?.items||[]}catch(e){}}
 const $=id=>document.getElementById(id);
+// Keep confirmation and its result reachable after the last card.
+$('syncBar').append($('sync'),$('driveStatus'));
+const reserveSyncBar=()=>{document.body.style.paddingBottom=($('syncBar').getBoundingClientRect().height+16)+'px'};
+new ResizeObserver(reserveSyncBar).observe($('syncBar'));
 let state;try{state=JSON.parse(localStorage.getItem(STORE))}catch(e){}
 if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
@@ -19,7 +23,10 @@ let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds
 const visible=()=>shownIds===null?state.items:state.items.filter(x=>shownIds.includes(x.id));
 function setView(ids){const unique=[...new Set(ids)];shownIds=$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
-function save(){localStorage.setItem(STORE,JSON.stringify(state))}
+function updateSyncCount(){const count=visible().filter(x=>x.touched&&x.imageId).length;$('syncCount').textContent='確定する画像：'+count+'枚'}
+function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}
+new MutationObserver(updateSyncCount).observe($('list'),{childList:true});
+updateSyncCount();
 let db;
 function openDb(){return new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('images'))q.result.createObjectStore('images')};q.onsuccess=()=>{db=q.result;ok()};q.onerror=()=>no(q.error)})}
 function errorText(error){return error?.message||String(error||'端末内保存エラー')}
