@@ -1,0 +1,582 @@
+[
+  {
+    "candidateId": "D01",
+    "phrase": "おはよう",
+    "pose": "伸びをする"
+  },
+  {
+    "candidateId": "D02",
+    "phrase": "こんにちは",
+    "pose": "軽く会釈"
+  },
+  {
+    "candidateId": "D03",
+    "phrase": "こんばんは",
+    "pose": "穏やかに手を振る"
+  },
+  {
+    "candidateId": "D04",
+    "phrase": "おやすみ〜",
+    "pose": "丸くなって眠る"
+  },
+  {
+    "candidateId": "D05",
+    "phrase": "またね",
+    "pose": "手を振る"
+  },
+  {
+    "candidateId": "D06",
+    "phrase": "いってきます",
+    "pose": "歩き出す"
+  },
+  {
+    "candidateId": "D07",
+    "phrase": "いってらっしゃい",
+    "pose": "見送る"
+  },
+  {
+    "candidateId": "D08",
+    "phrase": "ただいま",
+    "pose": "元気に帰る"
+  },
+  {
+    "candidateId": "D09",
+    "phrase": "おかえり",
+    "pose": "両手を広げる"
+  },
+  {
+    "candidateId": "D10",
+    "phrase": "おつかれさま",
+    "pose": "ねぎらうお辞儀"
+  },
+  {
+    "candidateId": "D11",
+    "phrase": "了解",
+    "pose": "片手を上げる"
+  },
+  {
+    "candidateId": "D12",
+    "phrase": "はーい",
+    "pose": "片手を上げる"
+  },
+  {
+    "candidateId": "D13",
+    "phrase": "OK",
+    "pose": "親指を立てる"
+  },
+  {
+    "candidateId": "D14",
+    "phrase": "うんうん",
+    "pose": "うなずく"
+  },
+  {
+    "candidateId": "D15",
+    "phrase": "そうなんだ",
+    "pose": "感心した顔"
+  },
+  {
+    "candidateId": "D16",
+    "phrase": "なるほど",
+    "pose": "考えながらうなずく"
+  },
+  {
+    "candidateId": "D17",
+    "phrase": "えっ？",
+    "pose": "驚いて目を見開く"
+  },
+  {
+    "candidateId": "D18",
+    "phrase": "まじで？",
+    "pose": "目を丸くする"
+  },
+  {
+    "candidateId": "D19",
+    "phrase": "いいね",
+    "pose": "笑顔でうなずく"
+  },
+  {
+    "candidateId": "D20",
+    "phrase": "そうそう",
+    "pose": "大きくうなずく"
+  },
+  {
+    "candidateId": "D21",
+    "phrase": "ありがとう",
+    "pose": "深くお辞儀"
+  },
+  {
+    "candidateId": "D22",
+    "phrase": "よろしくね",
+    "pose": "軽くお辞儀"
+  },
+  {
+    "candidateId": "D23",
+    "phrase": "ごめんね",
+    "pose": "申し訳なさそうにお辞儀"
+  },
+  {
+    "candidateId": "D24",
+    "phrase": "大丈夫？",
+    "pose": "心配そうに覗き込む"
+  },
+  {
+    "candidateId": "D25",
+    "phrase": "無理しないでね",
+    "pose": "優しく見守る"
+  },
+  {
+    "candidateId": "D26",
+    "phrase": "お大事に",
+    "pose": "いたわる表情"
+  },
+  {
+    "candidateId": "D27",
+    "phrase": "助かる",
+    "pose": "ほっとする"
+  },
+  {
+    "candidateId": "D28",
+    "phrase": "気をつけてね",
+    "pose": "見送る"
+  },
+  {
+    "candidateId": "D29",
+    "phrase": "おめでとう",
+    "pose": "両手を上げて祝う"
+  },
+  {
+    "candidateId": "D30",
+    "phrase": "お願いします",
+    "pose": "丁寧にお辞儀"
+  },
+  {
+    "candidateId": "D31",
+    "phrase": "やったー",
+    "pose": "跳びはねる"
+  },
+  {
+    "candidateId": "D32",
+    "phrase": "うれしい",
+    "pose": "満面の笑顔"
+  },
+  {
+    "candidateId": "D33",
+    "phrase": "最高",
+    "pose": "両手を広げる"
+  },
+  {
+    "candidateId": "D34",
+    "phrase": "すごい",
+    "pose": "拍手する"
+  },
+  {
+    "candidateId": "D35",
+    "phrase": "えへへ",
+    "pose": "照れ笑い"
+  },
+  {
+    "candidateId": "D36",
+    "phrase": "しょんぼり…",
+    "pose": "うつむく"
+  },
+  {
+    "candidateId": "D37",
+    "phrase": "ぷんぷん",
+    "pose": "頬を膨らませる"
+  },
+  {
+    "candidateId": "D38",
+    "phrase": "ちょっと待って",
+    "pose": "手のひらを向ける"
+  },
+  {
+    "candidateId": "D39",
+    "phrase": "知らんけど",
+    "pose": "すました顔"
+  },
+  {
+    "candidateId": "D40",
+    "phrase": "じーっ…",
+    "pose": "じっと見つめる"
+  },
+  {
+    "candidateId": "S01",
+    "phrase": "起きました",
+    "pose": "寝起きで伸びをする"
+  },
+  {
+    "candidateId": "S02",
+    "phrase": "今向かってます",
+    "pose": "小走り"
+  },
+  {
+    "candidateId": "S03",
+    "phrase": "今着きました",
+    "pose": "到着して手を上げる"
+  },
+  {
+    "candidateId": "S04",
+    "phrase": "もうすぐ着く",
+    "pose": "急ぎ足"
+  },
+  {
+    "candidateId": "S05",
+    "phrase": "出発しました",
+    "pose": "歩き出す"
+  },
+  {
+    "candidateId": "S06",
+    "phrase": "移動中です",
+    "pose": "歩いている"
+  },
+  {
+    "candidateId": "S07",
+    "phrase": "電車です",
+    "pose": "簡単な電車の座席に座る"
+  },
+  {
+    "candidateId": "S08",
+    "phrase": "バス待ち",
+    "pose": "立って待つ"
+  },
+  {
+    "candidateId": "S09",
+    "phrase": "帰ります",
+    "pose": "帰り道を歩く"
+  },
+  {
+    "candidateId": "S10",
+    "phrase": "帰宅しました",
+    "pose": "ほっと座る"
+  },
+  {
+    "candidateId": "S11",
+    "phrase": "今からごはん",
+    "pose": "食事を楽しみにする"
+  },
+  {
+    "candidateId": "S12",
+    "phrase": "ごはん中",
+    "pose": "もぐもぐ食べる"
+  },
+  {
+    "candidateId": "S13",
+    "phrase": "お風呂中",
+    "pose": "湯気の中でくつろぐ"
+  },
+  {
+    "candidateId": "S14",
+    "phrase": "仕事中",
+    "pose": "机で作業する"
+  },
+  {
+    "candidateId": "S15",
+    "phrase": "勉強中",
+    "pose": "ノートに向かう"
+  },
+  {
+    "candidateId": "S16",
+    "phrase": "休憩中",
+    "pose": "座って一息つく"
+  },
+  {
+    "candidateId": "S17",
+    "phrase": "ゴロゴロ中…",
+    "pose": "仰向けに寝転ぶ"
+  },
+  {
+    "candidateId": "S18",
+    "phrase": "手が離せません",
+    "pose": "両手がふさがった様子"
+  },
+  {
+    "candidateId": "S19",
+    "phrase": "待ってます",
+    "pose": "座って待つ"
+  },
+  {
+    "candidateId": "S20",
+    "phrase": "今から寝ます",
+    "pose": "眠そうに横になる"
+  },
+  {
+    "candidateId": "S21",
+    "phrase": "今から行きます",
+    "pose": "歩き始める"
+  },
+  {
+    "candidateId": "S22",
+    "phrase": "少し遅れます",
+    "pose": "焦って小走り"
+  },
+  {
+    "candidateId": "S23",
+    "phrase": "あと5分",
+    "pose": "時計を見ている"
+  },
+  {
+    "candidateId": "S24",
+    "phrase": "準備できた？",
+    "pose": "相手を見つめて首をかしげる"
+  },
+  {
+    "candidateId": "S25",
+    "phrase": "準備中です",
+    "pose": "身支度をする"
+  },
+  {
+    "candidateId": "S26",
+    "phrase": "準備できました",
+    "pose": "胸を張る"
+  },
+  {
+    "candidateId": "S27",
+    "phrase": "お出かけ中",
+    "pose": "楽しげに歩く"
+  },
+  {
+    "candidateId": "S28",
+    "phrase": "お散歩中",
+    "pose": "のんびり歩く"
+  },
+  {
+    "candidateId": "S29",
+    "phrase": "買い物中",
+    "pose": "商品を眺める・バッグなし"
+  },
+  {
+    "candidateId": "S30",
+    "phrase": "家にいます",
+    "pose": "室内でくつろぐ"
+  },
+  {
+    "candidateId": "S31",
+    "phrase": "外にいます",
+    "pose": "外で立つ"
+  },
+  {
+    "candidateId": "S32",
+    "phrase": "今忙しいです",
+    "pose": "慌ただしく動く"
+  },
+  {
+    "candidateId": "S33",
+    "phrase": "あとで連絡します",
+    "pose": "手を振って合図"
+  },
+  {
+    "candidateId": "S34",
+    "phrase": "電話できます",
+    "pose": "耳を傾ける"
+  },
+  {
+    "candidateId": "S35",
+    "phrase": "電話中です",
+    "pose": "電話を耳に当てる"
+  },
+  {
+    "candidateId": "S36",
+    "phrase": "確認中です",
+    "pose": "じっと調べる"
+  },
+  {
+    "candidateId": "S37",
+    "phrase": "考え中…",
+    "pose": "首をかしげる"
+  },
+  {
+    "candidateId": "S38",
+    "phrase": "見てます",
+    "pose": "じっと画面を見る"
+  },
+  {
+    "candidateId": "S39",
+    "phrase": "動画見てます",
+    "pose": "画面を眺める"
+  },
+  {
+    "candidateId": "S40",
+    "phrase": "暇してます",
+    "pose": "床で寝転ぶ"
+  },
+  {
+    "candidateId": "N01",
+    "phrase": "",
+    "pose": "にっこり笑う"
+  },
+  {
+    "candidateId": "N02",
+    "phrase": "",
+    "pose": "お腹を抱えて笑う"
+  },
+  {
+    "candidateId": "N03",
+    "phrase": "",
+    "pose": "はにかむ"
+  },
+  {
+    "candidateId": "N04",
+    "phrase": "",
+    "pose": "涙目で見つめる"
+  },
+  {
+    "candidateId": "N05",
+    "phrase": "",
+    "pose": "涙を流す"
+  },
+  {
+    "candidateId": "N06",
+    "phrase": "",
+    "pose": "むっとする"
+  },
+  {
+    "candidateId": "N07",
+    "phrase": "",
+    "pose": "飛び上がる"
+  },
+  {
+    "candidateId": "N08",
+    "phrase": "",
+    "pose": "首をかしげる"
+  },
+  {
+    "candidateId": "N09",
+    "phrase": "",
+    "pose": "ゆっくりうなずく"
+  },
+  {
+    "candidateId": "N10",
+    "phrase": "",
+    "pose": "深くお辞儀"
+  },
+  {
+    "candidateId": "N11",
+    "phrase": "",
+    "pose": "片手を振る"
+  },
+  {
+    "candidateId": "N12",
+    "phrase": "",
+    "pose": "両手を合わせる"
+  },
+  {
+    "candidateId": "N13",
+    "phrase": "",
+    "pose": "丸くなって寝る"
+  },
+  {
+    "candidateId": "N14",
+    "phrase": "",
+    "pose": "全身を伸ばす"
+  },
+  {
+    "candidateId": "N15",
+    "phrase": "",
+    "pose": "仰向けに寝る"
+  },
+  {
+    "candidateId": "N16",
+    "phrase": "",
+    "pose": "正面を見つめる"
+  },
+  {
+    "candidateId": "R01",
+    "phrase": "はよ寝ろ",
+    "pose": "眠そうな顔で指さす"
+  },
+  {
+    "candidateId": "R02",
+    "phrase": "はよ起きろ",
+    "pose": "相手を起こす仕草"
+  },
+  {
+    "candidateId": "R03",
+    "phrase": "はよ帰ってこい",
+    "pose": "腕を組んで待つ"
+  },
+  {
+    "candidateId": "R04",
+    "phrase": "ごはん作って",
+    "pose": "お腹を押さえる"
+  },
+  {
+    "candidateId": "R05",
+    "phrase": "かまって",
+    "pose": "両手を伸ばす"
+  },
+  {
+    "candidateId": "R06",
+    "phrase": "遊んで",
+    "pose": "誘うように手を振る"
+  },
+  {
+    "candidateId": "R07",
+    "phrase": "迎えに来て",
+    "pose": "待ちながら手を振る"
+  },
+  {
+    "candidateId": "R08",
+    "phrase": "今どこ？",
+    "pose": "周囲を探す"
+  },
+  {
+    "candidateId": "R09",
+    "phrase": "連絡して",
+    "pose": "連絡を待つ"
+  },
+  {
+    "candidateId": "R10",
+    "phrase": "返事して",
+    "pose": "じっと見つめる"
+  },
+  {
+    "candidateId": "R11",
+    "phrase": "写真送って",
+    "pose": "カメラの形を手で作る"
+  },
+  {
+    "candidateId": "R12",
+    "phrase": "ちょっと聞いて",
+    "pose": "耳を向ける"
+  },
+  {
+    "candidateId": "R13",
+    "phrase": "褒めて",
+    "pose": "得意げに胸を張る"
+  },
+  {
+    "candidateId": "R14",
+    "phrase": "なぐさめて",
+    "pose": "しょんぼり座る"
+  },
+  {
+    "candidateId": "R15",
+    "phrase": "無理すんな",
+    "pose": "心配そうに手を添える"
+  },
+  {
+    "candidateId": "R16",
+    "phrase": "ちゃんと食べて",
+    "pose": "食事を勧める"
+  },
+  {
+    "candidateId": "R17",
+    "phrase": "ゆっくり休んで",
+    "pose": "寝る仕草"
+  },
+  {
+    "candidateId": "R18",
+    "phrase": "気をつけて帰って",
+    "pose": "見送る"
+  },
+  {
+    "candidateId": "R19",
+    "phrase": "お土産よろしく",
+    "pose": "期待して待つ"
+  },
+  {
+    "candidateId": "R20",
+    "phrase": "おやつちょうだい",
+    "pose": "おねだりする"
+  }
+]
