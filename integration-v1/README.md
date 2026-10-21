@@ -1,13 +1,7 @@
-# 切り出し＋選抜 統合テスト v1
+# Crop and selection test
 
-Source: mocorostudio/sticker-selector integration commit 06079d4 (local integration branch), 2026-10-21.
+Source commit 4b77ca7, 2026-10-21. Entry: workflow.html.
 
-Entry: workflow.html. Existing root preview files are unchanged.
+Drive source selection now uses readonly OAuth and GET-only downloads. Selected images stay in the browser; no Drive writes, image uploads, or billing configuration. Existing root preview files are unchanged. Tokens remain in memory only. Browser storage is used for resume; no Photos/Files export is required for source import.
 
-This entry only stores images and selections on the device. Google authentication and Drive writes are disabled, even with drive/test query parameters. Uploaded artwork stays in the browser and is not included in this repository.
-
-The bundled 116 candidates come from the user-approved attached v3 master; production character-master verification remains pending. Technical scope is local-test. Selection confirmation is separate from technical approval and final adoption.
-
-Local tests: 68 passed. Real Canvas/IndexedDB browser workflow and physical iPhone Safari checks remain pending at publication. No browser success is inferred from contract tests.
-
-Preserve the URL for resumable device storage. Export the crop backup and selection JSON before clearing browser data. Selection JSON contains metadata/history, not PNG bytes.
+77 local tests passed with mocked HTTP/OAuth. Real Google consent, Drive reads and iPhone Safari popup behavior remain to be verified. No production-master approval or final adoption is inferred.
