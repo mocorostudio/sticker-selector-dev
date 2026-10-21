@@ -1,7 +1,7 @@
 # Crop and selection test
 
-Source commit 4b77ca7, 2026-10-21. Entry: workflow.html.
+Source fb85ff6, 2026-10-21. Entry: workflow.html. User-approved update: audited boundary-only review; up to 20 sequential source images; IndexedDB v2 separates pixel assets from metadata; 16 cards per page; saved Drive ID/version progress and an unprocessed filter; per-image checker/black/white buttons. Existing images, IDs, review history and source files are retained.
 
-Drive source selection now uses readonly OAuth and GET-only downloads. Selected images stay in the browser; no Drive writes, image uploads, or billing configuration. Existing root preview files are unchanged. Tokens remain in memory only. Browser storage is used for resume; no Photos/Files export is required for source import.
+Drive transport remains readonly. Tokens stay in memory. No billing settings or production writes. Progress is local to this browser. Standard technical failures cannot be overridden; all visual checks and candidate verification remain necessary. Metadata/PNG handoff rechecks pixels.
 
-77 local tests passed with mocked HTTP/OAuth. Real Google consent, Drive reads and iPhone Safari popup behavior remain to be verified. No production-master approval or final adoption is inferred.
+93 local automated tests passed. Synthetic browser migration fixture: tests/storage-browser.html (only its own test database). Physical iPhone memory limits and live Drive 20-image workflows still need confirmation.

@@ -1,4 +1,4 @@
-import {gate,inspect} from './crop-v9/core.mjs';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261021-flow2';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.
@@ -12,7 +12,7 @@ export async function importCrops(entries,adapter,master){
   if(!(entry.png instanceof ArrayBuffer)||entry.png.byteLength<24||entry.png.byteLength>15e6)throw Error('実PNGが必要です');
   const bytes=new Uint8Array(entry.png);if(!equal(bytes.subarray(0,8),signature))throw Error('PNG形式不正');
   const blob=new Blob([bytes],{type:'image/png'}),decoded=await adapter.decode(blob);
-  if(inspect(decoded,r.crossing).automatic!=='pass')throw Error('PNG画素の再検査に失敗');
+  if(gate({...r,qa:inspect(decoded,r.crossing)})!=='pass')throw Error('PNG画素の再検査に失敗');
   const id='crop:'+r.imageId,items=adapter.items(),old=items.find(x=>x.id===id||x.imageId===r.imageId);
   if(items.some(x=>x.name===r.filename&&x.imageId!==r.imageId))throw Error('ファイル名が既存画像と重複');
   if(old){

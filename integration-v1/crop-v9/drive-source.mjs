@@ -7,7 +7,7 @@ const quoted=value=>"'"+String(value).replaceAll('\\','\\\\').replaceAll("'","\\
 export function createDriveSource({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{}}){
  let requests=0;
  async function request(url){
-  if(++requests>50)throw Error('読み込み回数の上限です。少し時間を置いてから接続し直してください。');
+  if(++requests>100)throw Error('読み込み回数の上限です。少し時間を置いてから接続し直してください。');
   const token=getToken();if(!token)throw Error('Googleに接続してください。');
   const r=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(20000)});
   if(r.status===401){onUnauthorized();throw Error('Google接続の期限が切れました。もう一度接続してください。');}

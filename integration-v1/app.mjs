@@ -1,5 +1,5 @@
-import {isLocalConfirmed} from './crop-handoff.mjs';
-import {initWorkflow} from './integration-ui.mjs';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261021-flow2';
+import {initWorkflow} from './integration-ui.mjs?v=20261021-flow2';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261020-storage2';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
@@ -24,7 +24,7 @@ if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
 let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds=Array.isArray(saved)?saved:null}catch(e){shownIds=null}
 const visible=()=>shownIds===null?state.items:state.items.filter(x=>shownIds.includes(x.id));
-function setView(ids){const unique=[...new Set(ids)];shownIds=$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
+function setView(ids,append=false){const unique=[...new Set(ids)];shownIds=!append&&$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
 function updateSyncCount(){const count=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local')).length;$('syncCount').textContent='確定する画像：'+count+'枚'}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}

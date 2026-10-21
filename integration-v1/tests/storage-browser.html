@@ -1,0 +1,13 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>合成データ専用の保存移行テスト</title><h1>合成データ専用の保存移行テスト</h1><p>このページ自身が作成する専用テストDBだけを使います。制作中のデータには触れません。</p><button id="run">旧形式からの移行をテスト</button><pre id="result" role="status">未実行</pre><script type="module">
+import {openCropStorage} from '../crop-v9/storage.mjs?v=20261021-flow2';
+const result=document.getElementById('result');
+document.getElementById('run').onclick=async()=>{let storage;try{
+ const name='qa-crop-migration-'+crypto.randomUUID(),pixels={width:1,height:1,data:new Uint8ClampedArray([1,2,3,255])};
+ const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore('state');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+ await new Promise((resolve,reject)=>{const tx=db.transaction('state','readwrite');tx.objectStore('state').put({version:1,sources:[{id:'original',image:pixels,driveSource:{fileId:'drive-original',version:'1'}}],records:[{imageId:'existing-image',sourceId:'original',pixels,review:[true,false],history:[{action:'crop'}],candidateId:'D01',background:'black'}]},'current');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();
+ storage=await openCropStorage(name);const state=await storage.load(),source=await storage.image('original'),record=await storage.pixels('existing-image');
+ if(state.version!==2||state.sources[0].image||state.records[0].pixels||source.data[3]!==255||record.data[0]!==1||state.records[0].imageId!=='existing-image'||state.records[0].review[0]!==true||state.records[0].history[0].action!=='crop'||state.records[0].background!=='black')throw Error('移行の照合失敗');
+ await storage.save({...state,records:[{...state.records[0],background:'white'}]});storage.close();storage=await openCropStorage(name);const reread=await storage.load();if(reread.records[0].background!=='white'||(await storage.pixels('existing-image')).data[3]!==255)throw Error('再読込の照合失敗');
+ result.textContent='PASS: 旧形式→資産分離、画像ID・画素・目視確認・履歴・背景の保持、再保存・再読込。制作DBへのアクセスなし。';
+ }catch(e){result.textContent='FAIL: '+e.message;}finally{storage?.close();}};
+</script></html>
