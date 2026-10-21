@@ -1,5 +1,5 @@
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261021-flow2';
-import {initWorkflow} from './integration-ui.mjs?v=20261021-flow2';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261021-review1';
+import {initWorkflow} from './integration-ui.mjs?v=20261021-review1';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261020-storage2';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';

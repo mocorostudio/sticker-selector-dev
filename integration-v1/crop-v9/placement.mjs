@@ -10,7 +10,7 @@ export function placementPlan(contentWidth,contentHeight,{size=100,offsetX=0,off
 }
 export function placementRecord(previous,pixels,settings,{imageId,filename,qa,at=new Date().toISOString()}){
  if(!imageId||imageId===previous.imageId)throw Error('新しい画像IDが必要です');
- const {boundaryReview,technicalStatus,...rest}=previous;
+ const {boundaryReview,technicalStatus,decision,...rest}=previous;
  return {...rest,imageId,filename,pixels,hasPixels:true,layout:structuredClone(settings),qa,review:[],saveState:'local',attempt:(previous.attempt||1)+1,
   history:[...structuredClone(previous.history||[]),{action:'placement',at,previousImageId:previous.imageId,layout:structuredClone(settings)}]};
 }

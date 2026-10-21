@@ -1,4 +1,4 @@
-import {gate,inspect} from './crop-v9/core.mjs?v=20261021-flow2';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261021-review1';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.

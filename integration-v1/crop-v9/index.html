@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' blob: data:; connect-src 'self' https://www.googleapis.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; object-src 'none'; base-uri 'none'">
-<title>スタンプ切り出し v9</title><link rel="stylesheet" href="style.css?v=20261021-position1"><body><main>
+<title>スタンプ切り出し v9</title><link rel="stylesheet" href="style.css?v=20261021-review1"><body><main>
 <h1>スタンプ切り出し</h1><p>候補マスターは添付v3の116候補です。本運用前にキャラ別の最新版との照合が必要です。</p>
 <p>画像処理は端末内。Driveからは読み取りのみで、送信・移動・書き換えは行いません。</p>
 <button id="driveOpen">Google Driveから選ぶ</button>
@@ -23,5 +23,6 @@
 <label>確認背景<select id="background"><option value="checker">市松</option><option value="black">黒</option><option value="white">白</option></select></label>
 <p id="status" role="status" aria-live="polite">未読込</p><button id="backup">作業をバックアップ</button>
 <label>バックアップから復帰<input id="restore" type="file" accept="application/json"></label><button id="manifest">連携JSONを保存</button>
+<section aria-label="検品の進め方"><h2>切り出した後は？</h2><p>各画像で①セリフ・ポーズを選ぶ → ②画像と確認項目を見比べる → ③「合格・不合格・要確認」を選びます。結果は自動保存されます。</p><p>合格したら「合格した画像を②選抜へ送る」を押してください。②選抜で、採用する画像を選びます。</p><p>直したいときは画像の下の「手動修正①」「手動修正②」を開いてください。修正前の画像も履歴に残ります。</p></section>
 <div id="cards"></div><p>自動検査だけでは合格になりません。実画像とマスターを照合し、全項目を確認してください。</p>
-</main><script type="module" src="app.mjs?v=20261021-position1"></script></body></html>
+</main><script type="module" src="app.mjs?v=20261021-review1"></script></body></html>

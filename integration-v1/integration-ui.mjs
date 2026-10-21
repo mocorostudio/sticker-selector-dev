@@ -1,4 +1,4 @@
-import {importCrops,confirmLocal} from './crop-handoff.mjs?v=20261021-flow2';
+import {importCrops,confirmLocal} from './crop-handoff.mjs?v=20261021-review1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame');let importing=false;
  function show(screen){const crop=screen==='crop';frame.hidden=!crop;$('selectionScreen').hidden=crop;for(const id of ['cropTab','selectionTab'])$(id).setAttribute('aria-selected',String(id===(crop?'cropTab':'selectionTab')));if(!crop)api.redraw();window.dispatchEvent(new Event('resize'));}
