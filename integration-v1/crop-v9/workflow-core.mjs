@@ -15,6 +15,7 @@ export function sourceRecords(source,records){
 export function driveProgress(file,sources,records){
  const matching=sources.filter(s=>sameDriveVersion(s.driveSource,file));
  if(!matching.length)return {status:'new',label:'未処理'};
+ for(const source of matching){const latest=sourceRecords(source,records);if(latest.length>0&&(!source.expectedCount||latest.length>=source.expectedCount)&&latest.every(r=>r.history?.some(h=>h.action==='selection-draft-sent'&&h.imageId===r.imageId)))return {status:'selection',label:'選別へ送信済み'};}
  for(const source of matching){const latest=sourceRecords(source,records);if(latest.length>0&&(!source.expectedCount||latest.length>=source.expectedCount)&&latest.every(r=>gate(r)==='pass'))return {status:'reviewed',label:'検品完了'};}
  return {status:'cropped',label:'切り出し済み・検品待ち'};
 }

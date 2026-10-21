@@ -1,18 +1,21 @@
-import {gate,inspect} from './crop-v9/core.mjs?v=20261021-review1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261021-batch1';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.
-export async function importCrops(entries,adapter,master){
+export async function importCrops(entries,adapter,master,{forSelection=false}={}){
  if(!Array.isArray(entries)||entries.length>64)throw Error('受け渡し件数が不正です');
  const result={ids:[],added:0,existing:0,errors:[]};
  for(const entry of entries){try{
   const r=entry?.record,m=master.find(x=>x.candidateId===r?.candidateId);
-  if(!r||!m||m.phrase!==r.phrase||m.pose!==r.pose||gate(r)!=='pass')throw Error('候補・セリフ・検品の照合に失敗');
+  if(forSelection){if(!r||r.cropReview?.imageId!==r.imageId||r.cropReview?.confirmed!==true)throw Error('切り出し一覧を確認してください');if(r.candidateId&&(!m||m.phrase!==r.phrase||m.pose!==r.pose))throw Error('候補情報が不一致');}
+  else if(!r||!m||m.phrase!==r.phrase||m.pose!==r.pose||gate(r)!=='pass')throw Error('候補・セリフ・検品の照合に失敗');
   if(typeof r.imageId!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(r.imageId)||typeof r.filename!=='string'||!/^[-A-Za-z0-9_]+\.png$/.test(r.filename))throw Error('画像ID・ファイル名が不正');
   if(!(entry.png instanceof ArrayBuffer)||entry.png.byteLength<24||entry.png.byteLength>15e6)throw Error('実PNGが必要です');
   const bytes=new Uint8Array(entry.png);if(!equal(bytes.subarray(0,8),signature))throw Error('PNG形式不正');
   const blob=new Blob([bytes],{type:'image/png'}),decoded=await adapter.decode(blob);
-  if(gate({...r,qa:inspect(decoded,r.crossing)})!=='pass')throw Error('PNG画素の再検査に失敗');
+  const actualQA=inspect(decoded,r.crossing);
+  if(forSelection){if(decoded.width!==370||decoded.height!==320||actualQA.issues.includes('空画像'))throw Error('空画像・サイズ不正は切り出し直してください');}
+  else if(gate({...r,qa:actualQA})!=='pass')throw Error('PNG画素の再検査に失敗');
   const id='crop:'+r.imageId,items=adapter.items(),old=items.find(x=>x.id===id||x.imageId===r.imageId);
   if(items.some(x=>x.name===r.filename&&x.imageId!==r.imageId))throw Error('ファイル名が既存画像と重複');
   if(old){
@@ -21,7 +24,7 @@ export async function importCrops(entries,adapter,master){
    result.existing++;
   }else{
    const {pixels,...metadata}=r;
-   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:true,technicalStatus:'pass',technicalScope:'local-test',masterSource:'attached-v3-116',crop:structuredClone(metadata),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
+   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:!forSelection,technicalStatus:forSelection?'review':'pass',technicalScope:'local-test',masterSource:r.candidateId?'attached-v3-116':'unmapped',crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
    await adapter.write(item,blob);
    const check=adapter.items().find(x=>x.id===id),stored=await adapter.get(id);
    if(!check||check.imageId!==r.imageId||check.candidate!==r.candidateId||check.name!==r.filename||!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('端末保存の再照合に失敗');
