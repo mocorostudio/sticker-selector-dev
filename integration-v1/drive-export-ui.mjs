@@ -1,10 +1,10 @@
-import {createBusyScreen} from './busy-screen.mjs?v=20261022-held1';
-import {googleTestAuth} from './google-auth.mjs?v=20261022-held1';
-import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261022-held1';
+import {createBusyScreen} from './busy-screen.mjs?v=20261022-route1';
+import {googleTestAuth} from './google-auth.mjs?v=20261022-route1';
+import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261022-route1';
 export function initDriveExport(api){
  const dialog=document.createElement('dialog');dialog.id='driveExport';dialog.setAttribute('aria-labelledby','driveExportTitle');
  const title=document.createElement('h2');title.id='driveExportTitle';title.textContent='キャラ別にGoogle Driveへ保存';
- const description=document.createElement('p');description.textContent='元画像の場所からキャラを判定し、各キャラの「05_選抜結果保存」へ◯採用・△保留のPNGと全選抜結果を保存します。△の画像名はHOLD_で始まります。ほぼ透明な点を除いてから保存します。';
+ const description=document.createElement('p');description.textContent='元画像の場所からキャラを判定し、各キャラの◯は「01_採用予定」、△は「02_保留」へPNGを保存します。評価・コメントの記録は「03_元画像・生成履歴」に残します。△の画像名はHOLD_で始まります。ほぼ透明な点を除いてから保存します。';
  const status=document.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const connect=document.createElement('button');connect.textContent='保存用のGoogleアカウントに接続';connect.disabled=true;
  const fallbackLabel=document.createElement('label');fallbackLabel.textContent='元画像の場所が不明な場合だけ：キャラフォルダのDrive URL';
@@ -29,7 +29,7 @@ export function initDriveExport(api){
  async function preview(){invalidate();const next=await resolveGroups();
  // Prepare every group before the first write. Failed detection never partially routes a batch.
  for(const g of next)g.plan=await prepareExport(g.items,{get:api.get,decode:api.decode,encode,preparedCache,onProgress:p=>{status.textContent=g.character.name+"の透過仕上げ・保存準備中…";processing.progress(p.done,p.total);}});
- for(const g of next){const li=document.createElement('li');li.textContent=g.character.name+' → 05_選抜結果保存 ／ 採用PNG '+g.plan.counts.adopted+'枚・保留PNG '+g.plan.counts.held+'枚＋選抜結果JSON';destinations.append(li);}groups=next;status.textContent='① 透過仕上げ・保存準備が完了しました。②を押すとDriveへの送信を始めます。';
+ for(const g of next){const li=document.createElement('li');li.textContent=g.character.name+' ／ 01_採用予定：'+g.plan.counts.adopted+'枚 ／ 02_保留：'+g.plan.counts.held+'枚＋選抜結果JSON';destinations.append(li);}groups=next;status.textContent='① 透過仕上げ・保存準備が完了しました。②を押すとDriveへの送信を始めます。';
  }
  connect.onclick=async()=>{lock(true);invalidate();try{status.textContent='Googleに接続中…';account=null;auth.disconnect();token=await auth.getToken();drive=createExportDrive({getToken:()=>token,...journal});account=await drive.account();await preview();}catch(e){status.textContent=e.message;}finally{lock(false);}};
  check.onclick=async()=>{if(busy||!account)return;lock(true);try{await preview();}catch(e){status.textContent=e.message;}finally{lock(false);}};
