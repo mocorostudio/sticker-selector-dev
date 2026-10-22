@@ -5,14 +5,14 @@ const FIELDS='id,name,mimeType,parents,size,sha256Checksum,appProperties,trashed
 export const EXPORT_APP='animal-stickers-selection-v1';
 const id=value=>{if(typeof value!=='string'||!/^[-\w]{1,256}$/.test(value))throw Error('保存先IDが不正です');return value;};
 export async function digest(blob){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(x=>x.toString(16).padStart(2,'0')).join('');}
-export async function prepareExport(items,{get,decode,encode}){
+export async function prepareExport(items,{get,decode,encode,onProgress=()=>{}}){
  const rows=items.filter(x=>x.origin==='crop-local');if(!rows.length)throw Error('先に切り出した画像を選抜へ送ってください。');
  if(rows.some(x=>x.touched&&!isLocalConfirmed(x)))throw Error('先に「選抜結果を端末に保存」を押してください。');
  if(!rows.some(isLocalConfirmed))throw Error('先に画像を選抜し、結果を端末内に保存してください。');
- const images=[],results=[];let total=0;
+ const images=[],results=[];let total=0;onProgress({done:0,total:rows.length});
  for(const item of rows){const confirmed=isLocalConfirmed(item),row={imageId:item.imageId,number:item.sequenceLabel||'',candidateId:item.candidate||null,phrase:item.phrase||'',rating:confirmed?item.rating:null,comment:item.comment||'',revision:item.revision||null,confirmed,selectionHistory:structuredClone(item.selectionHistory||[]),technicalStatus:'review'};
   if(confirmed&&item.rating==='o'){id(item.imageId);let blob=await get(item.id);if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error((row.number||item.name)+'のPNGを読み込めません。');total+=blob.size;if(total>150000000)throw Error('一度の保存は150MB以下にしてください。');const decoded=await decode(blob),cleaned=cleanTransparency(decoded);if(cleaned.removed){if(!encode)throw Error("透過仕上げを準備できません。アプリを再読み込みしてください。");blob=await encode(cleaned);}const qa=inspect(cleaned,item.crop?.crossing);if(qa.issues.includes('空画像'))throw Error((row.number||item.name)+'は空画像です。');const name='ST_'+(row.number.replace(/[^\w-]/g,'')||'image')+'_'+item.imageId+'.png',sha=await digest(blob);images.push({name,blob,sha});Object.assign(row,{filename:name,sha256:sha,technicalWarnings:qa.issues,transparencyCleanup:{version:1,removed:cleaned.removed}});}
-  results.push(row);
+  results.push(row);onProgress({done:results.length,total:rows.length});
  }
  const manifest={schema:'animal-stickers-selection-export/v1',purpose:'採用候補の保存。申請用の最終技術確認は別途必要。',results},json=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),key=await digest(json);
  return {key,images,manifest:{name:'selection-results.json',blob:json,sha:key},counts:{adopted:images.length,held:results.filter(x=>x.rating==='h').length,rejected:results.filter(x=>x.rating==='x').length,unrated:results.filter(x=>!x.rating).length}};

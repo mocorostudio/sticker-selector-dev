@@ -1,3 +1,4 @@
+import {createBusyScreen} from '../busy-screen.mjs?v=20261022-busy1';
 import {cleanTransparency,detect,cropPixels,trim,removeBackground,inspect,gate,crossesBounds,eraseComponent,boundaryOnly,boundaryAccepted,confirmBoundary} from './core.mjs?v=20261022-character1';
 import {initDriveSource} from './drive-source-ui.mjs?v=20261022-character1';
 import {MAX_BATCH,driveProgress,sourceRecords,runSerial} from './workflow-core.mjs?v=20261022-character1';
@@ -10,6 +11,7 @@ let storage,persisted;
 try{storage=await openCropStorage(dbName);persisted=await storage.load();}catch(e){$('status').textContent='作業データを開けません。元のデータを消さず、別のタブを閉じて開き直してください。 '+e.message;throw e;}
 let sources=structuredClone(persisted?.sources||[]),records=structuredClone(persisted?.records||[]),queue=structuredClone(persisted?.queue||[]),busy=false,pauseRequested=false,driveReader=null,page=0,viewSource='all',renderVersion=0;
 const inputs=new Map();
+const processing=createBusyScreen({watch:$('status')});
 let editImageId=null;
 function canvas(im){const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.data),im.width,im.height),0,0);return c;}
 function normalized(im){const t=trim(cleanTransparency(im)),src=canvas(t),out=document.createElement('canvas');out.width=370;out.height=320;const scale=Math.min(370*.76/t.width,320*.76/t.height),w=Math.max(1,Math.round(t.width*scale)),h=Math.max(1,Math.round(t.height*scale));out.getContext('2d').drawImage(src,Math.floor((370-w)/2),Math.floor((320-h)/2),w,h);return out.getContext('2d').getImageData(0,0,370,320);}
@@ -24,14 +26,14 @@ async function recordPixels(r){const pixels=r.pixels||await storage.pixels(r.ima
 // Queue progress and paged cards keep decoded images out of the long-lived state.
 const queuePanel=document.createElement('section');queuePanel.className='queue-panel';queuePanel.innerHTML='<p id="queueStatus" role="status"></p><button id="pauseQueue" disabled>この1枚の保存後に一時停止</button><p>元画像は最大20枚まとめて選べます。1枚ずつ処理・保存し、失敗した元画像は未完了のまま残します。</p><label>表示する元画像<select id="sourceFilter"><option value="all">すべての元画像</option></select></label><label><input id="showHistory" type="checkbox">修正前の画像も表示</label><p id="pageStatus" role="status"></p><button id="prevPage">前の画像</button><button id="nextPage">次の画像</button>';
 document.querySelector('main').insertBefore(queuePanel,$('cardDetails'));
-function queueStatus(){const done=queue.filter(x=>x.state==='done').length,errors=queue.filter(x=>x.state==='error');$('queueStatus').textContent='元画像の処理：'+done+'/'+queue.length+'枚完了'+(errors.length?'／失敗 '+errors.length+'枚：'+errors.map(x=>x.name+' '+x.error).join(' / '):'')+(queue.some(x=>x.state==='queued'||x.state==='error')?'（「まとめて切り出す」で再開）':'');}
+function queueStatus(){const done=queue.filter(x=>x.state==='done').length;if(busy)processing.progress(done,queue.length);const errors=queue.filter(x=>x.state==='error');$('queueStatus').textContent='元画像の処理：'+done+'/'+queue.length+'枚完了'+(errors.length?'／失敗 '+errors.length+'枚：'+errors.map(x=>x.name+' '+x.error).join(' / '):'')+(queue.some(x=>x.state==='queued'||x.state==='error')?'（「まとめて切り出す」で再開）':'');}
 function enqueue(items){if(items.length>MAX_BATCH)throw Error('一度に選べる元画像は20枚までです');for(const item of items){const key=item.kind==='drive'?'drive:'+item.id+':'+(item.version||item.modifiedTime||''):'file:'+item.file.name+':'+item.file.size+':'+item.file.lastModified;let q=queue.find(x=>x.key===key&&x.state!=='done');if(!q){q={id:crypto.randomUUID(),key,kind:item.kind,name:item.name||item.file.name,state:'queued',driveId:item.id,version:item.version,modifiedTime:item.modifiedTime};queue.push(q);}if(item.file)inputs.set(q.id,item.file);}queueStatus();$('sourceSelection').textContent='選択済み：'+items.length+'枚。配置を合わせて「まとめて切り出す」を押してください。';}
 $('files').onchange=()=>{try{enqueue([...$('files').files].map(file=>({kind:'file',file})));}catch(e){$('status').textContent=e.message;}};
 let driveUI=initDriveSource({onSelect:files=>{try{enqueue(files.map(f=>({...f,kind:'drive'})));$('files').value='';}catch(e){$('status').textContent=e.message;}},onConnected:read=>{driveReader=read;},getProgress:file=>driveProgress(file,persisted?.sources||[],persisted?.records||[])});
 $('pauseQueue').onclick=()=>{pauseRequested=true;$('pauseQueue').disabled=true;};
 $('sourceFilter').onchange=()=>{viewSource=$('sourceFilter').value;page=0;render();};$('showHistory').onchange=()=>{page=0;render();};
 $('prevPage').onclick=()=>{page=Math.max(0,page-1);render();};$('nextPage').onclick=()=>{page++;render();};
-function setBusy(value){busy=value;$('cards').inert=value;$('overview').inert=value;for(const id of ['run','files','driveOpen','grid','prefix','erase','retry','restore','backup','handoff','sourceFilter','recropOverview'])if($(id))$(id).disabled=value;$('pauseQueue').disabled=!value;}
+function setBusy(value){busy=value;document.querySelector('main').setAttribute('aria-busy',String(value));if(value)processing.show('画像を処理しています…');else processing.hide();$('cards').inert=value;$('overview').inert=value;for(const id of ['run','files','driveOpen','grid','prefix','erase','retry','restore','backup','handoff','sourceFilter','recropOverview'])if($(id))$(id).disabled=value;$('pauseQueue').disabled=!value;}
 $('run').onclick=async()=>{if(busy)return;if(!queue.some(q=>q.state!=='done')){$('status').textContent='元画像を選んでください';return;}pauseRequested=false;setBusy(true);let staged;
  try{const result=await runSerial(queue,{
   shouldPause:()=>pauseRequested,
