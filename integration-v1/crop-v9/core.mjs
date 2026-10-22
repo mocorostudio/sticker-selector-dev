@@ -23,3 +23,10 @@ export function decide(record,decision,at=new Date().toISOString()){
 }
 export async function testSync(record,png,adapter){if(adapter.kind!=='mock')throw Error('本番Drive通信は禁止');if(gate(record)!=='pass'||!png?.size)throw Error('合格した実PNGが必要');record.saveState='pending';try{const found=await adapter.find(record);if(found.length>1)throw Error('重複');const file=found[0]||await adapter.put(record,png);const check=await adapter.get(file.id);if(check.imageId!==record.imageId||check.filename!==record.filename||check.size!==png.size)throw Error('保存照合失敗');record.saveState='verified-mock';return check;}catch(e){record.saveState='uncollected';throw e;}}
 export function eraseComponent(im,x,y){validateImage(im);x=Math.floor(x);y=Math.floor(y);if(x<0||y<0||x>=im.width||y>=im.height)throw Error('画像外です');const data=new Uint8ClampedArray(im.data),w=im.width,h=im.height,q=[y*w+x],seen=new Uint8Array(w*h);for(let a=0;a<q.length;a++){const k=q[a];if(seen[k]||!data[k*4+3])continue;seen[k]=1;data[k*4+3]=0;const px=k%w,py=Math.floor(k/w);if(px)q.push(k-1);if(px<w-1)q.push(k+1);if(py)q.push(k-w);if(py<h-1)q.push(k+w);}return {width:w,height:h,data};}
+
+// Remove only almost invisible pixels (<= 3.2% opacity); never key out a color.
+export function cleanTransparency(im){
+ validateImage(im);const data=new Uint8ClampedArray(im.data);let removed=0;
+ for(let i=0;i<data.length;i+=4)if(data[i+3]<=8){if(data[i+3])removed++;data.fill(0,i,i+4);}
+ return {width:im.width,height:im.height,data,removed};
+}

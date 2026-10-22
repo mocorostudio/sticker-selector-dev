@@ -18,7 +18,7 @@ export function googleTestAuth({readOnly=false,fileOnly=false}={}){
    let settled=false;const finish=(error,response)=>{if(settled)return;settled=true;clearTimeout(timeout);if(error)return reject(error);token=response.access_token;expires=Date.now()+Math.max(0,Number(response.expires_in||3600)-60)*1000;resolve(token)};
    const timeout=setTimeout(()=>finish(Error('Googleログインが完了していません。Safariの認証画面を確認してください。')),60000);
    google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope,include_granted_scopes:false,
-    callback:r=>r.access_token&&(!(readOnly||fileOnly)||r.scope?.split(' ').includes(scope))?finish(null,r):finish(Error(r.error_description||r.error||(readOnly?'Google認証または読み取り権限の確認に失敗しました':'Google認証または保存権限の確認に失敗しました'))),
+    callback:r=>r.access_token&&r.scope?.split(' ').includes(scope)?finish(null,r):finish(Error(r.error_description||r.error||(readOnly?'Google認証または読み取り権限の確認に失敗しました':'Google認証または保存権限の確認に失敗しました'))),
     error_callback:r=>finish(Error(r.type==='popup_closed'?'Googleログインをキャンセルしました。':'Google認証画面を開けません。Safariで開いてください。'))}).requestAccessToken({prompt:'select_account'});
   })})().finally(()=>{pending=null});return pending;
  };

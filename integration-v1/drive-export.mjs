@@ -1,17 +1,17 @@
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261022-drive1';
-import {inspect} from './crop-v9/core.mjs?v=20261022-drive1';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261022-character1';
+import {inspect,cleanTransparency} from './crop-v9/core.mjs?v=20261022-character1';
 const API='https://www.googleapis.com/drive/v3/files',FOLDER='application/vnd.google-apps.folder';
 const FIELDS='id,name,mimeType,parents,size,sha256Checksum,appProperties,trashed,webViewLink';
 export const EXPORT_APP='animal-stickers-selection-v1';
 const id=value=>{if(typeof value!=='string'||!/^[-\w]{1,256}$/.test(value))throw Error('保存先IDが不正です');return value;};
 export async function digest(blob){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(x=>x.toString(16).padStart(2,'0')).join('');}
-export async function prepareExport(items,{get,decode}){
+export async function prepareExport(items,{get,decode,encode}){
  const rows=items.filter(x=>x.origin==='crop-local');if(!rows.length)throw Error('先に切り出した画像を選抜へ送ってください。');
  if(rows.some(x=>x.touched&&!isLocalConfirmed(x)))throw Error('先に「選抜結果を端末に保存」を押してください。');
  if(!rows.some(isLocalConfirmed))throw Error('先に画像を選抜し、結果を端末内に保存してください。');
  const images=[],results=[];let total=0;
  for(const item of rows){const confirmed=isLocalConfirmed(item),row={imageId:item.imageId,number:item.sequenceLabel||'',candidateId:item.candidate||null,phrase:item.phrase||'',rating:confirmed?item.rating:null,comment:item.comment||'',revision:item.revision||null,confirmed,selectionHistory:structuredClone(item.selectionHistory||[]),technicalStatus:'review'};
-  if(confirmed&&item.rating==='o'){id(item.imageId);const blob=await get(item.id);if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error((row.number||item.name)+'のPNGを読み込めません。');total+=blob.size;if(total>150000000)throw Error('一度の保存は150MB以下にしてください。');const qa=inspect(await decode(blob),item.crop?.crossing);if(qa.issues.includes('空画像'))throw Error((row.number||item.name)+'は空画像です。');const name='ST_'+(row.number.replace(/[^\w-]/g,'')||'image')+'_'+item.imageId+'.png',sha=await digest(blob);images.push({name,blob,sha});Object.assign(row,{filename:name,sha256:sha,technicalWarnings:qa.issues});}
+  if(confirmed&&item.rating==='o'){id(item.imageId);let blob=await get(item.id);if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error((row.number||item.name)+'のPNGを読み込めません。');total+=blob.size;if(total>150000000)throw Error('一度の保存は150MB以下にしてください。');const decoded=await decode(blob),cleaned=cleanTransparency(decoded);if(cleaned.removed){if(!encode)throw Error("透過仕上げを準備できません。アプリを再読み込みしてください。");blob=await encode(cleaned);}const qa=inspect(cleaned,item.crop?.crossing);if(qa.issues.includes('空画像'))throw Error((row.number||item.name)+'は空画像です。');const name='ST_'+(row.number.replace(/[^\w-]/g,'')||'image')+'_'+item.imageId+'.png',sha=await digest(blob);images.push({name,blob,sha});Object.assign(row,{filename:name,sha256:sha,technicalWarnings:qa.issues,transparencyCleanup:{version:1,removed:cleaned.removed}});}
   results.push(row);
  }
  const manifest={schema:'animal-stickers-selection-export/v1',purpose:'採用候補の保存。申請用の最終技術確認は別途必要。',results},json=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),key=await digest(json);
@@ -27,11 +27,22 @@ export function createExportDrive({getToken,fetchImpl=globalThis.fetch,readJourn
  async function put(key,parent,entry){const fileId=await reserve(key),expected={id:fileId,name:entry.name,mimeType:entry.blob.type,parents:[parent],appProperties:{exportApp:EXPORT_APP,sha256:entry.sha}};let file=await meta(fileId);if(!file){const boundary='sticker_'+crypto.randomUUID(),body=new Blob(['--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n',JSON.stringify(expected),'\r\n--'+boundary+'\r\nContent-Type: '+entry.blob.type+'\r\n\r\n',entry.blob,'\r\n--'+boundary+'--'],{type:'multipart/related; boundary='+boundary});await request('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':body.type},body});file=await meta(fileId);}
   if(!matches(file,expected)||Number(file.size)!==entry.blob.size)throw Error('保存ファイルの照合に失敗しました。再試行してください。');let sha=file.sha256Checksum;if(!sha){const r=await request(API+'/'+fileId+'?alt=media');if(!r)throw Error('保存ファイルを再読込できません。');const blob=await r.blob();if(blob.size!==entry.blob.size)throw Error('保存サイズが一致しません。');sha=await digest(blob);}if(sha!==entry.sha)throw Error('保存内容が一致しません。既存ファイルは変更していません。');return file;
  }
+ async function children(parent,name){const q="trashed = false and mimeType = '"+FOLDER+"' and '"+id(parent)+"' in parents and name = '"+name+"'";const r=await request(API+'?'+new URLSearchParams({q,fields:'files('+FIELDS+'),nextPageToken',pageSize:'100'}));const result=await r.json();if(result.nextPageToken)throw Error('保存先候補が多すぎます。フォルダを整理してください。');return result.files||[];}
+ async function characterFolder(folderId){const f=await meta(folderId);if(!f||f.trashed||f.mimeType!==FOLDER)throw Error('キャラフォルダを確認できません。');const source=await children(f.id,'03_元画像・生成履歴');if(source.length!==1)throw Error('「03_元画像・生成履歴」があるキャラフォルダを指定してください。');return {id:f.id,name:f.name};}
+ async function character(fileId){let f=await meta(fileId);if(!f||f.trashed)throw Error('元画像を確認できません。保存先は変更していません。');const seen=new Set();for(let depth=0;depth<12;depth++){if(!f.parents||f.parents.length!==1)throw Error('キャラを特定できません。キャラフォルダを指定してください。');f=await meta(f.parents[0]);if(!f||f.trashed||seen.has(f.id))break;seen.add(f.id);if(f.mimeType===FOLDER&&f.name==='03_元画像・生成履歴'){if(f.parents?.length!==1)break;return characterFolder(f.parents[0]);}}throw Error('キャラを特定できません。キャラフォルダを指定してください。');}
  return {
+  character,characterFolder,
   async account(){const r=await request('https://www.googleapis.com/drive/v3/about?fields=user(permissionId,emailAddress)');const user=(await r.json()).user;if(!user?.permissionId)throw Error('保存するGoogleアカウントを確認できません。');return user;},
   async roots(){const r=await request(API+'?'+new URLSearchParams({q:"trashed = false and mimeType = '"+FOLDER+"' and appProperties has { key='exportApp' and value='"+EXPORT_APP+"' } and appProperties has { key='kind' and value='export-root' }",fields:'files('+FIELDS+'),nextPageToken',pageSize:'100'}));return (await r.json()).files;},
-  async save(plan,{accountId,rootId,rootName='動物スタンプ_選抜保存',onProgress=()=>{}}){id(accountId);const prefix='drive-export:'+accountId+':';let root;if(rootId){root=await meta(rootId);if(!root||root.trashed||root.mimeType!==FOLDER||root.appProperties?.exportApp!==EXPORT_APP||root.appProperties?.kind!=='export-root')throw Error('このアプリの保存用フォルダを選んでください。');}else{if(!rootName.trim()||rootName.length>100)throw Error('保存用フォルダ名を1〜100文字で入力してください。');root=await folder(prefix+'root:'+await digest(new Blob([rootName.trim()])),rootName.trim(),null,{kind:'export-root'});}
+  async save(plan,{accountId,characterId,onProgress=()=>{}}){id(accountId);if(!characterId)throw Error('キャラ別の保存先を確認してください。マイドライブ直下には保存しません。');const characterInfo=await characterFolder(characterId),prefix='drive-export:'+accountId+':';const found=await children(characterInfo.id,'05_選抜結果保存');if(found.length>1)throw Error('保存先が複数あります。確認してください。');let root=found[0];if(!root)root=await folder(prefix+'character:'+characterInfo.id,'05_選抜結果保存',characterInfo.id,{kind:'export-root',characterId:characterInfo.id});if(root.parents?.length!==1||root.parents[0]!==characterInfo.id)throw Error('キャラ内の保存先を照合できません。');
    const bundle=await folder(prefix+root.id+':'+plan.key+':folder','選抜_'+plan.key.slice(0,12),root.id,{kind:'selection-bundle',bundle:plan.key});const entries=[...plan.images,plan.manifest];let done=0;for(const entry of entries){onProgress({done,total:entries.length,name:entry.name});await put(prefix+bundle.id+':'+entry.name,bundle.id,entry);onProgress({done:++done,total:entries.length,name:entry.name});}return {folderId:bundle.id,rootId:root.id,link:bundle.webViewLink||'https://drive.google.com/drive/folders/'+bundle.id,count:done};
   }
  };
+}
+
+export function sourceFileId(item){return item.crop?.driveSource?.fileId||[...(item.crop?.history||[])].reverse().find(h=>h.action==='read-drive-source'&&h.fileId)?.fileId||null;}
+export async function groupCharacters(items,{resolve,fallback}){
+ const groups=new Map(),cache=new Map();
+ for(const item of items.filter(x=>x.origin==='crop-local')){const source=sourceFileId(item);let character;if(source){if(!cache.has(source))cache.set(source,await resolve(source));character=cache.get(source);}else character=fallback;if(!character?.id)throw Error('元画像の場所が不明です。キャラフォルダを指定してください。');if(!groups.has(character.id))groups.set(character.id,{character,items:[]});groups.get(character.id).items.push(item);}
+ if(!groups.size)throw Error('先に切り出した画像を選抜へ送ってください。');return [...groups.values()];
 }

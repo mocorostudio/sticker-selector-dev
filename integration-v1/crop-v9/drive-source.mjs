@@ -1,7 +1,7 @@
 export const FOLDER='application/vnd.google-apps.folder';
 export const IMAGE_TYPES=['image/png','image/jpeg','image/webp'];
 const API='https://www.googleapis.com/drive/v3/files';
-const fields='id,name,mimeType,size,modifiedTime,version,md5Checksum,trashed,capabilities(canDownload)';
+const fields='id,name,mimeType,parents,size,modifiedTime,version,md5Checksum,trashed,capabilities(canDownload)';
 const validId=id=>{if(typeof id!=='string'||!/^[-\w]{1,256}$/.test(id))throw Error('Drive IDが不正です');return id;};
 const quoted=value=>"'"+String(value).replaceAll('\\','\\\\').replaceAll("'","\\'")+"'";
 export function createDriveSource({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{}}){
@@ -32,7 +32,7 @@ export function createDriveSource({getToken,fetchImpl=globalThis.fetch,onUnautho
    try{for(;;){const next=await reader.read();if(next.done)break;size+=next.value.byteLength;if(size>25000000){await reader.cancel();throw Error('画像は25MB以下にしてください');}chunks.push(next.value);}}finally{reader.releaseLock();}
    const after=await metadata(id);check(after);
    if(size!==Number(before.size)||['id','mimeType','size','modifiedTime','version','md5Checksum'].some(k=>before[k]!==after[k]))throw Error('読込中に元画像が変更されました。もう一度選んでください。');
-   return {file:new File(chunks,before.name,{type:before.mimeType,lastModified:Date.parse(before.modifiedTime)||0}),driveSource:{fileId:before.id,name:before.name,version:before.version,modifiedTime:before.modifiedTime,md5Checksum:before.md5Checksum,readAt:new Date().toISOString()}};
+   return {file:new File(chunks,before.name,{type:before.mimeType,lastModified:Date.parse(before.modifiedTime)||0}),driveSource:{fileId:before.id,name:before.name,parents:before.parents,version:before.version,modifiedTime:before.modifiedTime,md5Checksum:before.md5Checksum,readAt:new Date().toISOString()}};
   }
  };
 }

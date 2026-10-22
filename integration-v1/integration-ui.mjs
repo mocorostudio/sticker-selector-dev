@@ -1,6 +1,6 @@
 import {importCrops} from './crop-handoff.mjs?v=20261021-complete1';
 import {completeSelection} from './selection-completion.mjs?v=20261021-complete1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261022-drive1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261022-character1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame');let importing=false;
  function show(screen){const crop=screen==='crop';frame.hidden=!crop;$('selectionScreen').hidden=crop;for(const id of ['cropTab','selectionTab'])$(id).setAttribute('aria-selected',String(id===(crop?'cropTab':'selectionTab')));if(!crop)api.redraw();window.dispatchEvent(new Event('resize'));}
