@@ -7,3 +7,4 @@ export function numberedRecords(sources,records){
   return {...r,sequenceLabel:r.sequenceLabel||String(sourceIndex+1).padStart(3,'0')+'-'+String(roots.findIndex(x=>x.imageId===root.imageId)+1).padStart(2,'0')};});
 }
 export function selectionDraft(record){if(!record.hasPixels&&!record.pixels)throw Error('画像がない番号は切り出し直してください');return {...record,cropReview:{imageId:record.imageId,confirmed:true},technicalStatus:'review'};}
+export function handoffRecords(sources,records){return latestRecords(numberedRecords(sources,records));}
