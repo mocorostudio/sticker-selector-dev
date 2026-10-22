@@ -15,7 +15,7 @@ async function newTest(){
    frame.src='about:blank';
    await new Promise(resolve=>setTimeout(resolve,300));
    localStorage.removeItem(key.store);localStorage.removeItem(key.view);
-   await deleteDb(key.db);
+   await new Promise((resolve,reject)=>{const req=indexedDB.open(key.db);req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains('images')){db.close();resolve();return;}const tx=db.transaction('images','readwrite');tx.objectStore('images').clear();tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};};req.onerror=()=>reject(req.error);});
    const cropName='sticker-crop-v9:workflow:'+new URL('..',new URL('crop-v9/',location.href)).pathname;
    await deleteDb(cropName);
    location.reload();
