@@ -1,13 +1,15 @@
-import {importCrops,confirmLocal} from './crop-handoff.mjs?v=20261021-batch1';
+import {importCrops} from './crop-handoff.mjs?v=20261021-complete1';
+import {completeSelection} from './selection-completion.mjs?v=20261021-complete1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame');let importing=false;
  function show(screen){const crop=screen==='crop';frame.hidden=!crop;$('selectionScreen').hidden=crop;for(const id of ['cropTab','selectionTab'])$(id).setAttribute('aria-selected',String(id===(crop?'cropTab':'selectionTab')));if(!crop)api.redraw();window.dispatchEvent(new Event('resize'));}
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
  $('loadPending').textContent='切り出し画面へ';$('loadPending').onclick=()=>show('crop');
- $('sync').textContent='選抜を端末内で確定';$('mode').textContent='統合テスト版：切り出し→選抜。Driveへの送信なし。';
+ $('sync').textContent='選抜結果を保存・完了';$('mode').textContent='統合テスト版：切り出し→選抜。Driveへの送信なし。';
  $('driveStatus').textContent='◯・△・✕を選び、最後に端末内で確定してください。';
- $('sync').onclick=()=>api.withBusy(async()=>{const selected=api.visible().filter(x=>x.origin==='crop-local'&&x.touched);if(!selected.length){$('driveStatus').textContent='確定する選抜がありません。初期◯は未選抜です。';return;}if(!confirm(selected.length+'枚の選抜を端末内で確定します。'))return;const before=structuredClone(api.items());try{const count=confirmLocal(selected);api.save();api.redraw();$('driveStatus').textContent='端末内で確定 '+count+'件。Drive送信なし。';}catch(e){api.replaceItems(before);throw e;}});
+ const completion=document.createElement('dialog');completion.id='selectionComplete';completion.setAttribute('aria-labelledby','completionTitle');const title=document.createElement('h2');title.id='completionTitle';const message=document.createElement('p');message.setAttribute('role','status');const note=document.createElement('p');const back=document.createElement('button');back.textContent='選抜一覧に戻る';back.onclick=()=>completion.close();const next=document.createElement('button');next.textContent='次の元画像を切り出す';next.onclick=()=>{completion.close();show('crop');};completion.append(title,message,note,back,next);document.body.append(completion);
+ $('sync').onclick=()=>api.withBusy(async()=>{title.textContent='選抜結果を保存中…';message.textContent='';note.textContent='';next.hidden=true;completion.showModal();try{await api.ready;const result=await completeSelection(api);api.redraw();title.textContent=result.empty?'まだ選抜されていません':result.saved?'選抜結果を保存しました':'選抜結果は保存済みです';message.textContent=result.empty?'各画像の◯・△・✕を選んでから、保存ボタンを押してください。':`採用 ◯ ${result.adopted}枚 ／ 保留 △ ${result.held}枚 ／ 不採用 ✕ ${result.rejected}枚`+(result.unrated?`。未選抜は${result.unrated}枚です。`:'。表示中の画像はすべて選抜済みです。');note.textContent='結果はこの端末・このブラウザーに保存しています。Driveへの保存や、LINEへの申請はまだ行いません。';next.hidden=result.empty;$('driveStatus').textContent=result.empty?'未選抜です。◯・△・✕を選んでください。':`保存済み ${result.confirmed}枚（採用${result.adopted}・保留${result.held}・不採用${result.rejected}）`;}catch(e){title.textContent='保存できませんでした';message.textContent=e.message||'保存中にエラーが起きました';note.textContent='保存は完了していません。一覧に戻って、もう一度お試しください。';$('driveStatus').textContent='保存失敗：'+message.textContent;api.redraw();}});
  window.addEventListener('message',async event=>{
   if(event.origin!==location.origin||event.source!==frame.contentWindow||event.data?.type!=='crop-handoff-v1')return;
   const {requestId,entries}=event.data;if(typeof requestId!=='string')return;

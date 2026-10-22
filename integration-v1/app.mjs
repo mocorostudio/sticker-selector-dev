@@ -1,5 +1,5 @@
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261021-batch1';
-import {initWorkflow} from './integration-ui.mjs?v=20261021-batch1';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261021-complete1';
+import {initWorkflow} from './integration-ui.mjs?v=20261021-complete1';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261020-storage2';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
@@ -26,7 +26,7 @@ let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds
 const visible=()=>{const replaced=new Set(workflowLocal?state.items.flatMap(x=>(x.crop?.history||[]).map(h=>h.previousImageId).filter(Boolean)):[]);return state.items.filter(x=>(shownIds===null||shownIds.includes(x.id))&&!replaced.has(x.imageId));};
 function setView(ids,append=false){const unique=[...new Set(ids)];shownIds=!append&&$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
-function updateSyncCount(){const count=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local')).length;$('syncCount').textContent='確定する画像：'+count+'枚'}
+function updateSyncCount(){const items=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local'));const pending=workflowLocal?items.filter(x=>!isLocalConfirmed(x)).length:items.length;$('syncCount').textContent=workflowLocal?'未保存の変更：'+pending+'枚 ／ 保存済み：'+(items.length-pending)+'枚':'確定する画像：'+pending+'枚'}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}
 new MutationObserver(updateSyncCount).observe($('list'),{childList:true});
 updateSyncCount();
