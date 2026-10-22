@@ -1,9 +1,11 @@
+import {initSubmission} from './submission-ui.mjs?v=20261022-submit1';
 import {importCrops} from './crop-handoff.mjs?v=20261021-complete1';
 import {completeSelection} from './selection-completion.mjs?v=20261021-complete1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261022-route1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261022-submit1';
 export function initWorkflow(api){
- const $=id=>document.getElementById(id),frame=$('cropFrame');let importing=false;
- function show(screen){const crop=screen==='crop';frame.hidden=!crop;$('selectionScreen').hidden=crop;for(const id of ['cropTab','selectionTab'])$(id).setAttribute('aria-selected',String(id===(crop?'cropTab':'selectionTab')));if(!crop)api.redraw();window.dispatchEvent(new Event('resize'));}
+ const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
+ function show(screen){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection)api.redraw();window.dispatchEvent(new Event('resize'));}
+ submission.tab.onclick=()=>show('submission');
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
  $('loadPending').textContent='切り出し画面へ';$('loadPending').onclick=()=>show('crop');

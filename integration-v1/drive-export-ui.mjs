@@ -1,6 +1,6 @@
-import {createBusyScreen} from './busy-screen.mjs?v=20261022-route1';
-import {googleTestAuth} from './google-auth.mjs?v=20261022-route1';
-import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261022-route1';
+import {createBusyScreen} from './busy-screen.mjs?v=20261022-submit1';
+import {googleTestAuth} from './google-auth.mjs?v=20261022-submit1';
+import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261022-submit1';
 export function initDriveExport(api){
  const dialog=document.createElement('dialog');dialog.id='driveExport';dialog.setAttribute('aria-labelledby','driveExportTitle');
  const title=document.createElement('h2');title.id='driveExportTitle';title.textContent='キャラ別にGoogle Driveへ保存';
