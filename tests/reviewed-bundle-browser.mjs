@@ -14,8 +14,9 @@ try{
  const external=[];
  await context.route('**/*',r=>{if(new URL(r.request().url()).origin===service.url)return r.continue();if(r.request().url()==='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')return r.fulfill({body:jszip,contentType:'text/javascript'});external.push(r.request().url());return r.abort();});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(service.url+'/integration-v1/workflow.html');
- await page.frameLocator('#cropFrame').locator('#handoff').waitFor();
+ await page.goto(service.url+'/integration-v1/workflow.html?view=selection');
+ await page.locator('#selectionScreen:not([hidden])').waitFor();
+ await page.locator('#selectionScreen details summary').first().click();
  await page.locator('label[for="files"]').waitFor();
  const upload=async()=>{await page.locator('#files').setInputFiles({name:'reviewed.zip',mimeType:'application/zip',buffer:zipBytes});await page.waitForFunction(()=>!document.querySelector('#files').disabled);};
  await upload();await page.waitForFunction(()=>!document.querySelector('#selectionScreen').hidden||document.querySelector('#error').textContent).catch(async e=>{console.log(JSON.stringify(await page.evaluate(()=>({error:document.querySelector('#error').textContent,cards:document.querySelectorAll('.card').length,tabDisabled:document.querySelector('#selectionTab').disabled,zip:!!window.JSZip}))),errors);throw e;});
