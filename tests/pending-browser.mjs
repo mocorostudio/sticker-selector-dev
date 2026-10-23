@@ -40,6 +40,12 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   const legacy='original legacy votes',old={id:'crop:old-dog',imageId:'old-dog',name:'old.png',origin:'crop-local',rating:'x',touched:true,revision:'old-vote',comment:'keep original',selectionHistory:[],crop:{history:[]}};
   await page.evaluate(({keys,old,legacy})=>{localStorage.setItem('sticker-selector-v9',legacy);localStorage.setItem(keys.store,JSON.stringify({items:[old],background:'checker'}));localStorage.setItem(keys.view,JSON.stringify([old.id]));},{keys,old,legacy});
   await page.reload();await page.locator('#selectionScreen:not([hidden])').waitFor();
+  assert.equal(await page.locator('.card').count(),0);
+  await page.locator('#showAll').evaluate(el=>el.click());assert.equal(await page.locator('.card').count(),0);
+  fixture.unauthorized=true;
+  await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();
+  await page.locator('#drivePendingStatus').filter({hasText:'期限'}).waitFor();assert.equal(await page.locator('.card').count(),0);
+  await page.getByRole('button',{name:'閉じる',exact:true}).filter({visible:true}).click();fixture.unauthorized=false;
   await page.locator('#selectionScreen details summary').first().click();await page.locator('#importMode').selectOption('append');await page.locator('#selectionScreen details summary').first().click();
   const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();};
   await load();await page.locator('#drivePending').waitFor({state:'hidden'});
@@ -57,6 +63,11 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   fixture.unauthorized=true;await load();await page.locator('#drivePendingStatus').filter({hasText:'期限'}).waitFor();assert.equal((await saved()).items.length,10);assert.equal((await saved()).items.find(x=>x.id===chosen.id).rating,'h');
   await page.getByRole('button',{name:'閉じる',exact:true}).filter({visible:true}).click();
   fixture.unauthorized=false;await page.reload();await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);assert.equal(await page.locator('.chosen').count(),1);
+  await page.goto(service.url+'/integration-v1/workflow.html?view=selection');await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
+  await page.locator('#showAll').evaluate(el=>el.click());assert.equal(await page.locator('.card').count(),9);
+  await page.goto(service.url+'/integration-v1/workflow.html?view=selection&character=another-character');await page.locator('#selectionScreen:not([hidden])').waitFor();assert.equal(await page.locator('.card').count(),0);
+  assert.deepEqual((await saved()).items.find(x=>x.id===old.id),old);
+  await page.goto(url);await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
   assert.equal(await page.evaluate(()=>localStorage.getItem('sticker-selector-v9')),legacy);assert.equal(await page.evaluate(()=>JSON.stringify(localStorage).includes('pending-fixture-token')),false);
   assert.ok(fixture.calls.every(c=>c.method==='GET'));assert.deepEqual(external,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await fs.mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/pending-'+engine+(process.env.TEST_PENDING_MANIFEST?'-private':'')+'.png',fullPage:true});await page.screenshot({path:'test-results/pending-'+engine+'-viewport.png'});
