@@ -2,13 +2,15 @@ import {initSubmission} from './submission-ui.mjs?v=20261023-merge1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
 import {initDriveExport} from './drive-export-ui.mjs?v=20261023-merge1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261024-drive1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
  function show(screen){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection)api.redraw();window.dispatchEvent(new Event('resize'));}
  submission.tab.onclick=()=>show('submission');
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
- $('loadPending').textContent='切り出し画面へ';$('loadPending').onclick=()=>show('crop');
+ const pending=initDrivePending(api,{onLoaded:r=>{show('selection');$('driveStatus').textContent=r.character.name+'：検品済み '+r.count+'枚をDriveから読み込みました。◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
+ $('loadPending').textContent='Driveの選抜待ちを読み込む';$('loadPending').onclick=pending.open;
  const driveExport=initDriveExport(api);
  $('sync').textContent='選抜結果を端末に保存';$('mode').textContent='切り出し → 選抜 → Google Driveに保存';
  $('driveStatus').textContent='◯・△・✕を選び、最後に端末内で確定してください。';
@@ -24,5 +26,5 @@ export function initWorkflow(api){
    if(!result)throw Error('受け渡しを完了できませんでした');reply(result);if(result.ids.length){show('selection');$('driveStatus').textContent='切り出しから追加 '+result.added+'枚／取込済み '+result.existing+'枚／失敗 '+result.errors.length+'件。技術検品が未完了の画像は仮選別のみで、採用予定・保留へのPNG保存は停止します。';}
   }catch(e){reply({error:e.message});}finally{importing=false;}
  });
- show('crop');
+ show(new URLSearchParams(location.search).get('view')==='selection'||new URLSearchParams(location.search).has('character')?'selection':'crop');
 }
