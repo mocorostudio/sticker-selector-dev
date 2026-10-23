@@ -6,3 +6,6 @@ const html=fs.readFileSync('index.html','utf8');
 for(const id of ['list','files','status','loadPending','sync'])if(!html.includes('id="'+id+'"'))throw Error('Missing UI '+id);
 for(const name of fs.readdirSync('.').filter(x=>x.startsWith('sticker-selector-v9-')&&x.endsWith('.html'))){const source=fs.readFileSync(name,'utf8');for(const [,script] of source.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(script);if(!source.includes("location.replace('index.html'"))throw Error('Legacy UI is still active: '+name)}
 console.log('PASS module syntax, primary UI and legacy redirects');
+
+for(const name of fs.readdirSync('integration-v1',{recursive:true}).filter(x=>x.endsWith('.mjs')))execFileSync(process.execPath,['--check','integration-v1/'+name]);
+console.log('PASS integration-v1 module syntax');

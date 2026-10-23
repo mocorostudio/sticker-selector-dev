@@ -1,3 +1,4 @@
+import {initSourceSave} from './source-save-ui.mjs?v=20261023-source1';
 import {createBusyScreen} from '../busy-screen.mjs?v=20261022-busy1';
 import {cleanTransparency,detect,cropPixels,trim,removeBackground,inspect,gate,crossesBounds,eraseComponent,boundaryOnly,boundaryAccepted,confirmBoundary} from './core.mjs?v=20261022-character1';
 import {initDriveSource} from './drive-source-ui.mjs?v=20261022-character1';
@@ -11,6 +12,7 @@ let storage,persisted;
 try{storage=await openCropStorage(dbName);persisted=await storage.load();}catch(e){$('status').textContent='作業データを開けません。元のデータを消さず、別のタブを閉じて開き直してください。 '+e.message;throw e;}
 let sources=structuredClone(persisted?.sources||[]),records=structuredClone(persisted?.records||[]),queue=structuredClone(persisted?.queue||[]),busy=false,pauseRequested=false,driveReader=null,page=0,viewSource='all',renderVersion=0;
 const inputs=new Map();
+initSourceSave();
 const processing=createBusyScreen({watch:$('status')});
 let editImageId=null;
 function canvas(im){const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.data),im.width,im.height),0,0);return c;}
