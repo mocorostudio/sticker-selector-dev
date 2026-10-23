@@ -1,5 +1,5 @@
 import {createBusyScreen} from './busy-screen.mjs?v=20261023-merge1';
-import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
+import {googleTestAuth} from './google-auth.mjs?v=20261024-auth1';
 import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261023-merge1';
 export function initDriveExport(api){
  const dialog=document.createElement('dialog');dialog.id='driveExport';dialog.setAttribute('aria-labelledby','driveExportTitle');
@@ -8,7 +8,7 @@ export function initDriveExport(api){
  const status=document.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const connect=document.createElement('button');connect.textContent='保存用のGoogleアカウントに接続';connect.disabled=true;
  const fallbackLabel=document.createElement('label');fallbackLabel.textContent='元画像の場所が不明な場合だけ：キャラフォルダのDrive URL';
- const fallback=document.createElement('input');fallback.type='url';fallback.placeholder='「変な犬」などのキャラフォルダURL';fallbackLabel.append(fallback);
+ const fallback=document.createElement('input');fallback.type='url';fallback.placeholder='保存先キャラのフォルダURL';fallbackLabel.append(fallback);
  const note=document.createElement('p');note.textContent='Googleの確認画面でDriveへのアクセス許可が必要です。キャラの確認と専用フォルダへの保存に使います。保存先の確認中は書き込みません。';
  const check=document.createElement('button');check.textContent='① 透過仕上げ・保存準備';check.disabled=true;
  const destinations=document.createElement('ul');
