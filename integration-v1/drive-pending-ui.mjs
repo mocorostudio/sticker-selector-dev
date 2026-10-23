@@ -19,6 +19,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  select.onchange=controls;
  async function read(characterId){
   if(api.isBusy())throw Error('別の処理が終わってから読み込んでください。');
+  api.setCharacter(characterId);
   let loaded,failure;
   await api.withBusy(async()=>{try{
    status.textContent='キャラと検品記録を確認中…';
