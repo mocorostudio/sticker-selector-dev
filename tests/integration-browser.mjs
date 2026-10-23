@@ -12,14 +12,25 @@ try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]]){
   await context.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url());
    if(req.url()==='https://accounts.google.com/gsi/client')return route.fulfill({contentType:'text/javascript',body:"window.google={accounts:{oauth2:{initTokenClient:o=>({requestAccessToken:()=>o.callback({access_token:'fixture',scope:o.scope,expires_in:3600})})}}}"});
-   if(url.origin==='https://www.googleapis.com'){
-    const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'GET,POST,OPTIONS','Access-Control-Allow-Headers':'Authorization,Content-Type'};
-    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers});
-    const response=await remote.fetch(req.url(),{method:req.method(),headers:{'Content-Type':req.headers()['content-type']},body:new Blob([req.postDataBuffer()||''])});
-    return route.fulfill({status:response.status,headers:{...Object.fromEntries(response.headers),...headers},body:Buffer.from(await response.arrayBuffer())});
-   }
+   if(url.origin==='https://www.googleapis.com')return route.abort(); // no external API request may escape the fixture
    if(req.url()==='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')return route.fulfill({contentType:'text/javascript',body:await readFile('node_modules/jszip/dist/jszip.min.js')});
    return url.origin===service.url?route.continue():route.abort();
+  });
+  // WebKit's route API may omit streamed Blob request bodies. Pass exact Blob bytes
+  // through a browser binding instead, so both engines test the same transport payload.
+  await page.exposeBinding('sourceFixtureFetch',async(_source,request)=>{
+   const response=await remote.fetch(request.url,{method:request.method,headers:request.headers,body:new Blob([new Uint8Array(request.body)])});
+   return {status:response.status,headers:Object.fromEntries(response.headers),body:[...new Uint8Array(await response.arrayBuffer())]};
+  });
+  await page.addInitScript(()=>{
+   const original=window.fetch.bind(window);
+   window.fetch=async(input,options={})=>{
+    if(typeof input==='string'&&input.startsWith('https://www.googleapis.com/')){
+     const response=await window.sourceFixtureFetch({url:input,method:options.method||'GET',headers:options.headers||{},body:options.body?[...new Uint8Array(await options.body.arrayBuffer())]:[]});
+     return new Response(new Uint8Array(response.body),{status:response.status,headers:response.headers});
+    }
+    return original(input,options);
+   };
   });
   await page.goto(service.url+'/integration-v1/workflow.html');
   const frame=page.frameLocator('#cropFrame');await frame.locator('#sourceSave').waitFor({state:'attached'});
