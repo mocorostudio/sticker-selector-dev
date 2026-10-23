@@ -15,7 +15,7 @@ export async function startServer(){
   else throw Error('unknown mock endpoint');
   res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));return;
  }
- const file=path.resolve('.','.'+(url.pathname==='/'?'/index.html':url.pathname));if(!file.startsWith(process.cwd()+path.sep))throw Error('forbidden');
+ const file=path.resolve('.','.'+(url.pathname.endsWith('/')?url.pathname+'index.html':url.pathname));if(!file.startsWith(process.cwd()+path.sep))throw Error('forbidden');
  const bytes=await fs.readFile(file);res.setHeader('Content-Type',file.endsWith('.mjs')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(bytes);
  }catch(e){res.statusCode=500;res.end(JSON.stringify({error:e.message}))}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

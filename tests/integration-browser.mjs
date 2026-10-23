@@ -43,5 +43,5 @@ try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(remote.posts,1);assert.deepEqual(errors,[]);
   await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/integration-'+name+'.png',fullPage:true});
   console.log('PASS',name,'source save/readback/retry → crop 9 → automatic QA pending visual review → selection → reload');await context.close();
- }finally{await browser.close();}
+ }catch(e){console.error('Integration browser failure:',name,e);for(const p of browser.contexts().flatMap(c=>c.pages())){console.error(await p.locator('body').innerText().catch(()=>''));await mkdir('test-results',{recursive:true});await p.screenshot({path:'test-results/integration-failed-'+name+'.png',fullPage:true}).catch(()=>{});}throw e;}finally{await browser.close();}
 }}finally{service.server.close();}
