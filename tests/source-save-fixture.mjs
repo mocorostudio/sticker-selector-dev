@@ -12,7 +12,7 @@ export class SourceFixture{
    if(this.files.has(metadata.id))return json({},409);
    const content=parts[2].slice(parts[2].indexOf('\r\n\r\n')+4,-2),blob=new Blob([Buffer.from(content,'latin1')],{type:'image/png'});
    this.files.set(metadata.id,{...metadata,size:String(blob.size),sha256Checksum:await digest(blob)});this.blobs.set(metadata.id,blob);
-   if(this.lose){this.lose=false;throw Error('lost upload response');}return json({id:metadata.id});
+   if(this.lose){this.lose=false;throw Error('lost upload response');}if(this.conflict)return json({},409);return json({id:metadata.id});
   }
   if(u.pathname.endsWith('/files')){
    const q=u.searchParams.get('q'),parent=q.match(/'([-\w]+)' in parents/)?.[1],name=q.match(/name = '([^']+)'/)?.[1];
