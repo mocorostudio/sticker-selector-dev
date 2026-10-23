@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' blob: data:; connect-src 'self' https://www.googleapis.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; object-src 'none'; base-uri 'none'">
-<title>スタンプ切り出し v9</title><link rel="stylesheet" href="style.css?v=20261022-busy1"><body><main>
+<title>スタンプ切り出し v9</title><link rel="stylesheet" href="style.css?v=20261023-merge1"><body><main>
 <h1>スタンプ切り出し</h1><p>元画像を選ぶ → まとめて切り出す → 線入り一覧を確認 → 選別へ。セリフ・ポーズの選択は不要です。</p>
 <p>画像処理は端末内。Drive画像の読み込みは読み取り専用です。元画像PNGの保存は、別の保存ボタンを押したときだけ実行します。</p>
 <button id="driveOpen">Google Driveから選ぶ</button>
@@ -26,4 +26,4 @@
 <label>バックアップから復帰<input id="restore" type="file" accept="application/json"></label><button id="manifest">連携JSONを保存</button>
 <section aria-label="切り出しの確認"><h2>線と番号で、ざっと確認</h2><p>欠けや隣の絵の混入がなければ「切り出した画像を②選抜へ送る」。セリフ選択・1枚ずつの合格操作は不要です。少数の修正は選別から戻って行えます。</p><p>番号は元画像順−左上からの切り出し順です。セリフとの対応が不明でも進められます。</p><div id="overview"></div><button id="recropOverview">不成功 → 切り取り範囲を直す</button><p>上の元画像を選び、直したい番号をタップしてください。範囲を直して新しい画像を作れます。</p></section>
 <details id="cardDetails"><summary>個別の画像・手動修正を開く</summary><div id="cards"></div></details>
-</main><script type="module" src="app.mjs?v=20261023-source1"></script></body></html>
+</main><script type="module" src="app.mjs?v=20261023-merge1"></script></body></html>

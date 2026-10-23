@@ -16,8 +16,8 @@ async function scenario(browser,name,fn){service.reset();const context=await bro
  try{await page.goto(service.url+(name.includes('Google REST')?'/?drive=test':'/?mock=1'));await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('表示'));await fn(page,rest);assert.deepEqual(errors,[]);console.log('PASS',name);passed++}
  catch(e){failed++;console.error('FAIL',name,e,'UI:',await page.locator('#error').textContent(),await page.locator('#driveStatus').textContent());await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/'+name.replaceAll(/[^\w-]/g,'_')+'.png',fullPage:true}).catch(()=>{})}
  finally{await context.close()}}
-try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]]){
- const browser=await type.launch({headless:true});
+try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(([name])=>!process.env.TEST_BROWSER||process.env.TEST_BROWSER===name)){
+ const browser=await type.launch({headless:true,...(engine==='chromium'&&process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE,args:['--no-sandbox','--disable-gpu']}: {})});
  try{
  await scenario(browser,engine+' phone load/rate/background/reload/sync',async page=>{
   await page.locator('#loadPending').click();await page.waitForFunction(()=>document.querySelectorAll('.card').length===3);

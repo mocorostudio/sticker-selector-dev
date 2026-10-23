@@ -24,3 +24,9 @@ test('progress identifies each image and never announces unverified completion',
  assert.deepEqual(progress.filter(x=>x.stage==='error').map(x=>x.index),[1,2,3]);
  assert.ok(progress.every(x=>x.total===3));
 });
+test('isolated fixture flags cannot bypass production technical approval',async()=>{
+ const d=new MemoryDrive();d.mode='production';
+ Object.assign(d.rows[0],{technicalPassed:false,testFixture:true,scope:'isolated-test'});
+ const r=await run(d);assert.equal(r.errors.length,1);assert.equal(r.saved.length,2);
+ assert.equal(d.rows[0].confirmed,false);
+});

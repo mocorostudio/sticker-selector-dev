@@ -1,5 +1,5 @@
 <!doctype html><html lang="ja"><meta charset="utf-8"><title>合成データ専用の保存移行テスト</title><h1>合成データ専用の保存移行テスト</h1><p>このページ自身が作成する専用テストDBだけを使います。制作中のデータには触れません。</p><button id="run">旧形式からの移行をテスト</button><pre id="result" role="status">未実行</pre><script type="module">
-import {openCropStorage} from '../crop-v9/storage.mjs?v=20261021-flow2';
+import {openCropStorage} from '../crop-v9/storage.mjs?v=20261023-merge1';
 const result=document.getElementById('result');
 document.getElementById('run').onclick=async()=>{let storage;try{
  const name='qa-crop-migration-'+crypto.randomUUID(),pixels={width:1,height:1,data:new Uint8ClampedArray([1,2,3,255])};

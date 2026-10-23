@@ -1,6 +1,6 @@
-import {googleTestAuth} from '../google-auth.mjs?v=20261021-drive1';
-import {createDriveSource,FOLDER,IMAGE_TYPES} from './drive-source.mjs?v=20261021-flow2';
-import {MAX_BATCH} from './workflow-core.mjs?v=20261021-flow2';
+import {googleTestAuth} from '../google-auth.mjs?v=20261023-merge1';
+import {createDriveSource,FOLDER,IMAGE_TYPES} from './drive-source.mjs?v=20261023-merge1';
+import {MAX_BATCH} from './workflow-core.mjs?v=20261023-merge1';
 export function initDriveSource({onSelect,onConnected=()=>{},getProgress=()=>({status:'new',label:'未処理'})}){
  const $=id=>document.getElementById(id),panel=$('drivePicker'),status=$('driveReadStatus'),list=$('driveList'),selected=new Map();
  let auth,source,token='',loading=false,folder='root',trail=[],search='',nextPage='',listed=[];

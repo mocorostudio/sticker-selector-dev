@@ -1,7 +1,7 @@
-import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261020-storage2';
+import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261023-quality1';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
-import {syncSelections,assertIdentity} from './sync-engine.mjs?v=20261020-storage2';
+import {syncSelections,assertIdentity} from './sync-engine.mjs?v=20261023-quality1';
 import {storageKeys,recoverDraft} from './session-store.mjs';
 
 'use strict';
@@ -23,7 +23,7 @@ let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds
 const visible=()=>shownIds===null?state.items:state.items.filter(x=>shownIds.includes(x.id));
 function setView(ids){const unique=[...new Set(ids)];shownIds=$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
-function updateSyncCount(){const count=visible().filter(x=>x.touched&&x.imageId).length;$('syncCount').textContent='確定する画像：'+count+'枚'}
+function updateSyncCount(){if(!driveTest&&params.get('mock')!=='1')return;const count=visible().filter(x=>x.touched&&x.imageId).length;$('syncCount').textContent='確定する画像：'+count+'枚'}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}
 new MutationObserver(updateSyncCount).observe($('list'),{childList:true});
 updateSyncCount();
@@ -55,7 +55,7 @@ async function addPNG(blob,name){
   const old=await get(it.id);if(old&&old.size===blob.size){const a=new Uint8Array(await old.arrayBuffer()),b=new Uint8Array(bytes);if(a.every((v,i)=>v===b[i]))return it.id}
  }
  const id='local:'+name+'|'+hash;
- if(state.items.some(x=>x.id===id))return id;
+ if(state.items.some(x=>x.id===id)){await put(id,blob);return id;}
  await put(id,blob);state.items.push({id,name,rating:'o',touched:false,comment:''});save();return id;
 }
 async function loadZip(file,ids){
@@ -75,7 +75,7 @@ $('files').onchange=async e=>{
  const files=[...e.target.files];e.target.value='';const ids=[];importErrors=[];
  await withBusy(async()=>{
  for(const file of files){try{if(file.name.toLowerCase().endsWith('.zip'))await loadZip(file,ids);else{const id=await addPNG(file,file.name);if(id)ids.push(id)}}catch(error){importErrors.push(file.name+': '+errorText(error))}}
- setView(ids);redraw();$('error').textContent=importErrors.join('\n');
+ if(ids.length)setView(ids);redraw();$('error').textContent=importErrors.join('\n');
  });
 };
 $('background').onchange=e=>{state.background=e.target.value;state.items.forEach(x=>delete x.background);save();redraw()};$('close').onclick=()=>$('zoom').close();
@@ -85,21 +85,22 @@ function exportRows(){return state.items.map(i=>({image_id:i.imageId||i.id,candi
 $('json').onclick=()=>download('sticker-selection-v9.json',JSON.stringify({schema_version:9,drive_synced:false,exported_at:new Date().toISOString(),items:exportRows()},null,2),'application/json');
 $('csv').onclick=()=>{const rows=[['image_id','candidate_id','attempt_id','drive_file_id','filename','rating','confirmed','comment','evaluated_at','revision'],...exportRows().map(x=>[x.image_id,x.candidate_id||'',x.attempt_id||'',x.drive_file_id||'',x.filename,x.rating||'',x.confirmed,x.comment,x.evaluated_at||'',x.revision||''])];download('sticker-selection-v9.csv',rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv')};
 // Do not write state on initial page load: preserve original v9 localStorage content.
-openDb().then(redraw).catch(e=>$('error').textContent='端末内画像を読み込めません：'+errorText(e));
+const dbReady=openDb();
+dbReady.then(redraw).catch(e=>$('error').textContent='端末内画像を読み込めません：'+errorText(e));
 
 const auth=params.get('drive')==='test'?googleTestAuth():null;
 const adapter=auth?new GoogleTestDriveAdapter({getToken:auth.getToken}):params.get('mock')==='1'?new MockDriveAdapter():null;
 let busy=false;
-async function withBusy(fn){if(busy)return;busy=true;$('list').inert=true;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=true);try{await fn()}catch(e){$('error').textContent=errorText(e)}finally{busy=false;$('list').inert=false;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=false)}}
+async function withBusy(fn){if(busy)return;busy=true;$('list').inert=true;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=true);try{await dbReady;await fn()}catch(e){$('error').textContent=errorText(e)}finally{busy=false;$('list').inert=false;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=false)}}
 function driveMessage(message){$('driveStatus').textContent=message}
 $('loadPending').onclick=()=>withBusy(async()=>{
- if(!adapter){driveMessage('実Drive連携は未有効です。PNG・ZIPの選抜は補助機能から利用できます。');return}
+ if(!adapter){document.querySelector('details').open=true;$('files').click();return}
  driveMessage('保存済みの評価を確認中…');
  const records=await adapter.list(),ids=[],errors=[];
  for(const r of records.filter(x=>adapter.mode==='drive-test' ? x.testFixture&&!x.confirmed : x.folder==='pending'&&!x.confirmed)){
   try{
    if(records.filter(x=>x.imageId===r.imageId||x.driveFileId===r.driveFileId).length!==1)throw Error('重複する画像ID・Drive ID');
-   const file=await adapter.metadata(r.driveFileId);assertIdentity(r,file);
+   const file=await adapter.metadata(r.driveFileId);assertIdentity(r,file,{allowTestFixture:adapter.mode==='drive-test'});
    if(adapter.mode!=='drive-test'&&file.folder!=='pending')throw Error('選抜待ち以外のPNG');
    const blob=await adapter.image(r.driveFileId);await validatePNG(blob);
    const old=state.items.find(x=>x.id===r.imageId);
@@ -129,3 +130,5 @@ $('sync').onclick=()=>withBusy(async()=>{
 });
 if(adapter)$('mode').textContent=adapter.mode==='drive-test'?'実Driveテスト：既存のテストPNG3枚のみ。制作用データは対象外です。':'模擬Driveモード：本番データには接続しません';
 if(auth){$('loadPending').textContent='テスト画像を読み込む';$('disconnect').hidden=false;$('disconnect').onclick=()=>{auth.disconnect();driveMessage('Google接続を端末内で解除しました。画像と評価は保持しています。')};auth.ready.then(()=>driveMessage('Google認証の準備ができました。「テスト画像を読み込む」を押してください。')).catch(e=>driveMessage(errorText(e)));}
+
+if(!adapter){$('loadPending').textContent='PNG・ZIPを読み込む';$('sync').hidden=true;$('syncCount').textContent='評価は端末内に保存されます。結果保存は詳細から行えます。';}

@@ -4,8 +4,8 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {startServer} from './server.mjs';
 import {SourceFixture} from './source-save-fixture.mjs';
 const service=await startServer();
-try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]]){
- const browser=await type.launch({headless:true});
+try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]].filter(([name])=>!process.env.TEST_BROWSER||process.env.TEST_BROWSER===name)){
+ const browser=await type.launch({headless:true,...(name==='chromium'&&process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE,args:['--no-sandbox','--disable-gpu']}: {})});
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),remote=new SourceFixture(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));

@@ -1,7 +1,7 @@
-import {initSubmission} from './submission-ui.mjs?v=20261022-submit1';
-import {importCrops} from './crop-handoff.mjs?v=20261021-complete1';
-import {completeSelection} from './selection-completion.mjs?v=20261021-complete1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261022-submit1';
+import {initSubmission} from './submission-ui.mjs?v=20261023-merge1';
+import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
+import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261023-merge1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
  function show(screen){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection)api.redraw();window.dispatchEvent(new Event('resize'));}
@@ -20,8 +20,8 @@ export function initWorkflow(api){
   const reply=data=>frame.contentWindow.postMessage({type:'crop-handoff-result-v1',requestId,...data},location.origin);
   if(importing||api.isBusy()){reply({error:'処理中です。完了後にもう一度押してください。'});return;}
   importing=true;try{await api.ready;const master=await fetch('./crop-v9/master.json').then(r=>{if(!r.ok)throw Error('候補マスター読込失敗');return r.json();});let result;
-   await api.withBusy(async()=>{result=await importCrops(entries,{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},master,{forSelection:event.data.forSelection===true});if(result.ids.length){api.setView(result.ids,true);api.redraw();}});
-   if(!result)throw Error('受け渡しを完了できませんでした');reply(result);if(result.ids.length){show('selection');$('driveStatus').textContent='切り出しから追加 '+result.added+'枚／取込済み '+result.existing+'枚／失敗 '+result.errors.length+'件。「Google Driveに保存」で採用・保留PNGと結果を保存できます。';}
+   await api.withBusy(async()=>{result=await importCrops(entries,{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},master,{forSelection:event.data.forSelection===true});if(result.ids.length){api.setView(result.ids,event.data.append===true);api.redraw();}});
+   if(!result)throw Error('受け渡しを完了できませんでした');reply(result);if(result.ids.length){show('selection');$('driveStatus').textContent='切り出しから追加 '+result.added+'枚／取込済み '+result.existing+'枚／失敗 '+result.errors.length+'件。技術検品が未完了の画像は仮選別のみで、採用予定・保留へのPNG保存は停止します。';}
   }catch(e){reply({error:e.message});}finally{importing=false;}
  });
  show('crop');

@@ -1,10 +1,10 @@
-import {createBusyScreen} from './busy-screen.mjs?v=20261022-submit1';
-import {googleTestAuth} from './google-auth.mjs?v=20261022-submit1';
-import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261022-submit1';
+import {createBusyScreen} from './busy-screen.mjs?v=20261023-merge1';
+import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
+import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261023-merge1';
 export function initDriveExport(api){
  const dialog=document.createElement('dialog');dialog.id='driveExport';dialog.setAttribute('aria-labelledby','driveExportTitle');
  const title=document.createElement('h2');title.id='driveExportTitle';title.textContent='キャラ別にGoogle Driveへ保存';
- const description=document.createElement('p');description.textContent='元画像の場所からキャラを判定し、各キャラの◯は「01_採用予定」、△は「02_保留」へPNGを保存します。評価・コメントの記録は「03_元画像・生成履歴」に残します。△の画像名はHOLD_で始まります。ほぼ透明な点を除いてから保存します。';
+ const description=document.createElement('p');description.textContent='技術検品合格のPNGだけを保存します。未検品の仮選別は端末内に保持します。元画像の場所からキャラを判定し、各キャラの◯は「01_採用予定」、△は「02_保留」へPNGを保存します。評価・コメントの記録は「03_元画像・生成履歴」に残します。△の画像名はHOLD_で始まります。ほぼ透明な点を除いてから保存します。';
  const status=document.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const connect=document.createElement('button');connect.textContent='保存用のGoogleアカウントに接続';connect.disabled=true;
  const fallbackLabel=document.createElement('label');fallbackLabel.textContent='元画像の場所が不明な場合だけ：キャラフォルダのDrive URL';

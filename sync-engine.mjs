@@ -1,7 +1,7 @@
 import {planSelection} from './selection-core.mjs';
-export function assertIdentity(record,file){
+export function assertIdentity(record,file,{allowTestFixture=false}={}){
  if(!record.imageId||!record.candidate||!record.attemptId||!record.driveFileId)throw Error('画像・候補・試行ID不足');
- if(record.technicalPassed!==true&&!(record.testFixture===true&&record.scope==='isolated-test'))throw Error('技術検品未合格');
+ if(record.technicalPassed!==true&&!(allowTestFixture&&record.testFixture===true&&record.scope==='isolated-test'))throw Error('技術検品未合格');
  if(file.id!==record.driveFileId||file.name!==record.filename||file.mimeType!=='image/png'||file.trashed)throw Error('実PNG不一致');
  if(!['pending','adopt','hold','reject'].includes(file.folder))throw Error('保存先不一致');
 }
@@ -30,7 +30,7 @@ export async function syncSelections(adapter,choices,{confirmed=false,testReject
    if(imageCounts.get(record.imageId)!==1||fileCounts.get(record.driveFileId)!==1)throw Error('画像ID・Drive ID重複');
    if(record.candidate!==choice.candidate||record.attemptId!==choice.attemptId)throw Error('候補・試行ID不一致');
    if(!choice.revision||choice.touched!==true)throw Error('未選抜・変更ID不足');
-   const file=await adapter.metadata(record.driveFileId);assertIdentity(record,file);
+   const file=await adapter.metadata(record.driveFileId);assertIdentity(record,file,{allowTestFixture:adapter.mode==='drive-test'});
    const plan=planSelection({...record,folder:file.folder},choice,{testReject});
    if(plan.action==='ignore'){result.ignored.push(choice.imageId);continue}
    if(plan.action==='error')throw Error(plan.reason);
@@ -44,7 +44,7 @@ export async function syncSelections(adapter,choices,{confirmed=false,testReject
     driveFileId:record.driveFileId,createdAt:new Date().toISOString(),evaluatedAt:choice.evaluatedAt||null,previousComment:record.comment||'',previousFolder:file.folder,previousRating:record.rating||null,rating:choice.rating,comment:choice.comment||'',destination:plan.destination});
    if(!await adapter.event(id))throw Error('開始履歴未確認');
    if(file.folder!==plan.destination){progress('moving',index,choice);await adapter.move(record.driveFileId,file.folder,plan.destination)}
-   const after=await adapter.metadata(record.driveFileId);assertIdentity(record,after);
+   const after=await adapter.metadata(record.driveFileId);assertIdentity(record,after,{allowTestFixture:adapter.mode==='drive-test'});
    if(after.folder!==plan.destination)throw Error('移動後照合失敗');
    progress('saving',index,choice);
    await adapter.save(record.imageId,{rating:choice.rating,comment:choice.comment||'',folder:plan.destination,confirmed:true,operationId:id});

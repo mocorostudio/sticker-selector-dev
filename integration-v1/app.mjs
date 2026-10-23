@@ -1,10 +1,10 @@
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261022-submit1';
-import {initWorkflow} from './integration-ui.mjs?v=20261022-submit1';
-import {selectionView} from './selection-view.mjs?v=20261022-submit1';
-import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261020-storage2';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
+import {initWorkflow} from './integration-ui.mjs?v=20261023-merge1';
+import {selectionView} from './selection-view.mjs?v=20261023-merge1';
+import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261023-merge1';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
-import {syncSelections,assertIdentity} from './sync-engine.mjs?v=20261020-storage2';
+import {syncSelections,assertIdentity} from './sync-engine.mjs?v=20261023-merge1';
 import {storageKeys,recoverDraft} from './session-store.mjs';
 
 'use strict';
@@ -43,7 +43,7 @@ async function put(id,blob){
 }
 function get(id){return new Promise((ok,no)=>{const q=db.transaction('images','readonly').objectStore('images').get(id);q.onsuccess=()=>{const value=q.result;ok(value?.bytes?new Blob([value.bytes],{type:value.type}):value)};q.onerror=()=>no(q.error||Error('画像取得失敗'))})}
 let renderVersion=0;let urls=[];function clearURLs(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[]}
-function redraw(){const version=++renderVersion;clearURLs();$('background').value=state.background||'checker';const items=visible(),t={o:0,h:0,x:0};items.forEach(i=>{if(i.touched&&t[i.rating]!==undefined)t[i.rating]++});$('status').textContent=`表示${items.length}枚（保存済み${state.items.length}枚）/ ◯ ${t.o} / △ ${t.h} / ✕ ${t.x} / 未選抜 ${items.length-t.o-t.h-t.x}`;const list=$('list');list.replaceChildren();items.forEach((it,index)=>{const card=document.createElement('article');card.className='card';const stage=document.createElement('div');stage.className='stage '+(it.background||state.background||'checker');const img=document.createElement('img');img.alt=it.name;stage.append(img);card.append(stage);const meta=document.createElement('div');meta.className='meta';const filename=document.createElement('div');filename.className='filename';filename.textContent=`${index+1}. ${it.name}${it.candidate?' ／ '+it.candidate+' ／ '+it.attemptId:''}${it.imageId?' ／ '+it.imageId:''}${it.phrase?' ／ '+it.phrase:''}`;if(it.sequenceLabel)filename.textContent='画像 '+it.sequenceLabel+(it.phrase?' ／ '+it.phrase:'');meta.append(filename);if(workflowLocal&&it.origin==='crop-local'){const edit=document.createElement('button');edit.textContent='切り直す・大きさ／位置を修正';edit.onclick=()=>window.dispatchEvent(new CustomEvent('workflow-edit',{detail:{imageId:it.imageId}}));meta.append(edit);const qa=document.createElement('small');qa.textContent=it.crop?.qa?.issues?.length?'切り出しの参考警告：'+it.crop.qa.issues.join(' / '):'切り出し済み。◯・△・✕で選別してください。';meta.append(qa);}const perbg=document.createElement('div');perbg.className='per-bg';for(const [v,txt] of [['checker','市松'],['white','白'],['black','黒']]){const b=document.createElement('button');b.textContent=txt;if((it.background||state.background||'checker')===v)b.classList.add('active');b.onclick=()=>{it.background=v;save();stage.className='stage '+v;perbg.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b))};perbg.append(b)}meta.append(perbg);const choices=document.createElement('div');choices.className='choices';for(const [v,txt] of [['o','◯'],['h','△'],['x','✕']]){const label=document.createElement('label');if(it.touched&&it.rating===v)label.classList.add('chosen');const input=document.createElement('input');input.type='radio';input.name='vote'+index;input.value=v;input.checked=!!it.touched&&it.rating===v;label.append(input,document.createTextNode(txt));input.onchange=()=>{it.rating=v;it.touched=true;it.revision=crypto.randomUUID();it.evaluatedAt=new Date().toISOString();save();redraw()};choices.append(label)}meta.append(choices);const comment=document.createElement('input');comment.className='comment';comment.placeholder='コメント（任意）';comment.value=it.comment||'';comment.oninput=e=>{it.comment=e.target.value;it.revision=crypto.randomUUID();it.evaluatedAt=new Date().toISOString();save();if(it.origin==='crop-local')note.textContent='選択済・未確定'};meta.append(comment);const note=document.createElement('small');note.textContent=it.origin==='crop-local'?(isLocalConfirmed(it)?'端末内で確定済':it.touched?'選択済・未確定':'未選抜（仮◯）'):(it.touched?'操作済':'未選抜（仮◯）');meta.append(note);card.append(meta);list.append(card);get(it.id).then(blob=>{if(version!==renderVersion)return;if(blob){const u=URL.createObjectURL(blob);urls.push(u);img.src=u}else note.textContent='画像を再追加してください'}).catch(()=>note.textContent='画像読込失敗');img.onclick=()=>{if(img.src){$('zoomimg').src=img.src;$('zoom').showModal()}}})}
+function redraw(){const version=++renderVersion;clearURLs();$('background').value=state.background||'checker';const items=visible(),t={o:0,h:0,x:0};items.forEach(i=>{if(i.touched&&t[i.rating]!==undefined)t[i.rating]++});$('status').textContent=`表示${items.length}枚（保存済み${state.items.length}枚）/ ◯ ${t.o} / △ ${t.h} / ✕ ${t.x} / 未選抜 ${items.length-t.o-t.h-t.x}`;const list=$('list');list.replaceChildren();items.forEach((it,index)=>{const card=document.createElement('article');card.className='card';const stage=document.createElement('div');stage.className='stage '+(it.background||state.background||'checker');const img=document.createElement('img');img.alt=it.name;stage.append(img);card.append(stage);const meta=document.createElement('div');meta.className='meta';const filename=document.createElement('div');filename.className='filename';filename.textContent=`${index+1}. ${it.name}${it.candidate?' ／ '+it.candidate+' ／ '+it.attemptId:''}${it.imageId?' ／ '+it.imageId:''}${it.phrase?' ／ '+it.phrase:''}`;if(it.sequenceLabel)filename.textContent='画像 '+it.sequenceLabel+(it.phrase?' ／ '+it.phrase:'');meta.append(filename);if(workflowLocal&&it.origin==='crop-local'){const edit=document.createElement('button');edit.textContent='切り直す・大きさ／位置を修正';edit.onclick=()=>window.dispatchEvent(new CustomEvent('workflow-edit',{detail:{imageId:it.imageId}}));meta.append(edit);const qa=document.createElement('small');qa.textContent=it.crop?.qa?.issues?.length?'技術検品未完了：'+it.crop.qa.issues.join(' / '):'技術検品は未確定です。端末内の仮選別として保存します。';meta.append(qa);}const perbg=document.createElement('div');perbg.className='per-bg';for(const [v,txt] of [['checker','市松'],['white','白'],['black','黒']]){const b=document.createElement('button');b.textContent=txt;if((it.background||state.background||'checker')===v)b.classList.add('active');b.onclick=()=>{it.background=v;save();stage.className='stage '+v;perbg.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b))};perbg.append(b)}meta.append(perbg);const choices=document.createElement('div');choices.className='choices';for(const [v,txt] of [['o','◯'],['h','△'],['x','✕']]){const label=document.createElement('label');if(it.touched&&it.rating===v)label.classList.add('chosen');const input=document.createElement('input');input.type='radio';input.name='vote'+index;input.value=v;input.checked=!!it.touched&&it.rating===v;label.append(input,document.createTextNode(txt));input.onchange=()=>{it.rating=v;it.touched=true;it.revision=crypto.randomUUID();it.evaluatedAt=new Date().toISOString();save();redraw()};choices.append(label)}meta.append(choices);const comment=document.createElement('input');comment.className='comment';comment.placeholder='コメント（任意）';comment.value=it.comment||'';comment.oninput=e=>{it.comment=e.target.value;it.revision=crypto.randomUUID();it.evaluatedAt=new Date().toISOString();save();if(it.origin==='crop-local')note.textContent='選択済・未確定'};meta.append(comment);const note=document.createElement('small');note.textContent=it.origin==='crop-local'?(isLocalConfirmed(it)?'端末内で確定済':it.touched?'選択済・未確定':'未選抜（仮◯）'):(it.touched?'操作済':'未選抜（仮◯）');meta.append(note);card.append(meta);list.append(card);get(it.id).then(blob=>{if(version!==renderVersion)return;if(blob){const u=URL.createObjectURL(blob);urls.push(u);img.src=u}else note.textContent='画像を再追加してください'}).catch(()=>note.textContent='画像読込失敗');img.onclick=()=>{if(img.src){$('zoomimg').src=img.src;$('zoom').showModal()}}})}
 async function validatePNG(blob){
  if(!blob.size||blob.size>15e6)throw Error('PNGサイズ不正');
  const signature=new Uint8Array(await blob.slice(0,8).arrayBuffer());
@@ -59,7 +59,7 @@ async function addPNG(blob,name){
   const old=await get(it.id);if(old&&old.size===blob.size){const a=new Uint8Array(await old.arrayBuffer()),b=new Uint8Array(bytes);if(a.every((v,i)=>v===b[i]))return it.id}
  }
  const id='local:'+name+'|'+hash;
- if(state.items.some(x=>x.id===id))return id;
+ if(state.items.some(x=>x.id===id)){await put(id,blob);return id;}
  await put(id,blob);state.items.push({id,name,rating:'o',touched:false,comment:''});save();return id;
 }
 async function loadZip(file,ids){
@@ -79,7 +79,7 @@ $('files').onchange=async e=>{
  const files=[...e.target.files];e.target.value='';const ids=[];importErrors=[];
  await withBusy(async()=>{
  for(const file of files){try{if(file.name.toLowerCase().endsWith('.zip'))await loadZip(file,ids);else{const id=await addPNG(file,file.name);if(id)ids.push(id)}}catch(error){importErrors.push(file.name+': '+errorText(error))}}
- setView(ids);redraw();$('error').textContent=importErrors.join('\n');
+ if(ids.length)setView(ids);redraw();$('error').textContent=importErrors.join('\n');
  });
 };
 $('background').onchange=e=>{state.background=e.target.value;state.items.forEach(x=>delete x.background);save();redraw()};$('close').onclick=()=>$('zoom').close();
@@ -94,7 +94,7 @@ const dbReady=openDb().then(redraw);dbReady.catch(e=>$('error').textContent='端
 const auth=driveTest?googleTestAuth():null;
 const adapter=auth?new GoogleTestDriveAdapter({getToken:auth.getToken}):!workflowLocal&&params.get('mock')==='1'?new MockDriveAdapter():null;
 let busy=false;
-async function withBusy(fn){if(busy)return;busy=true;$('list').inert=true;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=true);try{await fn()}catch(e){$('error').textContent=errorText(e)}finally{busy=false;$('list').inert=false;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=false)}}
+async function withBusy(fn){if(busy)return;busy=true;$('list').inert=true;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=true);try{await dbReady;await fn()}catch(e){$('error').textContent=errorText(e)}finally{busy=false;$('list').inert=false;document.querySelectorAll('button,input,select').forEach(x=>x.disabled=false)}}
 function driveMessage(message){$('driveStatus').textContent=message}
 $('loadPending').onclick=()=>withBusy(async()=>{
  if(!adapter){driveMessage('実Drive連携は未有効です。PNG・ZIPの選抜は補助機能から利用できます。');return}
@@ -103,7 +103,7 @@ $('loadPending').onclick=()=>withBusy(async()=>{
  for(const r of records.filter(x=>adapter.mode==='drive-test' ? x.testFixture&&!x.confirmed : x.folder==='pending'&&!x.confirmed)){
   try{
    if(records.filter(x=>x.imageId===r.imageId||x.driveFileId===r.driveFileId).length!==1)throw Error('重複する画像ID・Drive ID');
-   const file=await adapter.metadata(r.driveFileId);assertIdentity(r,file);
+   const file=await adapter.metadata(r.driveFileId);assertIdentity(r,file,{allowTestFixture:adapter.mode==='drive-test'});
    if(adapter.mode!=='drive-test'&&file.folder!=='pending')throw Error('選抜待ち以外のPNG');
    const blob=await adapter.image(r.driveFileId);await validatePNG(blob);
    const old=state.items.find(x=>x.id===r.imageId);

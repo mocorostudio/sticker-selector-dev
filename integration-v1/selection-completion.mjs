@@ -1,4 +1,4 @@
-import {confirmLocal,isLocalConfirmed} from './crop-handoff.mjs?v=20261021-complete1';
+import {confirmLocal,isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
 export function selectionSummary(items){
  const summary={adopted:0,held:0,rejected:0,unrated:0,confirmed:0,pending:0};
  for(const item of items.filter(x=>x.origin==='crop-local')){if(!item.touched||!['o','h','x'].includes(item.rating)){summary.unrated++;continue;}summary[{o:'adopted',h:'held',x:'rejected'}[item.rating]]++;if(isLocalConfirmed(item))summary.confirmed++;else summary.pending++;}

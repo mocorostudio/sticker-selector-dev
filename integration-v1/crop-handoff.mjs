@@ -1,4 +1,4 @@
-import {gate,inspect} from './crop-v9/core.mjs?v=20261021-batch1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261023-merge1';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.
@@ -19,12 +19,12 @@ export async function importCrops(entries,adapter,master,{forSelection=false}={}
   const id='crop:'+r.imageId,items=adapter.items(),old=items.find(x=>x.id===id||x.imageId===r.imageId);
   if(items.some(x=>x.name===r.filename&&x.imageId!==r.imageId))throw Error('ファイル名が既存画像と重複');
   if(old){
-   if(old.id!==id||old.origin!=='crop-local'||old.candidate!==r.candidateId||old.phrase!==r.phrase||old.name!==r.filename)throw Error('既存画像IDの情報が不一致');
+   if(old.id!==id||old.origin!=='crop-local'||old.candidate!==r.candidateId||old.phrase!==r.phrase||old.pose!==r.pose||old.name!==r.filename)throw Error('既存画像IDの情報が不一致');
    const stored=await adapter.get(id);if(!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('既存PNGと内容が不一致');
    result.existing++;
   }else{
    const {pixels,...metadata}=r;
-   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:!forSelection,technicalStatus:forSelection?'review':'pass',technicalScope:'local-test',masterSource:r.candidateId?'attached-v3-116':'unmapped',crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
+   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:gate({...r,qa:actualQA})==='pass',technicalStatus:gate({...r,qa:actualQA}),technicalScope:'local-test',masterSource:r.candidateId?'attached-v3-116':'unmapped',crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
    await adapter.write(item,blob);
    const check=adapter.items().find(x=>x.id===id),stored=await adapter.get(id);
    if(!check||check.imageId!==r.imageId||check.candidate!==r.candidateId||check.name!==r.filename||!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('端末保存の再照合に失敗');
@@ -45,4 +45,4 @@ export function confirmLocal(items,now=new Date().toISOString()){
  return added;
 }
 
-export function isLocalConfirmed(item){return item.origin==='crop-local'&&!!item.touched&&!!item.revision&&!!item.selectionHistory?.some(x=>x.revision===item.revision);}
+export function isLocalConfirmed(item){return item.origin==='crop-local'&&!!item.touched&&!!item.revision&&!!item.selectionHistory?.some(x=>x.revision===item.revision&&x.rating===item.rating&&(x.comment||'')===(item.comment||''));}

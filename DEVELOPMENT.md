@@ -1,5 +1,39 @@
 # v9 development status
 
+## Integrated review 2026-10-23
+
+The canonical integration remains this repository's `development/integration-v1`.
+Quality changes reviewed in `mocorostudio/sticker-selector` at `7e26a13` are
+combined with this repository's original PNG saver at `1644379`. Root selection
+code also receives the import and isolated-fixture gate fixes while retaining its existing storage.
+No main-branch update, browser-data reset, PNG deletion or live master migration.
+
+Integrated changes: current-batch filtering across crop and selection, preserving
+old votes; latest-attempt retries; matching rating/comment confirmations and
+pose identity; pixel-and-metadata approval checks before adopted/held export;
+technical marker checks before application promotion. Original PNG creation,
+reserved-ID recovery, independent OAuth scope and verified retry remain intact.
+Misleading draft-success copy now explicitly states that technical inspection
+is unfinished and adopted/held PNG export is blocked. Cache versions are bumped.
+
+Verification completed locally: all 60 Node tests, eight Chromium phone selection
+scenarios, source-save/readback/retry/crop/draft/reload integration, and two-batch
+history retention with return to the crop editor. The actual private source
+produced nine decoded 370x320 crops and nine unrated drafts retained on reload.
+All nine crops have boundary-crossing warnings; none was marked technically
+passed. This is a functioning pipeline with failed/pending inspection, not
+successful quality approval. Private assets and results remain outside Git.
+
+The ordinary Playwright browser download returned invalid/truncated archives.
+Chromium 153 was supplied through a temporary runtime; no paid API was used.
+Local WebKit, real OAuth/Drive calls and physical iPhone remain unverified.
+
+Existing gaps remain: live per-character master mapping, full visual inspection
+UI, compliant 00 pending registration and production synchronization. The user
+should not be asked to approve uninspected drafts as production candidates.
+`npm run test:source-file` is opt-in via TEST_SOURCE_PNG, never a CI private asset.
+
+
 All implementation changes belong to `development`. `main`, live PNGs, animal masters and production Drive are unchanged. No Pages deployment workflow is added.
 
 ## One supported entry point

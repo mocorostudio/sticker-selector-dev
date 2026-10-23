@@ -8,6 +8,8 @@
     "test": "node tests/check-stickers.mjs && node --test tests/*.test.mjs",
     "test:browser": "node tests/browser-smoke.mjs",
     "dev": "node tests/server.mjs",
-    "test:integration": "node tests/integration-browser.mjs"
+    "test:integration": "node tests/integration-browser.mjs",
+    "test:integration-quality": "node tests/integrated-browser.mjs",
+    "test:source-file": "node tests/source-file-browser.mjs"
   }
 }

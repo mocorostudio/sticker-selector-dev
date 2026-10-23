@@ -8,3 +8,6 @@ export function numberedRecords(sources,records){
 }
 export function selectionDraft(record){if(!record.hasPixels&&!record.pixels)throw Error('画像がない番号は切り出し直してください');return {...record,cropReview:{imageId:record.imageId,confirmed:true},technicalStatus:'review'};}
 export function handoffRecords(sources,records){return latestRecords(numberedRecords(sources,records));}
+
+// Queue batch IDs persist with the work, preserving old sources without mixing them into a new batch.
+export function currentBatchSources(queue){const latest=queue.reduce((a,q)=>!a||(q.batchOrder||0)>=(a.batchOrder||0)?q:a,null),batch=latest?.batchId;return batch?new Set(queue.filter(q=>q.batchId===batch&&q.sourceId).map(q=>q.sourceId)):null;}

@@ -1,3 +1,36 @@
+# Integrated development review 2026-10-23
+
+Canonical source: `mocorostudio/sticker-selector-dev`, branch `development`,
+directory `integration-v1`. Quality fixes from `mocorostudio/sticker-selector`
+development `7e26a13` are integrated with original source-save functionality
+from this repository's `1644379`.
+
+Entry: https://mocorostudio.github.io/sticker-selector-dev/integration-v1/workflow.html
+
+New batches show only their current images without deleting older PNGs or votes.
+Local draft confirmation verifies the current rating and comment. Uninspected
+PNG export and application-set promotion are blocked, including cached exports.
+The destructive local reset control is removed; existing storage keys are preserved.
+The create-only original PNG saving section remains available and independent.
+
+Current tests: 60 Node tests; eight Chromium phone selection scenarios; source
+save/readback/idempotent retry -> nine crops -> draft voting -> reload; and a
+two-batch history-retention and crop-editor regression. A private actual-source
+test produced nine 370x320 PNGs, all with boundary warnings and no technical
+approvals or user ratings. No private PNGs, source IDs or generated test output
+are committed. No real Google writes were made by browser tests.
+
+The local Chromium run uses an optional `CHROMIUM_EXECUTABLE` because the standard
+browser archive download was truncated. WebKit and physical iPhone are not
+verified locally. CI continues to request both standard browser engines.
+
+Formal production readiness remains incomplete: per-character live master
+mapping, full visual technical-review controls, verified `00_選抜待ち`
+registration and cross-device synchronization. Local draft voting is not formal
+v9 selection. Original-save completion is separate from technical approval.
+
+## Historical implementation notes
+
 # Crop and selection test
 
 Source fb85ff6, 2026-10-21. Entry: workflow.html. User-approved update: audited boundary-only review; up to 20 sequential source images; IndexedDB v2 separates pixel assets from metadata; 16 cards per page; saved Drive ID/version progress and an unprocessed filter; per-image checker/black/white buttons. Existing images, IDs, review history and source files are retained.

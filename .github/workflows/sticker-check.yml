@@ -27,6 +27,8 @@ jobs:
         run: node tests/browser-smoke.mjs
       - name: Integrated source save, crop, QA and selection
         run: npm run test:integration
+      - name: Batch isolation and preserved draft history
+        run: npm run test:integration-quality
       - name: Save phone screenshots
         if: always()
         uses: actions/upload-artifact@v4

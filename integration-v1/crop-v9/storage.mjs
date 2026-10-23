@@ -1,4 +1,4 @@
-import {splitState} from './workflow-core.mjs?v=20261021-flow2';
+import {splitState} from './workflow-core.mjs?v=20261023-merge1';
 export async function openCropStorage(name){
  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(name,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('state'))r.result.createObjectStore('state');if(!r.result.objectStoreNames.contains('assets'))r.result.createObjectStore('assets');};r.onsuccess=()=>{r.result.onversionchange=()=>r.result.close();resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('別のタブを閉じてから、この画面を開き直してください。'));});
  function read(store,key){return new Promise((resolve,reject)=>{const r=db.transaction(store).objectStore(store).get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}

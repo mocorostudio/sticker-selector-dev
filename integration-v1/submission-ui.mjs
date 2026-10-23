@@ -1,8 +1,8 @@
-import {googleTestAuth} from './google-auth.mjs?v=20261022-submit1';
-import {createBusyScreen} from './busy-screen.mjs?v=20261022-submit1';
-import {createExportDrive,sourceFileId} from './drive-export.mjs?v=20261022-submit1';
-import {createSubmissionDrive} from './submission-drive.mjs?v=20261022-submit1';
-import {SET_COUNTS,setCounts,assignImage,prepareSubmission} from './submission-core.mjs?v=20261022-submit1';
+import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
+import {createBusyScreen} from './busy-screen.mjs?v=20261023-merge1';
+import {createExportDrive,sourceFileId} from './drive-export.mjs?v=20261023-merge1';
+import {createSubmissionDrive} from './submission-drive.mjs?v=20261023-merge1';
+import {SET_COUNTS,setCounts,assignImage,prepareSubmission} from './submission-core.mjs?v=20261023-merge1';
 export function initSubmission(api,{authFactory=googleTestAuth,driveFactory=createSubmissionDrive,lookupFactory=createExportDrive}={}){
  const host=document.createElement('section');host.id='submissionScreen';host.hidden=true;host.innerHTML=`<h1>③ 申請用を選ぶ</h1><p>採用予定から画像を選び、セットごとに「04_申請用」へ移動します。ここではLINEへの申請は行いません。</p><button id="submissionConnect" disabled>Googleに接続</button><label>キャラ<select id="submissionCharacter"><option value="">接続して選択</option></select></label><details><summary>キャラが出ないとき</summary><label>キャラフォルダのDrive URL<input id="submissionFolder" type="url" placeholder="変な犬などのキャラフォルダURL"></label></details><button id="submissionLoad" disabled>採用予定を読み込む</button><p id="submissionStatus" role="status" aria-live="polite"></p><section id="submissionWorkspace" hidden><div class="submission-settings"><h2>作るセット</h2><div id="submissionSets"></div><button id="submissionAdd">＋ セットを追加</button><label>今選んでいるセット<select id="submissionActive"></select></label><label>確認背景<select id="submissionBackground"><option value="checker">市松</option><option value="black">黒</option><option value="white">白</option></select></label><p>画像をタップして割り当てます。同じセットの画像をもう一度タップすると解除、別セットの画像をタップすると割り当て先が変わります。</p></div><div id="submissionGrid"></div><div class="submission-pages"><button id="submissionPrev">前へ</button><span id="submissionPage"></span><button id="submissionNext">次へ</button></div><div id="submissionBar"><strong id="submissionCount" role="status" aria-live="polite"></strong><button id="submissionReview">選んだ画像と移動先を確認</button><button id="submissionResume" hidden>途中の移動を再開</button></div></section><div id="submissionResults"></div>`;
  document.body.append(host);const $=id=>document.getElementById(id),status=$('submissionStatus'),processing=createBusyScreen({watch:status});
