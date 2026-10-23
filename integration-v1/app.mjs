@@ -1,5 +1,5 @@
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
-import {initWorkflow} from './integration-ui.mjs?v=20261023-merge1';
+import {initWorkflow} from './integration-ui.mjs?v=20261024-drive1';
 import {selectionView} from './selection-view.mjs?v=20261023-merge1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 import {reviewedBundle} from './reviewed-bundle.mjs?v=20261023-bear1';
@@ -27,7 +27,7 @@ if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
 let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds=Array.isArray(saved)?saved:null}catch(e){shownIds=null}
 const visible=()=>selectionView(state.items,{workflowLocal,shownIds});
-function setView(ids,append=false){const unique=[...new Set(ids)];shownIds=!append&&$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
+function setView(ids,append=false,{forceReplace=false}={}){const unique=[...new Set(ids)];shownIds=forceReplace||!append&&$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
 function updateSyncCount(){const items=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local'));const pending=workflowLocal?items.filter(x=>!isLocalConfirmed(x)).length:items.length;$('syncCount').textContent=workflowLocal?'未保存の変更：'+pending+'枚 ／ 保存済み：'+(items.length-pending)+'枚':'確定する画像：'+pending+'枚'}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}
