@@ -1,4 +1,4 @@
-import {gate,inspect} from './crop-v9/core.mjs?v=20261023-merge1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261023-bear1';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.
@@ -24,7 +24,7 @@ export async function importCrops(entries,adapter,master,{forSelection=false}={}
    result.existing++;
   }else{
    const {pixels,...metadata}=r;
-   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:gate({...r,qa:actualQA})==='pass',technicalStatus:gate({...r,qa:actualQA}),technicalScope:'local-test',masterSource:r.candidateId?'attached-v3-116':'unmapped',crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
+   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:gate({...r,qa:actualQA})==='pass',technicalStatus:gate({...r,qa:actualQA}),technicalScope:r.inspection?.scope==='actual-source'?'actual-source':'local-test',masterSource:r.masterReference||(r.candidateId?'attached-v3-116':'unmapped'),crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
    await adapter.write(item,blob);
    const check=adapter.items().find(x=>x.id===id),stored=await adapter.get(id);
    if(!check||check.imageId!==r.imageId||check.candidate!==r.candidateId||check.name!==r.filename||!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('端末保存の再照合に失敗');
