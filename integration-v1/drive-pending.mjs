@@ -31,28 +31,32 @@ export function validatePendingManifest(value,{characterId,pendingFolderId,maste
  }
  return spreadsheetId;
 }
-export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false}){
+export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false,onRetry=()=>{},retryWait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
  let calls=0;
+ const transient=error=>error?.retryable===true||['AbortError','TimeoutError','TypeError'].includes(error?.name);
+ async function retry(read){for(let attempt=0;;attempt++){try{return await read();}catch(error){if(!transient(error)||attempt>=3)throw error;onRetry({attempt:attempt+1,max:3});await retryWait(1000*2**attempt);}}}
+
  async function request(url){
   const u=new URL(url);if(!['https://www.googleapis.com','https://sheets.googleapis.com'].includes(u.origin))throw Error('許可されていない読み込み先です。');
-  if(++calls>2500)throw Error('読み込み回数の上限です。Googleに接続し直してください。');
+  if(++calls>10000)throw Error('読み込み回数の上限です。Googleに接続し直してください。');
   const token=await getToken();if(typeof token!=='string'||!token)throw Error('Googleに接続してください。');
-  const response=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(30000)});
+  const response=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(180000)});
   if(response.status===401){onUnauthorized();throw Error('Google接続の期限が切れました。接続し直してください。');}
-  if(!response.ok)throw Error(response.status===403?'Driveとマスターの閲覧権限を確認してください。':response.status===404?'画像または保存先が見つかりません。':'Driveの読み込みに失敗しました（HTTP '+response.status+'）。');
+  if(!response.ok){const error=Error(response.status===403?'Driveとマスターの閲覧権限を確認してください。':response.status===404?'画像または保存先が見つかりません。':'Driveの読み込みに失敗しました（HTTP '+response.status+'）。');error.retryable=[408,429,500,502,503,504].includes(response.status);throw error;}
   return response;
  }
- const json=async url=>(await request(url)).json();
+ const json=async url=>retry(async()=>(await request(url)).json());
  const meta=fileId=>json(FILES+'/'+id(fileId)+'?'+new URLSearchParams({fields:FIELDS,supportsAllDrives:'true'}));
  async function list(query){const files=[];let pageToken='';for(let page=0;page<20;page++){
   const result=await json(FILES+'?'+new URLSearchParams({q:query,fields:'nextPageToken,files('+FIELDS+')',pageSize:'100',supportsAllDrives:'true',includeItemsFromAllDrives:'true',...(pageToken?{pageToken}:{})}));
   if(!Array.isArray(result.files))throw Error('Driveの一覧を確認できません。');files.push(...result.files);pageToken=result.nextPageToken||'';if(!pageToken)return files;
  }throw Error('画像・フォルダが多すぎるため停止しました。');}
- async function bytes(file,limit){
+ async function bytes(file,limit,cached=null){
   if(file.trashed||file.capabilities?.canDownload===false||Number(file.size)<1||!Number.isFinite(Number(file.size))||Number(file.size)>limit)throw Error('ファイルのサイズ・閲覧権限を確認できません。');
-  const response=await request(FILES+'/'+id(file.id)+'?alt=media&supportsAllDrives=true'),reader=response.body?.getReader();
+  const response=cached?null:await request(FILES+'/'+id(file.id)+'?alt=media&supportsAllDrives=true'),reader=response?.body?.getReader();
   const chunks=[];let size=0;
-  if(reader){try{for(;;){const next=await reader.read();if(next.done)break;size+=next.value.byteLength;if(size>limit){await reader.cancel();throw Error('ファイルが大きすぎます。');}chunks.push(next.value);}}finally{reader.releaseLock();}}
+  if(cached){const value=new Uint8Array(cached);size=value.byteLength;chunks.push(value);}
+  else if(reader){try{for(;;){const next=await reader.read();if(next.done)break;size+=next.value.byteLength;if(size>limit){await reader.cancel();throw Error('ファイルが大きすぎます。');}chunks.push(next.value);}}finally{reader.releaseLock();}}
   else{const value=new Uint8Array(await response.arrayBuffer());size=value.byteLength;chunks.push(value);}
   if(size>limit||size!==Number(file.size))throw Error('読み込んだファイルのサイズが一致しません。');
   const after=await meta(file.id);
@@ -72,7 +76,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    for(const f of pending){if(f.parents?.length!==1||out.some(x=>x.id===f.parents[0]))continue;const parent=await meta(f.parents[0]);if(validFolder(parent))out.push({id:parent.id,name:parent.name});}
    return out.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   },
-  async load(characterId,{decode,onProgress=()=>{}}){
+  async load(characterId,{decode,onProgress=()=>{},onEntry=async()=>{},getCachedBytes=async()=>null}){
    id(characterId);const character=await meta(characterId);if(!validFolder(character))throw Error('キャラのフォルダを確認できません。');
    const children=await list('trashed = false and '+quote(characterId)+' in parents');
    function folder(name){const found=children.filter(f=>validFolder(f)&&f.name===name&&inFolder(f,characterId));if(found.length!==1)throw Error(name+'がないか重複しています。');return found[0];}
@@ -86,7 +90,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    const planned=[],known=new Map(),knownFiles=new Map(),masterCache=new Map();
    for(const file of records){
     if(!inFolder(file,history.id)||file.mimeType!=='application/json')throw Error('検品記録の保存先が一致しません。');
-    const value=JSON.parse(new TextDecoder().decode(await bytes(file,3000000))),spreadsheetId=validatePendingManifest(value,{characterId,pendingFolderId:pending.id,masters,includeTrials});
+    const value=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(file,3000000)))),spreadsheetId=validatePendingManifest(value,{characterId,pendingFolderId:pending.id,masters,includeTrials});
     onProgress({stage:'master',character:character.name});if(!masterCache.has(spreadsheetId))masterCache.set(spreadsheetId,await readMaster(spreadsheetId));const master=masterCache.get(spreadsheetId);
     for(const entry of value.entries){const r=entry.record,m=master.find(x=>x.candidateId===r.candidateId);
      if(!m||m.phrase!==r.phrase||m.pose!==r.pose)throw Error('マスターのセリフ・基本ポーズと検品記録が一致しません。');
@@ -99,12 +103,14 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
     }
    }
    if(!planned.length)throw Error('技術合格の検品記録と一致する選抜待ち画像がありません。');
+   planned.sort((a,b)=>(a.entry.record.sequenceLabel||'').localeCompare(b.entry.record.sequenceLabel||'',undefined,{numeric:true}));
    const entries=[];let done=0;
    for(const {entry,image,manifestFileId,masterReference} of planned){
-    onProgress({stage:'images',done,total:planned.length,character:character.name});const png=await bytes(image,15000000);
+    onProgress({stage:'images',done,total:planned.length,character:character.name});const cached=await getCachedBytes({record:entry.record,image,sha256:entry.sha256});const png=await retry(()=>bytes(image,15000000,cached));
     if(await pngHash(png)!==entry.sha256)throw Error('検品後にPNGが変更されています。読み込みを止めました。');
     const qa=inspect(await decode(new Blob([png],{type:'image/png'})),entry.record.crossing);if(gate({...entry.record,qa})!=='pass'&&!(includeTrials&&trialEligible({...entry.record,qa})))throw Error('PNGの再検品に合格していません。');
-    entries.push({record:{...entry.record,qa,masterReference,pendingDrive:{characterId,folderId:pending.id,fileId:image.id,manifestFileId,sha256:entry.sha256}},png});
+    const verified={record:{...entry.record,qa,masterReference,pendingDrive:{characterId,folderId:pending.id,fileId:image.id,manifestFileId,sha256:entry.sha256,version:String(image.version||'')}},png};
+    await onEntry({entry:verified,character,master:[...masterCache.values()].flat(),done:done+1,total:planned.length});entries.push(verified);
     onProgress({stage:'images',done:++done,total:planned.length,character:character.name});
    }
    return {character,entries,master:[...masterCache.values()].flat(),skipped:images.length-entries.length};

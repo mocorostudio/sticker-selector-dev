@@ -2,14 +2,14 @@ import {initSubmission} from './submission-ui.mjs?v=20261023-merge1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
 import {initDriveExport} from './drive-export-ui.mjs?v=20261024-trial1';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261024-trial1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261024-progress1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
- function show(screen){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection)api.redraw();window.dispatchEvent(new Event('resize'));}
+ function show(screen,{preserve=false}={}){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection&&!preserve)api.redraw();window.dispatchEvent(new Event('resize'));}
  submission.tab.onclick=()=>show('submission');
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
- const pending=initDrivePending(api,{onLoaded:r=>{show('selection');$('driveStatus').textContent=r.character.name+'：'+r.count+'枚をDriveから読み込みました。'+(r.entries.some(e=>e.record.trialSelection)?'試用画像を含みます。申請用の技術合格ではありません。':'検品済みです。')+'◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
+ const pending=initDrivePending(api,{onLoaded:r=>{show('selection',{preserve:true});$('driveStatus').textContent=r.character.name+'：'+r.count+'枚をDriveから読み込みました。'+(r.entries.some(e=>e.record.trialSelection)?'試用画像を含みます。申請用の技術合格ではありません。':'検品済みです。')+'◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
  $('loadPending').textContent='Driveの選抜待ちを読み込む';$('loadPending').onclick=pending.open;
  const driveExport=initDriveExport(api);
  $('sync').textContent='選抜結果を端末に保存';$('mode').textContent='切り出し → 選抜 → Google Driveに保存';

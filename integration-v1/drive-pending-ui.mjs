@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261024-trial1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261024-progress1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
@@ -18,33 +18,40 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const controls=()=>{connect.disabled=busy||!ready;select.disabled=busy;load.disabled=busy||!select.value;close.disabled=busy;dialog.setAttribute('aria-busy',String(busy));};
  dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
  select.onchange=controls;
+ const progress=document.createElement('p');progress.id='drivePendingProgress';progress.setAttribute('role','status');progress.setAttribute('aria-live','polite');progress.hidden=true;document.getElementById('list').before(progress);
+ const report=text=>{status.textContent=text;progress.textContent=text;};
  async function read(characterId){
   if(api.isBusy())throw Error('別の処理が終わってから読み込んでください。');
-  api.setCharacter(characterId);
-  let loaded,failure;
-  await api.withBusy(async()=>{try{
-   status.textContent='キャラと検品記録を確認中…';
-   const result=await drive.load(characterId,{decode:api.decode,onProgress:p=>{status.textContent=p.stage==='master'?'セリフと検品記録を照合中…':p.character+'：画像を読み込み中 '+p.done+'／'+p.total+'枚';}});
-   if(!result.entries.length){status.textContent=result.character.name+'の選抜待ちはありません。';return;}
-   // A pre-existing choice belongs to the user. Loading can add provenance,
-   // but may never replace its rating, comment, revision or confirmation.
-   for(const e of result.entries){const old=api.items().find(x=>x.imageId===e.record.imageId);if(old?.driveFileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');}
-   const imported={ids:[],errors:[]};
-   for(const trial of [false,true]){const entries=result.entries.filter(e=>!!e.record.trialSelection===trial);
-    for(let start=0;start<entries.length;start+=64){const part=await importCrops(entries.slice(start,start+64),{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},result.master,{forSelection:trial});imported.ids.push(...part.ids);imported.errors.push(...part.errors);}
-   }
-   if(imported.errors.length)throw Error(imported.errors.map(x=>x.message).join(' / '));
-   for(const e of result.entries){const item=api.items().find(x=>x.imageId===e.record.imageId);if(item){item.driveFileId=e.record.pendingDrive.fileId;item.characterId=result.character.id;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);}}
-   api.save();api.setView(imported.ids,false,{forceReplace:true});api.redraw();
-   loaded={...result,count:imported.ids.length};
-  }catch(e){failure=e;}});
-  if(failure)throw failure;
-  if(loaded){dialog.close();onLoaded(loaded);}
+  await api.ready;api.setCharacter(characterId);
+  const ids=api.visible().map(x=>x.id);let received=0;
+  progress.hidden=false;report('キャラと検品記録を確認中…');
+  try{
+   const result=await drive.load(characterId,{decode:api.decode,
+    getCachedBytes:async({record,image,sha256})=>{const old=api.items().find(x=>x.imageId===record.imageId),proof=old?.crop?.pendingDrive;if(!proof||!image.version||proof.version!==String(image.version)||proof.sha256!==sha256||proof.fileId!==image.id)return null;const blob=await api.get(old.id);return blob?blob.arrayBuffer():null;},
+    onProgress:p=>report(p.stage==='master'?'セリフと検品記録を照合中…':p.character+'：'+p.done+'／'+p.total+'枚読み込み済み。表示された画像から選べます。'),
+    onEntry:async({entry:e,master,done,total})=>{
+     // A short local save or another operation may finish first; the network
+     // loader itself must never make the selection list inert.
+     while(api.isBusy())await new Promise(resolve=>setTimeout(resolve,50));
+     const old=api.items().find(x=>x.imageId===e.record.imageId);
+     if(old?.driveFileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');
+     const part=await importCrops([e],{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}}},master,{forSelection:!!e.record.trialSelection});
+     if(part.errors.length)throw Error(part.errors.map(x=>x.message).join(' / '));
+     const item=api.items().find(x=>x.imageId===e.record.imageId);
+     item.driveFileId=e.record.pendingDrive.fileId;item.characterId=characterId;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);
+     api.save();for(const id of part.ids)if(!ids.includes(id))ids.push(id);
+     api.setView(ids,false,{forceReplace:true});api.redraw({appendOnly:true});received=done;
+     if(dialog.open)dialog.close();report(done+'／'+total+'枚読み込み済み。残りを読み込みながら選べます。');
+    }});
+   if(!result.entries.length){report(result.character.name+'の選抜待ちはありません。');return;}
+   report(result.entries.length+'枚の読み込みが完了しました。');
+   onLoaded({...result,count:result.entries.length});
+  }catch(error){report('読み込みは途中で止まりました：'+error.message+(received?' 読み込み済み'+received+'枚と選抜結果は残っています。残りは再接続して読み込めます。':''));error.pendingReported=true;throw error;}
  }
- async function run(action){if(busy)return;busy=true;controls();try{await action();}catch(e){status.textContent=e.message||'読み込めませんでした。もう一度お試しください。';}finally{busy=false;controls();}}
+ async function run(action){if(busy)return;busy=true;controls();try{await action();}catch(e){if(!e.pendingReported)report(e.message||'読み込めませんでした。もう一度お試しください。');}finally{busy=false;controls();}}
  connect.onclick=()=>run(async()=>{
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
-  drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials});
+  drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
   if(target){await read(target);return;}
   status.textContent='選抜待ちのあるキャラを探しています…';const characters=await drive.characters();
   select.replaceChildren(...characters.map(c=>new Option(c.name,c.id)));label.hidden=load.hidden=characters.length===0;

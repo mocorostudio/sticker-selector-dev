@@ -50,7 +50,7 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   await page.getByRole('button',{name:'閉じる',exact:true}).filter({visible:true}).click();fixture.unauthorized=false;
   await page.locator('#selectionScreen details summary').first().click();await page.locator('#importMode').selectOption('append');await page.locator('#selectionScreen details summary').first().click();
   const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();};
-  await load();await page.locator('#drivePending').waitFor({state:'hidden'});
+  await load();await page.locator('#drivePending').waitFor({state:'hidden'});await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();
   await page.waitForFunction(()=>document.querySelectorAll('.card').length===72&&[...document.querySelectorAll('.stage img')].every(im=>im.naturalWidth===370&&im.naturalHeight===320));
   assert.equal(await page.locator('.chosen').count(),0);assert.equal(await page.locator('#error').textContent(),'');
   assert.equal(await page.evaluate(()=>window.fixtureScope),'https://www.googleapis.com/auth/drive.readonly');
@@ -58,7 +58,7 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   assert.equal((await saved()).items.length,73);assert.equal((await saved()).items.filter(x=>x.technicalPassed).length,9);assert.equal((await saved()).items.filter(x=>x.crop?.trialSelection&&x.technicalPassed===false).length,63);
   await page.locator('.card').first().locator('.choices label').nth(1).click();await page.locator('.comment').first().fill('keep this choice');
   const chosen=(await saved()).items.find(x=>x.touched&&x.id!==old.id);
-  await load();await page.locator('#drivePending').waitFor({state:'hidden'});
+  await load();await page.locator('#drivePending').waitFor({state:'hidden'});await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();
   assert.equal((await saved()).items.length,73);const again=(await saved()).items.find(x=>x.id===chosen.id);assert.equal(again.rating,'h');assert.equal(again.comment,'keep this choice');assert.equal(again.revision,chosen.revision);
   assert.deepEqual((await saved()).items.find(x=>x.id===old.id),old);
   // A failed reconnect must preserve the already loaded images and choice.
