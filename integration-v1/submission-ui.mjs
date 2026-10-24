@@ -1,10 +1,10 @@
-import {initSubmissionArtwork} from './submission-artwork-ui.mjs?v=20261024-artwork2';
+import {initSubmissionArtwork} from './submission-artwork-ui.mjs?v=20261024-zoom1';
 import {matchesPlanOrder} from './submission-order.mjs?v=20261024-order1';
-import {initSubmissionOrder} from './submission-order-ui.mjs?v=20261024-artwork2';
+import {initSubmissionOrder} from './submission-order-ui.mjs?v=20261024-zoom1';
 import {prepareSelectionZip} from './submission-zip.mjs?v=20261024-zip1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
 import {createBusyScreen} from './busy-screen.mjs?v=20261023-merge1';
-import {createExportDrive,sourceFileId} from './drive-export.mjs?v=20261024-artwork2';
+import {createExportDrive,sourceFileId} from './drive-export.mjs?v=20261024-zoom1';
 import {createSubmissionDrive} from './submission-drive.mjs?v=20261024-zip1';
 import {SET_COUNTS,setCounts,assignImage,prepareSubmission,trialCandidates,prepareTrialSubmission,defaultAllSelected} from './submission-core.mjs?v=20261024-order1';
 export function initSubmission(api,{authFactory=googleTestAuth,driveFactory=createSubmissionDrive,lookupFactory=createExportDrive}={}){
