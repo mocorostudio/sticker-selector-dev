@@ -8,6 +8,7 @@ export function prepareSubmission(draft,files,{characterId,id,at=new Date().toIS
  const selected=sets.filter(s=>s.count>0);if(!selected.length)throw Error('申請用に移動する画像を選んでください。');if(selected.some(s=>s.count!==s.target))throw Error('選択したセットの枚数を目標枚数に合わせてください。');
  const byId=new Map(files.map(f=>[f.id,f]));if(byId.size!==files.length)throw Error('画像IDが重複しています。');
  const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(f?.appProperties?.technicalStatus!=='pass')throw Error('技術検品の合格記録がない画像は申請用へ移動できません。');if(!setIds.has(setId)||!f||f.mimeType!=='image/png'||!validId(fileId)||f.parents?.length!==1||!f.size||!f.md5Checksum&&!f.sha256Checksum)throw Error('画像の場所または内容が不明です。再読み込みしてください。');return {fileId,setId,name:f.name,size:String(f.size),md5Checksum:f.md5Checksum||null,sha256Checksum:f.sha256Checksum||null,sourceParent:f.parents[0],version:f.version||null};});
+ entries.sort((a,b)=>files.findIndex(f=>f.id===a.fileId)-files.findIndex(f=>f.id===b.fileId));
  return {schema:'animal-stickers-submission/v1',id,characterId,at,sets:selected.map(({id,name,target})=>({id,name:name.trim(),target})),entries};
 }
 export function validateSubmission(operation){
@@ -24,5 +25,14 @@ export function prepareTrialSubmission(draft,files,{characterId,id,at=new Date()
  const selected=counts.filter(s=>s.count>0);if(!selected.length||selected.some(s=>s.count!==s.target))throw Error('画像を目標枚数に合わせてください。');
  const byId=new Map(files.map(f=>[f.id,f]));if(byId.size!==files.length)throw Error('候補IDが重複しています。');
  const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(!setIds.has(setId)||!validId(fileId)||!f?.localItemId||f.trial!==true)throw Error('試用候補の対応を確認できません。');return {fileId,setId,name:f.name,imageId:f.id,localItemId:f.localItemId};});
+ entries.sort((a,b)=>files.findIndex(f=>f.id===a.fileId)-files.findIndex(f=>f.id===b.fileId));
  return {schema:'animal-stickers-submission-trial/v1',purpose:'selection-test-only',technicalApproval:false,id,characterId,at,sets:selected.map(({id,name,target})=>({id,name:name.trim(),target})),entries};
+}
+
+// Seed only a new draft (or previously unseen candidates). Explicit exclusions survive reload.
+export function defaultAllSelected(draft,files,{preserveExisting=false}={}){
+ const next=structuredClone(draft);if(!next.sets.length)return next;
+ const seen=new Set(next.seenCandidateIds||(preserveExisting?files.map(f=>f.id):[]));
+ for(const f of files)if(!seen.has(f.id)){if(!next.assignments[f.id])next.assignments[f.id]=next.sets[0].id;seen.add(f.id);}
+ next.seenCandidateIds=[...seen];return next;
 }

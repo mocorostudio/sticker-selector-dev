@@ -1,5 +1,5 @@
 import {chromium,webkit} from 'playwright';import assert from 'node:assert/strict';
-import {startServer} from './server.mjs';import {CandidateExportFixture,candidateItems} from './candidate-export-fixture.mjs';import {storageKeys} from '../integration-v1/session-store.mjs';
+import {startServer} from './server.mjs';import {CandidateExportFixture,candidateItems} from './candidate-export-fixture.mjs';import {storageKeys} from '../integration-v1/session-store.mjs';import JSZip from 'jszip';import {mkdir} from 'node:fs/promises';
 const service=await startServer();
 try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(([name])=>!process.env.TEST_BROWSER||name===process.env.TEST_BROWSER)){
 const browser=await type.launch({headless:true,...(engine==='chromium'&&process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE,args:['--no-sandbox','--disable-gpu']}:{})});
@@ -12,26 +12,36 @@ try{const context=await browser.newContext({viewport:{width:390,height:844},isMo
  fixture.lose=true;await page.locator('#saveToDrive').click();await page.locator('#driveExportStatus').filter({hasText:'保存は完了していません'}).waitFor();const afterFailure=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).items,keys.store);assert.equal(afterFailure.filter(x=>x.selectionHistory.length===1).length,72);assert.equal(afterFailure.filter(x=>x.rating==='o').length,41);
  // Saving has advanced to submission without a blocking dialog. Its draft is independent.
  await page.locator('#submissionStatus').filter({hasText:'採用候補 41枚'}).waitFor();
- await page.locator('.submission-card').first().click();assert.match(await page.locator('#submissionCount').innerText(),/1／40枚/);
+ await page.locator('.submission-card').first().click();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
  holdNext=true;await page.locator('#resumeDriveSave').click();await new Promise((resolve,reject)=>{const start=Date.now();const poll=()=>paused?resolve():Date.now()-start>15000?reject(Error('Upload was not paused')):setTimeout(poll,20);poll();});
  assert.equal(await page.locator('dialog[open]').count(),0);
- await page.locator('.submission-card').nth(1).click();assert.match(await page.locator('#submissionCount').innerText(),/2／40枚/);
+ await page.locator('.submission-card').nth(1).click();assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);
  assert.match(await page.locator('#driveExportStatus').innerText(),/保存・照合済み/);
  assert.equal(await page.locator('#resumeDriveSave').isVisible(),false);
  // Reload during a pending upload: no automatic OAuth popup, no draft or history loss.
  await page.reload();release();await page.waitForFunction(()=>!document.querySelector('#resumeDriveSave').disabled);
  await page.locator('#driveExportStatus').filter({hasText:'未完了のDrive保存'}).waitFor();
- await page.locator('#submissionTab').click();await page.locator('#submissionStatus').filter({hasText:'採用候補 41枚'}).waitFor();assert.match(await page.locator('#submissionCount').innerText(),/2／40枚/);
+ await page.locator('#submissionTab').click();await page.locator('#submissionStatus').filter({hasText:'採用候補 41枚'}).waitFor();assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);
  // Wrong-character pages must not offer this pending operation.
  await page.goto(service.url+'/integration-v1/workflow.html?view=selection&selectionMode=trial&character=other');assert.equal(await page.locator('#driveExport').isVisible(),false);
  await page.goto(url);await page.waitForFunction(()=>!document.querySelector('#resumeDriveSave').disabled);await page.locator('#resumeDriveSave').click();
  await page.locator('#driveExportStatus').filter({hasText:'Drive保存・照合が完了しました'}).waitFor();assert.match(await page.locator('#driveExportStatus').innerText(),/選抜結果72件（◯41・△5・✕26）／PNG 46枚/);
- assert.match(await page.locator('#submissionCount').innerText(),/2／40枚/);
+ assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);
  const pngs=[...fixture.files.values()].filter(x=>x.appProperties?.exportApp&&x.mimeType==='image/png');assert.equal(pngs.filter(x=>x.parents[0]==='adopt').length,41);assert.equal(pngs.filter(x=>x.parents[0]==='hold').length,5);assert.equal(pngs.filter(x=>x.appProperties.technicalStatus==='review').length,38);const posts=fixture.posts;
  await page.locator('#driveExport').getByRole('button',{name:'閉じる',exact:true}).click();await page.locator('#selectionTab').click();await page.locator('#saveToDrive').click();await page.locator('#driveExportStatus').filter({hasText:'Drive保存・照合が完了しました'}).waitFor();assert.equal(fixture.posts,posts);
  const stored=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).items,keys.store);assert.deepEqual(stored.map(x=>x.selectionHistory),afterFailure.map(x=>x.selectionHistory));
  assert.equal(await page.evaluate(()=>JSON.stringify(localStorage).includes('Bearer fixture')),false);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  const bar=await page.locator('#submissionBar').boundingBox(),tray=await page.locator('#driveExport').boundingBox();assert.ok(bar.y+bar.height<=tray.y+1);
- assert.deepEqual(errors,[]);console.log('PASS '+engine+' background Drive save -> choose submission candidates during upload -> reload and explicit resume -> 41/5 PNGs, retained drafts/history, scoped recovery and no duplicate uploads.');
+ // The submission screen starts with all 41 selected; two exclusions above survived interruption.
+ assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);await page.locator('.submission-card').nth(1).click();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
+ const beforeZipIds=pngs.map(f=>f.id).sort();fixture.lose=true;await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存は完了していません'}).waitFor();
+ assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存・照合が完了しました'}).waitFor();
+ const archives=[...fixture.files.values()].filter(f=>f.mimeType==='application/zip');assert.equal(archives.length,1);assert.deepEqual(archives[0].parents,['history']);
+ const zip=await JSZip.loadAsync(await fixture.blobs.get(archives[0].id).arrayBuffer(),{checkCRC32:true});assert.equal(Object.keys(zip.files).length,40);assert.ok(zip.file('01.png'));assert.ok(zip.file('40.png'));
+ assert.deepEqual([...fixture.files.values()].filter(f=>f.mimeType==='image/png'&&f.appProperties?.exportApp).map(f=>f.id).sort(),beforeZipIds);
+ const zipPosts=fixture.posts;await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存・照合が完了しました'}).waitFor();assert.equal(fixture.posts,zipPosts);
+ assert.equal(await page.locator('#submissionReview').isVisible(),false);assert.equal(await page.locator('#submissionExecute').isVisible(),false);
+ await page.evaluate(()=>window.scrollTo(0,0));await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/submission-zip-'+engine+'.png'});
+ assert.deepEqual(errors,[]);console.log('PASS '+engine+' background Drive save -> choose submission candidates during upload -> reload and explicit resume -> 41/5 PNGs, retained drafts/history, scoped recovery and no duplicate uploads; chosen 40-PNG trial ZIP saved to Drive with loss/retry verification.');
 }finally{await browser.close();}
 }}finally{await new Promise(resolve=>service.server.close(resolve));}

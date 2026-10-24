@@ -17,6 +17,7 @@ export function createSubmissionDrive({getToken,fetchImpl=globalThis.fetch,readJ
   inspectCharacter,
   async load(characterId){const context=await inspectCharacter(characterId),files=await list(quote(context.adopted.id)+' in parents and mimeType = '+quote('image/png'));return {...context,files};},
   async image(file){if(file.mimeType!=='image/png'||Number(file.size)>15000000)throw Error('PNGは15MB以下にしてください。');const r=await request(API+'/'+id(file.id)+'?alt=media');if(!r)throw Error('画像が見つかりません。');const blob=await r.blob();if(blob.size!==Number(file.size))throw Error('画像が更新されています。再読み込みしてください。');return new Blob([blob],{type:'image/png'});},
+  async verifiedImage(entry){const before=await meta(entry.fileId);if(!sameContent(before,entry)||entry.version&&entry.version!==before.version)throw Error('申請画像が更新されています。読み込み直してください。');const r=await request(API+'/'+id(entry.fileId)+'?alt=media');if(!r)throw Error('申請画像が見つかりません。');const blob=await r.blob(),after=await meta(entry.fileId);if(!sameContent(after,entry)||after.version!==before.version||blob.size!==Number(entry.size))throw Error('申請画像の取得中に内容が変わりました。');return new Blob([blob],{type:'image/png'});},
   async move(operation,{onProgress=()=>{}}={}){
    validateSubmission(operation);
    const context=await inspectCharacter(operation.characterId),targets=new Map();

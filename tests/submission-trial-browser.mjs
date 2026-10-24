@@ -77,13 +77,13 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   await page.evaluate(()=>{for(let i=0;i<41;i++){const input=document.querySelectorAll('.card')[i].querySelector('input[value="o"]');input.checked=true;input.dispatchEvent(new Event('change'));}});
   const beforeVotes=await page.evaluate(k=>localStorage.getItem(k),keys.store),beforeCalls=fixture.calls.length;
   await page.locator('#submissionTab').click();await page.locator('#submissionStatus').filter({hasText:'採用候補 41枚'}).waitFor();
-  assert.equal(await page.locator('#submissionConnect').isVisible(),false);assert.match(await page.locator('#submissionPage').innerText(),/41枚/);assert.match(await page.locator('#submissionCount').innerText(),/0／40枚/);
-  for(let p=0;p<4;p++){const n=p<3?12:4;for(let i=0;i<n;i++)await page.locator('.submission-card').nth(i).click();if(p<3)await page.locator('#submissionNext').click();}
-  assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);assert.equal(await page.locator('#submissionReview').isEnabled(),true);
-  await page.locator('#submissionReview').click();await page.locator('#submissionConfirm').waitFor();await page.locator('#submissionExecute').click();await page.locator('#submissionStatus').filter({hasText:'40枚の選択を端末に保存'}).waitFor();
-  const snapshot=await page.evaluate(()=>JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('submission-trial-draft:')&&k.endsWith(':confirmed')))));assert.equal(snapshot.entries.length,40);assert.equal(snapshot.technicalApproval,false);assert.equal(await page.evaluate(k=>localStorage.getItem(k),keys.store),beforeVotes);assert.equal(fixture.calls.length,beforeCalls);
+  assert.equal(await page.locator('#submissionConnect').isVisible(),false);assert.match(await page.locator('#submissionPage').innerText(),/41枚/);assert.match(await page.locator('#submissionCount').innerText(),/41／40枚/);
+  assert.equal(await page.locator('#submissionZip').isEnabled(),false);
+  await page.locator('.submission-card').first().click();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
+  assert.equal(await page.locator('#submissionZip').isEnabled(),true);assert.equal(await page.locator('#submissionReview').isVisible(),false);assert.equal(await page.locator('#submissionExecute').isVisible(),false);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),keys.store),beforeVotes);assert.equal(fixture.calls.length,beforeCalls);
   await page.locator('#selectionTab').click();await page.locator('#submissionTab').click();await page.locator('#submissionStatus').filter({hasText:'採用候補 41枚'}).waitFor();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
-  console.log('PASS 41 local candidates -> select 40 across pages -> explicit trial save -> reopen; original votes unchanged and no Drive IO.');
+  console.log('PASS 41 candidates selected by default -> remove one -> 40 remain -> reopen preserves exclusion; no terminal-save button, votes unchanged.');
   await context.close();
  }finally{await browser.close();}
 }}finally{await new Promise(ok=>service.server.close(ok));}
