@@ -58,16 +58,16 @@ export function createExportDrive({getToken,fetchImpl=globalThis.fetch,readJourn
   character,characterFolder,
   async account(){const r=await request('https://www.googleapis.com/drive/v3/about?fields=user(permissionId,emailAddress)');const user=(await r.json()).user;if(!user?.permissionId)throw Error('保存するGoogleアカウントを確認できません。');return user;},
   async roots(){const r=await request(API+'?'+new URLSearchParams({q:"trashed = false and mimeType = '"+FOLDER+"' and appProperties has { key='exportApp' and value='"+EXPORT_APP+"' } and appProperties has { key='kind' and value='export-root' }",fields:'files('+FIELDS+'),nextPageToken',pageSize:'100'}));return (await r.json()).files;},
-  async saveArchives(bundle,{accountId,characterId}){
+  async saveArchives(bundle,{accountId,characterId,onProgress=()=>{}}){
    id(accountId);if(bundle.characterId!==characterId||typeof bundle.trial!=='boolean'||!bundle.archives?.length)throw Error('ZIPのキャラを確認できません。');
-   const characterInfo=await characterFolder(characterId),targetName=bundle.trial?'03_元画像・生成履歴':'04_申請用',targets=await children(characterInfo.id,targetName),history=await children(characterInfo.id,'03_元画像・生成履歴');
+   onProgress({stage:'destination'});const characterInfo=await characterFolder(characterId),targetName=bundle.trial?'03_元画像・生成履歴':'04_申請用',targets=await children(characterInfo.id,targetName),history=await children(characterInfo.id,'03_元画像・生成履歴');
    if(targets.length!==1||targets[0].parents?.length!==1||targets[0].parents[0]!==characterId||history.length!==1||history[0].parents?.length!==1||history[0].parents[0]!==characterId)throw Error('ZIP保存先を照合できません。');
    const prefix='selected-zip:'+accountId+':'+characterId+':'+(bundle.trial?'trial:':'approved:');
    // Validate every payload before writes. Trial archives never become technical-pass images.
-   for(const a of bundle.archives){if(a.trial!==bundle.trial||a.blob?.type!=='application/zip'||!/^(TRIAL_)?selected_png_\d+_[a-f0-9]{12}\.zip$/.test(a.name)||a.sha!==await digest(a.blob)||!a.mapping?.length||a.mapping.length!==a.count||!bundle.trial&&a.mapping.some(e=>e.technicalStatus!=='pass'))throw Error('ZIPの内容・技術判定を確認できません。');}
+   onProgress({stage:'validating'});for(const a of bundle.archives){if(a.trial!==bundle.trial||a.blob?.type!=='application/zip'||!/^(TRIAL_)?selected_png_\d+_[a-f0-9]{12}\.zip$/.test(a.name)||a.sha!==await digest(a.blob)||!a.mapping?.length||a.mapping.length!==a.count||!bundle.trial&&a.mapping.some(e=>e.technicalStatus!=='pass'))throw Error('ZIPの内容・技術判定を確認できません。');}
    if(bundle.manifest?.blob?.type!=='application/json'||bundle.manifest.sha!==await digest(bundle.manifest.blob))throw Error('ZIPの記録を確認できません。');
-   const results=[];for(const a of bundle.archives){const f=await put(prefix+'zip:'+a.sha,targets[0].id,a);results.push({id:f.id,name:f.name,count:a.count,link:f.webViewLink||'https://drive.google.com/file/d/'+f.id+'/view'});}
-   await put(prefix+'manifest:'+bundle.manifest.sha,history[0].id,bundle.manifest);return {archives:results,folderId:targets[0].id};
+   const results=[];for(const a of bundle.archives){onProgress({stage:'uploading',done:results.length,total:bundle.archives.length,bytes:a.blob.size});const f=await put(prefix+'zip:'+a.sha,targets[0].id,a);results.push({id:f.id,name:f.name,count:a.count,link:f.webViewLink||'https://drive.google.com/file/d/'+f.id+'/view'});}
+   onProgress({stage:'recording'});await put(prefix+'manifest:'+bundle.manifest.sha,history[0].id,bundle.manifest);return {archives:results,folderId:targets[0].id};
   },
   async save(plan,{accountId,characterId,onProgress=()=>{}}){
    id(accountId);if(!characterId)throw Error('キャラ別の保存先を確認してください。マイドライブ直下には保存しません。');

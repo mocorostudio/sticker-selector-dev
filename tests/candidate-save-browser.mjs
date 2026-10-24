@@ -34,8 +34,14 @@ try{const context=await browser.newContext({viewport:{width:390,height:844},isMo
  const bar=await page.locator('#submissionBar').boundingBox(),tray=await page.locator('#driveExport').boundingBox();assert.ok(bar.y+bar.height<=tray.y+1);
  // The submission screen starts with all 41 selected; two exclusions above survived interruption.
  assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);await page.locator('.submission-card').nth(1).click();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
- const beforeZipIds=pngs.map(f=>f.id).sort();fixture.lose=true;await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存は完了していません'}).waitFor();
- assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存・照合が完了しました'}).waitFor();
+ const beforeZipIds=pngs.map(f=>f.id).sort();paused=false;holdNext=true;fixture.lose=true;await page.locator('#submissionZip').click();
+ await new Promise((resolve,reject)=>{const start=Date.now();const poll=()=>paused?resolve():Date.now()-start>15000?reject(Error('ZIP upload did not pause')):setTimeout(poll,20);poll();});
+ assert.equal(await page.locator('#submissionZipActivity .zip-spinner').isVisible(),true);assert.equal(await page.locator('#submissionZipActivity').getAttribute('aria-busy'),'true');assert.match(await page.locator('#submissionZipActivityText').innerText(),/送信・照合/);assert.equal(await page.locator('dialog[open]').count(),0);
+ await page.locator('#selectionTab').click();assert.equal(await page.locator('#submissionZipActivity .zip-spinner').isVisible(),true);await page.locator('#submissionTab').click();release();
+ await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存は完了していません'}).waitFor();assert.equal(await page.locator('#submissionZipActivity .zip-spinner').isVisible(),false);assert.equal(await page.locator('#submissionZipRetry').isVisible(),true);
+ await page.reload();await page.locator('#submissionTab').click();await page.locator('#submissionZipActivityText').filter({hasText:'前回のZIP保存が未完了'}).waitFor();
+ 
+ assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);await page.locator('#submissionZipRetry').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存・照合が完了しました'}).waitFor();assert.equal(await page.locator('#submissionZipActivity .zip-spinner').isVisible(),false);assert.equal(await page.locator('#submissionZipActivity').getAttribute('aria-busy'),'false');
  const archives=[...fixture.files.values()].filter(f=>f.mimeType==='application/zip');assert.equal(archives.length,1);assert.deepEqual(archives[0].parents,['history']);
  const zip=await JSZip.loadAsync(await fixture.blobs.get(archives[0].id).arrayBuffer(),{checkCRC32:true});assert.equal(Object.keys(zip.files).length,40);assert.ok(zip.file('01.png'));assert.ok(zip.file('40.png'));
  assert.deepEqual([...fixture.files.values()].filter(f=>f.mimeType==='image/png'&&f.appProperties?.exportApp).map(f=>f.id).sort(),beforeZipIds);
