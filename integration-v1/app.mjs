@@ -1,5 +1,5 @@
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
-import {initWorkflow} from './integration-ui.mjs?v=20261024-submittrial1';
+import {initWorkflow} from './integration-ui.mjs?v=20261024-save1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 import {reviewedBundle} from './reviewed-bundle.mjs?v=20261023-bear1';
@@ -36,7 +36,7 @@ function setView(ids,append=false,{forceReplace=false}={}){const unique=[...new 
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
 const selectionTotals=document.createElement('strong');selectionTotals.id='selectionTotals';selectionTotals.setAttribute('role','status');selectionTotals.setAttribute('aria-live','polite');$('syncBar').prepend(selectionTotals);
 const requestedTarget=Number(params.get('target')),selectionTarget=[8,16,24,32,40].includes(requestedTarget)?requestedTarget:40;
-function updateSyncCount(){const items=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local'));const pending=workflowLocal?items.filter(x=>!isLocalConfirmed(x)).length:items.length;const adopted=items.filter(x=>x.rating==='o').length;selectionTotals.textContent='候補 ◯ '+adopted+'枚 ／ 申請予定 '+selectionTarget+'枚';$('syncCount').textContent=workflowLocal?'未保存の変更：'+pending+'枚 ／ 保存済み：'+(items.length-pending)+'枚':'確定する画像：'+pending+'枚'}
+function updateSyncCount(){const items=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local'));const pending=workflowLocal?items.filter(x=>!isLocalConfirmed(x)).length:items.length;const adopted=items.filter(x=>x.rating==='o').length;selectionTotals.textContent='候補 ◯ '+adopted+'枚 ／ 申請予定 '+selectionTarget+'枚';$('syncCount').textContent=workflowLocal?'選択済み：'+items.length+'枚（操作は端末に自動保持）':'確定する画像：'+pending+'枚'}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}
 new MutationObserver(updateSyncCount).observe($('list'),{childList:true});
 updateSyncCount();

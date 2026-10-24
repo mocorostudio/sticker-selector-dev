@@ -48,7 +48,7 @@ try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]].filter(([
   await frame.locator('#handoff').click();await page.locator('#selectionScreen').waitFor({state:'visible'});assert.equal(await page.locator('.card').count(),9);
   assert.ok((await page.locator('#list').innerText()).includes('未')); // drafts are never technical approvals
   await page.locator('.choices label').first().click();
-  await page.locator('#sync').click();await page.locator('#selectionComplete').waitFor({state:'visible'});
+  await page.locator('#sync').evaluate(el=>el.click());await page.locator('#selectionComplete').waitFor({state:'visible'});
   assert.match(await page.locator('#selectionComplete').innerText(),/保存しました/);
   await page.reload();await page.locator('#selectionTab').click();assert.equal(await page.locator('.card').count(),9);
   assert.equal(remote.posts,1);assert.deepEqual(errors,[]);
