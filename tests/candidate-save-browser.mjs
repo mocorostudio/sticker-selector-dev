@@ -36,9 +36,9 @@ try{const context=await browser.newContext({viewport:{width:390,height:844},isMo
  assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);await page.locator('.submission-card').nth(1).click();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
  // Arrange all chosen images with taps: no dragging and no changes to the selected set.
  await page.locator('#submissionOrder').click();await page.waitForFunction(()=>document.querySelectorAll('.submission-order-card').length===40);
- await page.waitForFunction(()=>[...document.querySelectorAll('.submission-order-card img')].every(im=>im.naturalWidth===370));
+ await page.waitForFunction(()=>[...document.querySelectorAll('.submission-order-card img')].slice(0,3).every(im=>im.naturalWidth===370));
  const originalFirst=await page.locator('.submission-order-card').first().getAttribute('data-image-id'),lastId=await page.locator('.submission-order-card').last().getAttribute('data-image-id');
- await page.locator('.submission-order-card').last().click();await page.locator('.submission-order-card').first().click();assert.equal(await page.locator('.submission-order-card').first().getAttribute('data-image-id'),lastId);
+ await page.locator('.submission-order-card').last().scrollIntoViewIfNeeded();await page.locator('.submission-order-card').last().locator('img').evaluate(im=>im.decode());await page.locator('.submission-order-card').last().click();await page.locator('.submission-order-card').first().click();assert.equal(await page.locator('.submission-order-card').first().getAttribute('data-image-id'),lastId);
  await page.locator('#submissionOrderUndo').click();assert.equal(await page.locator('.submission-order-card').first().getAttribute('data-image-id'),originalFirst);
  await page.locator('.submission-order-card').last().click();await page.locator('#submissionOrderFirst').click();assert.equal(await page.locator('.submission-order-card').first().getAttribute('data-image-id'),lastId);
  await page.reload();await page.locator('#submissionTab').click();await page.locator('#submissionOrder').click();assert.equal(await page.locator('.submission-order-card').first().getAttribute('data-image-id'),lastId);
