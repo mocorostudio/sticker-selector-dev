@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261024-drive1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261024-trial1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
@@ -12,7 +12,8 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const load=document.createElement('button');load.id='pendingLoad';load.textContent='このキャラの画像を読み込む';load.hidden=true;
  const close=document.createElement('button');close.textContent='閉じる';close.onclick=()=>dialog.close();
  dialog.append(title,description,status,connect,label,load,close);document.body.append(dialog);
- const params=new URLSearchParams(location.search),target=params.get('character');
+ const params=new URLSearchParams(location.search),target=params.get('character'),includeTrials=params.get('selectionMode')==='trial';
+ if(includeTrials)description.textContent='外周線を残した試用画像も読み込みます。◯△✕は試用選抜として記録し、申請用の合格にはしません。';
  let auth,ready=false,token='',drive,busy=false;
  const controls=()=>{connect.disabled=busy||!ready;select.disabled=busy;load.disabled=busy||!select.value;close.disabled=busy;dialog.setAttribute('aria-busy',String(busy));};
  dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
@@ -28,7 +29,10 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
    // A pre-existing choice belongs to the user. Loading can add provenance,
    // but may never replace its rating, comment, revision or confirmation.
    for(const e of result.entries){const old=api.items().find(x=>x.imageId===e.record.imageId);if(old?.driveFileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');}
-   const imported=await importCrops(result.entries,{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},result.master);
+   const imported={ids:[],errors:[]};
+   for(const trial of [false,true]){const entries=result.entries.filter(e=>!!e.record.trialSelection===trial);
+    for(let start=0;start<entries.length;start+=64){const part=await importCrops(entries.slice(start,start+64),{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},result.master,{forSelection:trial});imported.ids.push(...part.ids);imported.errors.push(...part.errors);}
+   }
    if(imported.errors.length)throw Error(imported.errors.map(x=>x.message).join(' / '));
    for(const e of result.entries){const item=api.items().find(x=>x.imageId===e.record.imageId);if(item){item.driveFileId=e.record.pendingDrive.fileId;item.characterId=result.character.id;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);}}
    api.save();api.setView(imported.ids,false,{forceReplace:true});api.redraw();
@@ -40,7 +44,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  async function run(action){if(busy)return;busy=true;controls();try{await action();}catch(e){status.textContent=e.message||'読み込めませんでした。もう一度お試しください。';}finally{busy=false;controls();}}
  connect.onclick=()=>run(async()=>{
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
-  drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();}});
+  drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials});
   if(target){await read(target);return;}
   status.textContent='選抜待ちのあるキャラを探しています…';const characters=await drive.characters();
   select.replaceChildren(...characters.map(c=>new Option(c.name,c.id)));label.hidden=load.hidden=characters.length===0;

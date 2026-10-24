@@ -7,6 +7,7 @@ const quote=v=>"'"+id(v)+"'";
 const inFolder=(f,parent)=>!f.trashed&&f.parents?.length===1&&f.parents[0]===parent;
 const validFolder=f=>f?.mimeType===FOLDER&&!f.trashed;
 export const PENDING_SCHEMA='animal-stickers-drive-pending/v1';
+export function trialEligible(r){return r?.trialSelection?.explicitUser===true&&r.trialSelection.exception==='outer-outline'&&r.trialSelection.purpose==='selection-test-only'&&r.inspection?.scope==='actual-source'&&!!r.inspection.at&&r.decision==='review'&&r.crossing===false&&r.qa?.automatic==='pass'&&r.cropReview?.confirmed===true&&r.cropReview.imageId===r.imageId&&r.review?.[8]===false;}
 export async function pngHash(bytes){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');}
 export function masterId(reference){try{const u=new URL(reference);if(u.origin!=='https://docs.google.com')throw Error();const m=u.pathname.match(/^\/spreadsheets\/d\/([-\w]+)(?:\/edit)?\/?$/);if(!m)throw Error();return id(m[1]);}catch{throw Error('検品記録の参照マスターが不明です。');}}
 export function readMasterRows(rows){
@@ -17,7 +18,7 @@ export function readMasterRows(rows){
  for(const row of rows.slice(1)){if(!row[a])continue;if(typeof row[a]!=='string'||seen.has(row[a]))throw Error('マスターの候補IDが不正または重複しています。');seen.add(row[a]);out.push({candidateId:row[a],phrase:row[b]||'',pose:row[c]||''});}
  return out;
 }
-export function validatePendingManifest(value,{characterId,pendingFolderId,masters}){
+export function validatePendingManifest(value,{characterId,pendingFolderId,masters,includeTrials=false}){
  if(value?.schema!==PENDING_SCHEMA||value.characterId!==characterId||value.pendingFolderId!==pendingFolderId||!Array.isArray(value.entries)||!value.entries.length||value.entries.length>200)throw Error('検品記録とキャラの保存先が一致しません。');
  const spreadsheetId=masterId(value.masterReference);
  if(!masters.some(f=>f.id===spreadsheetId&&f.mimeType===SHEET&&inFolder(f,characterId)))throw Error('別のキャラのマスターは読み込めません。');
@@ -26,11 +27,11 @@ export function validatePendingManifest(value,{characterId,pendingFolderId,maste
   if(!r||!/^[-\w]{1,100}$/.test(r.imageId||'')||!/^[-\w]+\.png$/.test(r.filename||'')||!/^[-\w]{1,256}$/.test(e.driveFileId||'')||!/^[a-f0-9]{64}$/.test(e.sha256||''))throw Error('画像ID・検品後のファイル情報が不正です。');
   if(ids.has(r.imageId)||files.has(e.driveFileId)||names.has(r.filename))throw Error('検品記録に重複する画像があります。');
   ids.add(r.imageId);files.add(e.driveFileId);names.add(r.filename);
-  if(gate(r)!=='pass'||r.inspection?.scope!=='actual-source'||!r.inspection?.at)throw Error('技術検品が未完了の画像は読み込めません。');
+  if((gate(r)!=='pass'&&!(includeTrials&&value.trialMode===true&&trialEligible(r)))||r.inspection?.scope!=='actual-source'||!r.inspection?.at)throw Error('技術検品が未完了の画像は読み込めません。');
  }
  return spreadsheetId;
 }
-export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{}}){
+export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false}){
  let calls=0;
  async function request(url){
   const u=new URL(url);if(!['https://www.googleapis.com','https://sheets.googleapis.com'].includes(u.origin))throw Error('許可されていない読み込み先です。');
@@ -76,15 +77,16 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    const children=await list('trashed = false and '+quote(characterId)+' in parents');
    function folder(name){const found=children.filter(f=>validFolder(f)&&f.name===name&&inFolder(f,characterId));if(found.length!==1)throw Error(name+'がないか重複しています。');return found[0];}
    const pending=folder('00_選抜待ち'),history=folder('03_元画像・生成履歴'),masters=children.filter(f=>f.mimeType===SHEET&&inFolder(f,characterId));
-   const images=(await list('trashed = false and '+quote(pending.id)+' in parents')).filter(f=>f.mimeType==='image/png'&&inFolder(f,pending.id));
+   let images=(await list('trashed = false and '+quote(pending.id)+' in parents')).filter(f=>f.mimeType==='image/png'&&inFolder(f,pending.id));
+   if(includeTrials)images.push(...(await list('trashed = false and '+quote(history.id)+' in parents')).filter(f=>f.mimeType==='image/png'&&inFolder(f,history.id)));
    if(images.length>200||images.reduce((n,f)=>n+Number(f.size||0),0)>150000000)throw Error('一度の読み込みは200枚・150MB以下にしてください。');
    if(!images.length)return {character,entries:[],master:[],skipped:0};
-   const records=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-manifest_'"));
+   const records=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains '"+(includeTrials?'selection-':'selection-manifest_')+"'")).filter(f=>f.name.startsWith('selection-manifest_')||(includeTrials&&f.name.startsWith('selection-trial_')));
    if(!records.length)throw Error('選抜用の検品記録がまだありません。ルイに読み込み準備を依頼してください。');
    const planned=[],known=new Map(),knownFiles=new Map(),masterCache=new Map();
    for(const file of records){
     if(!inFolder(file,history.id)||file.mimeType!=='application/json')throw Error('検品記録の保存先が一致しません。');
-    const value=JSON.parse(new TextDecoder().decode(await bytes(file,3000000))),spreadsheetId=validatePendingManifest(value,{characterId,pendingFolderId:pending.id,masters});
+    const value=JSON.parse(new TextDecoder().decode(await bytes(file,3000000))),spreadsheetId=validatePendingManifest(value,{characterId,pendingFolderId:pending.id,masters,includeTrials});
     onProgress({stage:'master',character:character.name});if(!masterCache.has(spreadsheetId))masterCache.set(spreadsheetId,await readMaster(spreadsheetId));const master=masterCache.get(spreadsheetId);
     for(const entry of value.entries){const r=entry.record,m=master.find(x=>x.candidateId===r.candidateId);
      if(!m||m.phrase!==r.phrase||m.pose!==r.pose)throw Error('マスターのセリフ・基本ポーズと検品記録が一致しません。');
@@ -92,7 +94,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
      if(known.has(r.imageId)){if(known.get(r.imageId)!==key)throw Error('同じ画像IDの検品記録が矛盾しています。');continue;}
      if(knownFiles.has(entry.driveFileId))throw Error('同じPNGに複数の画像IDがあります。');known.set(r.imageId,key);knownFiles.set(entry.driveFileId,key);
      const image=images.find(f=>f.id===entry.driveFileId);if(!image)continue;
-     if(image.name!==r.filename||!inFolder(image,pending.id))throw Error('PNGの名前または選抜待ちの保存先が一致しません。');
+     if(image.name!==r.filename||!inFolder(image,trialEligible(r)?history.id:pending.id))throw Error('PNGの名前または選抜待ちの保存先が一致しません。');
      planned.push({entry,image,manifestFileId:file.id,masterReference:value.masterReference});
     }
    }
@@ -101,7 +103,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    for(const {entry,image,manifestFileId,masterReference} of planned){
     onProgress({stage:'images',done,total:planned.length,character:character.name});const png=await bytes(image,15000000);
     if(await pngHash(png)!==entry.sha256)throw Error('検品後にPNGが変更されています。読み込みを止めました。');
-    const qa=inspect(await decode(new Blob([png],{type:'image/png'})),entry.record.crossing);if(gate({...entry.record,qa})!=='pass')throw Error('PNGの再検品に合格していません。');
+    const qa=inspect(await decode(new Blob([png],{type:'image/png'})),entry.record.crossing);if(gate({...entry.record,qa})!=='pass'&&!(includeTrials&&trialEligible({...entry.record,qa})))throw Error('PNGの再検品に合格していません。');
     entries.push({record:{...entry.record,qa,masterReference,pendingDrive:{characterId,folderId:pending.id,fileId:image.id,manifestFileId,sha256:entry.sha256}},png});
     onProgress({stage:'images',done:++done,total:planned.length,character:character.name});
    }
