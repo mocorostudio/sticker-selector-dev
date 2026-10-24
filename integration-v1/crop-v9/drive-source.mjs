@@ -9,7 +9,13 @@ export function createDriveSource({getToken,fetchImpl=globalThis.fetch,onUnautho
  async function request(url){
   if(++requests>100)throw Error('読み込み回数の上限です。少し時間を置いてから接続し直してください。');
   const token=getToken();if(!token)throw Error('Googleに接続してください。');
-  const r=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(20000)});
+  let r;
+  try{
+   r=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(45000)});
+  }catch(error){
+   if(error?.name==='TimeoutError'||error?.name==='AbortError'||/abort|timeout/i.test(String(error?.message||'')))throw Error('Google Driveの応答が遅く、読み込みを中断しました。通信状況を確認して、少し後に再試行してください。画像や選抜履歴は削除されません。');
+   throw Error('Google Driveに接続できませんでした。通信状況を確認してください。');
+  }
   if(r.status===401){onUnauthorized();throw Error('Google接続の期限が切れました。もう一度接続してください。');}
   if(!r.ok)throw Error(r.status===403?'Driveの閲覧権限を確認してください。':r.status===429?'Driveの読込上限です。自動再試行は停止しました。':'Drive読込失敗（HTTP '+r.status+'）');
   return r;
