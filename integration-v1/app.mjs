@@ -1,5 +1,5 @@
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
-import {initWorkflow} from './integration-ui.mjs?v=20261024-footer2';
+import {initWorkflow} from './integration-ui.mjs?v=20261024-persist1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 import {reviewedBundle} from './reviewed-bundle.mjs?v=20261023-bear1';
@@ -151,4 +151,4 @@ if(adapter)$('mode').textContent=adapter.mode==='drive-test'?'実Driveテスト�
 if(auth){$('loadPending').textContent='テスト画像を読み込む';$('disconnect').hidden=false;$('disconnect').onclick=()=>{auth.disconnect();driveMessage('Google接続を端末内で解除しました。画像と評価は保持しています。')};auth.ready.then(()=>driveMessage('Google認証の準備ができました。「テスト画像を読み込む」を押してください。')).catch(e=>driveMessage(errorText(e)));}
 
 async function decodeCropPNG(blob){await validatePNG(blob);const url=URL.createObjectURL(blob);try{const im=new Image();im.src=url;await im.decode();if(im.width!==370||im.height!==320)throw Error('切り出しPNGの寸法が不正');const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);return c.getContext('2d').getImageData(0,0,c.width,c.height);}finally{URL.revokeObjectURL(url);}}
-if(workflowLocal)initWorkflow({ready:dbReady,items:()=>state.items,replaceItems:items=>{state.items=items},visible,put,get,save,setView,setCharacter,redraw,withBusy,isBusy:()=>busy,decode:decodeCropPNG});
+if(workflowLocal)initWorkflow({ready:dbReady,characterId:()=>activeCharacter,items:()=>state.items,replaceItems:items=>{state.items=items},visible,put,get,save,setView,setCharacter,redraw,withBusy,isBusy:()=>busy,decode:decodeCropPNG});
