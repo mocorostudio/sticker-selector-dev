@@ -1,6 +1,6 @@
 import {createBusyScreen} from './busy-screen.mjs?v=20261023-merge1';
 import {googleTestAuth} from './google-auth.mjs?v=20261024-auth1';
-import {prepareExport,createExportDrive,groupCharacters} from './drive-export.mjs?v=20261024-trial1';
+import {prepareExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261024-count1';
 export function initDriveExport(api){
  const dialog=document.createElement('dialog');dialog.id='driveExport';dialog.setAttribute('aria-labelledby','driveExportTitle');
  const title=document.createElement('h2');title.id='driveExportTitle';title.textContent='キャラ別にGoogle Driveへ保存';
@@ -29,7 +29,7 @@ export function initDriveExport(api){
  async function preview(){invalidate();const next=await resolveGroups();
  // Prepare every group before the first write. Failed detection never partially routes a batch.
  for(const g of next)g.plan=await prepareExport(g.items,{get:api.get,decode:api.decode,encode,preparedCache,onProgress:p=>{status.textContent=g.character.name+"の透過仕上げ・保存準備中…";processing.progress(p.done,p.total);}});
- for(const g of next){const li=document.createElement('li');li.textContent=g.character.name+' ／ 01_採用予定：'+g.plan.counts.adopted+'枚 ／ 02_保留：'+g.plan.counts.held+'枚＋選抜結果JSON';destinations.append(li);}groups=next;status.textContent='① 透過仕上げ・保存準備が完了しました。②を押すとDriveへの送信を始めます。';
+ for(const g of next){const li=document.createElement('li');li.textContent=g.character.name+' ／ '+exportSummary([g.plan]);destinations.append(li);}groups=next;status.textContent='① 透過仕上げ・保存準備が完了しました。②を押すとDriveへの送信を始めます。';
  }
  connect.onclick=async()=>{lock(true);invalidate();try{status.textContent='Googleに接続中…';account=null;auth.disconnect();token=await auth.getToken();drive=createExportDrive({getToken:()=>token,...journal});account=await drive.account();await preview();}catch(e){status.textContent=e.message;}finally{lock(false);}};
  check.onclick=async()=>{if(busy||!account)return;lock(true);try{await preview();}catch(e){status.textContent=e.message;}finally{lock(false);}};
@@ -37,7 +37,7 @@ export function initDriveExport(api){
  // Refresh the snapshot so changes made outside this dialog are never silently omitted.
  status.textContent='送信前に選抜内容と保存先を確認中…';const current=await resolveGroups(),snapshot=xs=>JSON.stringify(xs.map(g=>[g.character.id,g.items]));if(snapshot(groups)!==snapshot(current)){invalidate();throw Error('選抜内容または保存先が変わりました。①で保存準備をやり直してください。');}
  for(const g of groups){status.textContent=g.character.name+'の保存先を照合中…';processing.show(status.textContent);const result=await drive.save(g.plan,{accountId:account.permissionId,characterId:g.character.id,onProgress:p=>{status.textContent=g.character.name+'をDriveに保存・照合中…';processing.progress(p.done,p.total);}});const a=document.createElement('a');a.textContent=g.character.name+'の保存フォルダを開く';a.href=result.link;a.target='_blank';a.rel='noopener noreferrer';links.append(a,document.createElement('br'));}
- status.textContent='Driveに保存しました。'+groups.length+'キャラ分のPNGと選抜記録を照合しました。';
+ status.textContent='Drive保存・照合が完了しました。'+exportSummary(groups.map(g=>g.plan));
  }catch(e){status.textContent='保存を完了できませんでした：'+e.message+' 同じ内容で再開すると保存済み分を照合します。';}finally{lock(false);}};
  function open(){if(dialog.open)return;invalidate();links.replaceChildren();status.textContent='Googleに接続して、キャラ別の保存先を確認してください。';connect.disabled=!authReady;check.disabled=!account;dialog.showModal();if(!auth){auth=googleTestAuth();auth.ready.then(()=>{authReady=true;connect.disabled=false;}).catch(e=>status.textContent=e.message);}}
  const button=document.createElement('button');button.id='saveToDrive';button.className='primary';button.textContent='Google Driveに保存';button.onclick=open;document.getElementById('syncBar').append(button);return {open};

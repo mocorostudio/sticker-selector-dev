@@ -16,7 +16,7 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
   results.push(row);onProgress({done:results.length,total:rows.length});
  }
  const manifest={schema:'animal-stickers-selection-export/v1',purpose:'採用・保留候補の保存。申請用の最終技術確認は別途必要。',results},json=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),key=await digest(json);
- return {key,images,manifest:{name:'selection-results.json',blob:json,sha:key},counts:{adopted:results.filter(x=>x.rating==='o').length,held:results.filter(x=>x.rating==='h').length,rejected:results.filter(x=>x.rating==='x').length,unrated:results.filter(x=>!x.rating).length}};
+ return {key,images,summary:{records:results.length,confirmed:results.filter(x=>x.confirmed).length,trialRecords:results.filter(x=>x.purpose==='selection-test-only').length,pngCopies:images.length},manifest:{name:'selection-results.json',blob:json,sha:key},counts:{adopted:results.filter(x=>x.rating==='o').length,held:results.filter(x=>x.rating==='h').length,rejected:results.filter(x=>x.rating==='x').length,unrated:results.filter(x=>!x.rating).length}};
 }
 // Create app-owned files; move only verified app-owned PNGs between this character's 01/02 folders. No deletes or permission changes.
 export function createExportDrive({getToken,fetchImpl=globalThis.fetch,readJournal,writeJournal}){
@@ -58,4 +58,10 @@ export async function groupCharacters(items,{resolve,fallback}){
  const groups=new Map(),cache=new Map();
  for(const item of items.filter(x=>x.origin==='crop-local')){const source=sourceFileId(item);let character;if(source){if(!cache.has(source))cache.set(source,await resolve(source));character=cache.get(source);}else character=fallback;if(!character?.id)throw Error('元画像の場所が不明です。キャラフォルダを指定してください。');if(!groups.has(character.id))groups.set(character.id,{character,items:[]});groups.get(character.id).items.push(item);}
  if(!groups.size)throw Error('先に切り出した画像を選抜へ送ってください。');return [...groups.values()];
+}
+
+export function exportSummary(plans){
+ const total={records:0,trialRecords:0,pngCopies:0,adopted:0,held:0,rejected:0,unrated:0};
+ for(const p of plans){total.records+=p.summary.records;total.trialRecords+=p.summary.trialRecords;total.pngCopies+=p.images.length;for(const key of ['adopted','held','rejected','unrated'])total[key]+=p.counts[key];}
+ return '選抜結果'+total.records+'件（◯'+total.adopted+'・△'+total.held+'・✕'+total.rejected+(total.unrated?'・未選抜'+total.unrated:'')+'）／PNG '+total.pngCopies+'枚'+(total.trialRecords?'。試用画像'+total.trialRecords+'件は選抜結果だけを保存し、PNGは移動しません。':'');
 }
