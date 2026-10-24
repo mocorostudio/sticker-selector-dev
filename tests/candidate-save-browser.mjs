@@ -45,7 +45,7 @@ try{const context=await browser.newContext({viewport:{width:390,height:844},isMo
  assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/submission-order-'+engine+'.png'});
  await page.locator('#submissionOrder').click();
- const beforeZipIds=pngs.map(f=>f.id).sort();paused=false;holdNext=true;fixture.lose=true;await page.locator('#submissionZip').click();
+ const beforeZipIds=pngs.map(f=>f.id).sort();paused=false;holdNext=true;fixture.lose=true;if(!await page.locator('#submissionMore').evaluate(el=>el.open))await page.locator('#submissionMore > summary').click();await page.locator('#submissionZip').click();
  await new Promise((resolve,reject)=>{const start=Date.now();const poll=()=>paused?resolve():Date.now()-start>15000?reject(Error('ZIP upload did not pause')):setTimeout(poll,20);poll();});
  assert.equal(await page.locator('#submissionZipActivity .zip-spinner').isVisible(),true);assert.equal(await page.locator('#submissionZipActivity').getAttribute('aria-busy'),'true');assert.match(await page.locator('#submissionZipActivityText').innerText(),/送信・照合/);assert.equal(await page.locator('dialog[open]').count(),0);
  await page.locator('#selectionTab').click();assert.equal(await page.locator('#submissionZipActivity .zip-spinner').isVisible(),true);await page.locator('#submissionTab').click();release();
@@ -56,7 +56,7 @@ try{const context=await browser.newContext({viewport:{width:390,height:844},isMo
  const archives=[...fixture.files.values()].filter(f=>f.mimeType==='application/zip');assert.equal(archives.length,1);assert.deepEqual(archives[0].parents,['history']);
  const zip=await JSZip.loadAsync(await fixture.blobs.get(archives[0].id).arrayBuffer(),{checkCRC32:true});assert.equal(Object.keys(zip.files).length,40);assert.ok(zip.file('01.png'));assert.ok(zip.file('40.png'));const savedRecords=await Promise.all([...fixture.files.values()].filter(f=>f.name?.startsWith('selected-zip_')).map(async f=>JSON.parse(await fixture.blobs.get(f.id).text())));assert.ok(savedRecords.some(r=>r.archives[0].mapping[0].imageId===lastId));
  assert.deepEqual([...fixture.files.values()].filter(f=>f.mimeType==='image/png'&&f.appProperties?.exportApp).map(f=>f.id).sort(),beforeZipIds);
- const zipPosts=fixture.posts;await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存・照合が完了しました'}).waitFor();assert.equal(fixture.posts,zipPosts);
+ const zipPosts=fixture.posts;if(!await page.locator('#submissionMore').evaluate(el=>el.open))await page.locator('#submissionMore > summary').click();await page.locator('#submissionZip').click();await page.locator('#submissionStatus').filter({hasText:'ZIPのDrive保存・照合が完了しました'}).waitFor();assert.equal(fixture.posts,zipPosts);
  assert.equal(await page.locator('#submissionReview').isVisible(),false);assert.equal(await page.locator('#submissionExecute').isVisible(),false);
  // Main/tab preparation and manual erasing preserve original images and selections.
  const beforeArtworkVotes=await page.evaluate(k=>localStorage.getItem(k),keys.store);

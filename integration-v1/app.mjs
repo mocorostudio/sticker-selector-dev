@@ -1,5 +1,5 @@
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
-import {initWorkflow} from './integration-ui.mjs?v=20261024-kit1';
+import {initWorkflow} from './integration-ui.mjs?v=20261024-footer1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 import {reviewedBundle} from './reviewed-bundle.mjs?v=20261023-bear1';
