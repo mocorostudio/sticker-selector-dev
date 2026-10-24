@@ -17,9 +17,9 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].every(im=>im.naturalWidth===370));
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
- await page.locator('.choices label').first().click();await page.locator('#sync').click();
- await page.getByText('選抜結果を保存しました',{exact:true}).waitFor();
- await page.getByRole('button',{name:'選抜一覧に戻る',exact:true}).click();
+ // Choices persist immediately; the retired local-confirm button is hidden.
+ await page.locator('.choices label').first().click();
+ assert.equal(await page.locator('#sync').isVisible(),false);
  await page.reload();await crop.locator('#handoff').waitFor();await page.locator('#selectionTab').click();
  await page.locator('.chosen').waitFor();assert.equal(await page.locator('.chosen').count(),1);
  // A second batch replaces the view while retaining the first batch and its saved vote.
@@ -37,6 +37,6 @@ try{
  await page.locator('#cropFrame:not([hidden])').waitFor();
  assert.deepEqual(errors,[]);
  await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/integrated-crop-phone.png'});
- console.log('PASS integrated phone: source -> 9 cropped PNGs -> selection -> local confirm -> reload -> second batch without old images -> crop editor');
+ console.log('PASS integrated phone: source -> 9 cropped PNGs -> selection -> automatic draft persistence -> reload -> second batch without old images -> crop editor');
  await context.close();
 }finally{await browser.close();await new Promise(resolve=>server.server.close(resolve));}

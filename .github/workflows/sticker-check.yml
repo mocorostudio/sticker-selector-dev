@@ -29,6 +29,8 @@ jobs:
         run: npm run test:integration
       - name: Batch isolation and preserved draft history
         run: npm run test:integration-quality
+      - name: One-click candidate save and retry without duplicates
+        run: node tests/candidate-save-browser.mjs
       - name: Save phone screenshots
         if: always()
         uses: actions/upload-artifact@v4
