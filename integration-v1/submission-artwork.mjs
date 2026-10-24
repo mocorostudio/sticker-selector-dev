@@ -14,3 +14,11 @@ export function editArtwork(draft,setId,action,{stroke,sourceSha}={}){
 }
 export function alphaBounds(image){let left=image.width,top=image.height,right=-1,bottom=-1;for(let y=0;y<image.height;y++)for(let x=0;x<image.width;x++)if(image.data[(y*image.width+x)*4+3]>0){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}return right<left?null:{x:left,y:top,width:right-left+1,height:bottom-top+1};}
 export function fitArtwork(bounds,kind){const spec=ARTWORK_SPECS[kind];if(!bounds||!spec)throw Error('画像がすべて透明です。編集を戻してください。');const scale=Math.min((spec.width-spec.padding*2)/bounds.width,(spec.height-spec.padding*2)/bounds.height),width=bounds.width*scale,height=bounds.height*scale;return {...spec,x:(spec.width-width)/2,y:(spec.height-height)/2,drawWidth:width,drawHeight:height};}
+
+export function resizeArtwork(image,kind){
+ const bounds=alphaBounds(image),f=fitArtwork(bounds,kind),data=new Uint8ClampedArray(f.width*f.height*4);
+ for(let y=0;y<f.height;y++)for(let x=0;x<f.width;x++){if(x+.5<f.x||y+.5<f.y||x+.5>=f.x+f.drawWidth||y+.5>=f.y+f.drawHeight)continue;const sx=bounds.x+(x+.5-f.x)*bounds.width/f.drawWidth-.5,sy=bounds.y+(y+.5-f.y)*bounds.height/f.drawHeight-.5,x0=Math.floor(sx),y0=Math.floor(sy),fx=sx-x0,fy=sy-y0;let a=0,r=0,g=0,b=0;
+  for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){const xx=x0+dx,yy=y0+dy;if(xx<0||yy<0||xx>=image.width||yy>=image.height)continue;const index=(yy*image.width+xx)*4,weight=(dx?fx:1-fx)*(dy?fy:1-fy),alpha=image.data[index+3]*weight;a+=alpha;r+=image.data[index]*alpha;g+=image.data[index+1]*alpha;b+=image.data[index+2]*alpha;}const dest=(y*f.width+x)*4;data[dest+3]=Math.round(a);if(data[dest+3]){data[dest]=Math.round(r/a);data[dest+1]=Math.round(g/a);data[dest+2]=Math.round(b/a);}
+ }
+ return {width:f.width,height:f.height,data};
+}
