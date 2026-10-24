@@ -1,7 +1,7 @@
 import {initSubmission} from './submission-ui.mjs?v=20261024-submittrial1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261024-save1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261024-background1';
 import {initDrivePending} from './drive-pending-ui.mjs?v=20261024-progress1';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
@@ -11,7 +11,7 @@ export function initWorkflow(api){
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
  const pending=initDrivePending(api,{onLoaded:r=>{show('selection',{preserve:true});$('driveStatus').textContent=r.character.name+'：'+r.count+'枚をDriveから読み込みました。'+(r.entries.some(e=>e.record.trialSelection)?'試用画像を含みます。申請用の技術合格ではありません。':'検品済みです。')+'◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
  $('loadPending').textContent='Driveの選抜待ちを読み込む';$('loadPending').onclick=pending.open;
- const driveExport=initDriveExport(api);
+ const driveExport=initDriveExport(api,{onSnapshot:()=>{if(new URLSearchParams(location.search).get('selectionMode')==='trial')show('submission');}});
  $('sync').hidden=true;$('mode').textContent='切り出し → 選抜 → Google Driveに保存';
  $('driveStatus').textContent=new URLSearchParams(location.search).has('character')?'このキャラの画像だけを表示します。画像がなければ「Driveの選抜待ちを読み込む」を押してください。':'◯・△・✕を選び、「Google Driveに保存」を押してください。';
  const completion=document.createElement('dialog');completion.id='selectionComplete';completion.setAttribute('aria-labelledby','completionTitle');const title=document.createElement('h2');title.id='completionTitle';const message=document.createElement('p');message.setAttribute('role','status');const note=document.createElement('p');const back=document.createElement('button');back.textContent='選抜一覧に戻る';back.onclick=()=>completion.close();const next=document.createElement('button');next.textContent='次の元画像を切り出す';next.onclick=()=>{completion.close();show('crop');};const exportButton=document.createElement('button');exportButton.textContent='Google Driveに保存';exportButton.onclick=()=>{completion.close();driveExport.open();};completion.append(title,message,note,exportButton,back,next);document.body.append(completion);
