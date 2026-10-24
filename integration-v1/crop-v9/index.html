@@ -17,7 +17,7 @@
 </section>
 <label>またはiPhoneから元画像を選ぶ（複数可）<input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
 <p id="sourceSelection" role="status">元画像は未選択です</p>
-<label>配置<select id="grid"><option value="3">3×3</option><option value="2">2×2</option><option value="4">4×4</option></select></label>
+<label>配置<select id="grid"><option value="3">3×3</option><option value="2">2×2</option><option value="4">4×4</option><option value="2x3">縦2 × 横3（6枚）</option><option value="2x4">縦2 × 横4（8枚）</option><option value="3x2">縦3 × 横2（6枚）</option><option value="3x4">縦3 × 横4（12枚）</option><option value="4x2">縦4 × 横2（8枚）</option><option value="4x3">縦4 × 横3（12枚）</option></select></label>
 <label>接頭辞<input id="prefix" value="ST" maxlength="20"></label><label><input id="erase" type="checkbox">単色背景を除去する（外周と同じ色のみ・要目視）</label>
 <p>切り出し直後に、ほぼ透明な点を自動除去してからサイズ・中央位置を整えます。白い背景は上の単色背景除去で処理し、黒・白背景で仕上がりを確認してください。</p>
 <button id="run">まとめて切り出す</button><button id="retry" hidden>不合格だけ再処理</button>
@@ -26,4 +26,4 @@
 <label>バックアップから復帰<input id="restore" type="file" accept="application/json"></label><button id="manifest">連携JSONを保存</button>
 <section aria-label="切り出しの確認"><h2>線と番号で、ざっと確認</h2><p>欠けや隣の絵の混入がなければ「切り出した画像を②選抜へ送る」。セリフ選択・1枚ずつの合格操作は不要です。少数の修正は選別から戻って行えます。</p><p>番号は元画像順−左上からの切り出し順です。セリフとの対応が不明でも進められます。</p><div id="overview"></div><button id="recropOverview">不成功 → 切り取り範囲を直す</button><p>上の元画像を選び、直したい番号をタップしてください。範囲を直して新しい画像を作れます。</p></section>
 <details id="cardDetails"><summary>個別の画像・手動修正を開く</summary><div id="cards"></div></details>
-</main><script type="module" src="app.mjs?v=20261023-bear1"></script></body></html>
+</main><script type="module" src="app.mjs?v=20261024-kit1"></script></body></html>

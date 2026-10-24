@@ -35,6 +35,10 @@ try{
  // Return to crop editing without creating a second vote or losing the original.
  await page.locator('.card').first().getByRole('button',{name:'切り直す・大きさ／位置を修正'}).click();
  await page.locator('#cropFrame:not([hidden])').waitFor();
+ // Clearing affects only the crop view; the original 18 candidates and vote remain recoverable.
+ await crop.locator('#clearCropView').click();assert.equal(await crop.locator('#overview details').count(),0);await page.reload();await crop.locator('#handoff').waitFor();assert.equal(await crop.locator('#overview details').count(),0);await crop.locator('#sourceFilter').selectOption('all');assert.equal(await crop.locator('#overview details').count(),2);await crop.locator('#sourceFilter').selectOption('current');
+ // Rectangular rows/columns use the same transparent-valley detector, then append six new images.
+ await page.locator('#cropTab').click();const rectangular=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=400;const g=c.getContext('2d');g.fillStyle='black';for(const y of [100,300])for(const x of [100,300,500])g.fillRect(x-25,y-25,50,50);return c.toDataURL().split(',')[1]});await crop.locator('#grid').evaluate(el=>{for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;});await crop.locator('#grid').selectOption('2x3');await crop.locator('#files').setInputFiles({name:'rectangular.png',mimeType:'image/png',buffer:Buffer.from(rectangular,'base64')});await crop.locator('#run').click();await crop.locator('#handoff').filter({hasText:'全6枚'}).waitFor();await crop.locator('#handoff').click();await page.waitForFunction(()=>document.querySelectorAll('.card').length===6);
  assert.deepEqual(errors,[]);
  await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/integrated-crop-phone.png'});
  console.log('PASS integrated phone: source -> 9 cropped PNGs -> selection -> automatic draft persistence -> reload -> second batch without old images -> crop editor');

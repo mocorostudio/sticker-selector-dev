@@ -8,7 +8,7 @@ export function prepareSubmission(draft,files,{characterId,id,at=new Date().toIS
  const sets=setCounts(draft),setIds=new Set(sets.map(s=>s.id));if(setIds.size!==sets.length||sets.some(s=>!validId(s.id)||!SET_COUNTS.includes(s.target)||!s.name?.trim()||s.name.length>60))throw Error('セット名・目標枚数を確認してください。');
  const selected=sets.filter(s=>s.count>0);if(!selected.length)throw Error('申請用に移動する画像を選んでください。');if(selected.some(s=>s.count!==s.target))throw Error('選択したセットの枚数を目標枚数に合わせてください。');
  const byId=new Map(files.map(f=>[f.id,f]));if(byId.size!==files.length)throw Error('画像IDが重複しています。');
- const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(f?.appProperties?.technicalStatus!=='pass')throw Error('技術検品の合格記録がない画像は申請用へ移動できません。');if(!setIds.has(setId)||!f||f.mimeType!=='image/png'||!validId(fileId)||f.parents?.length!==1||!f.size||!f.md5Checksum&&!f.sha256Checksum)throw Error('画像の場所または内容が不明です。再読み込みしてください。');return {fileId,setId,name:f.name,size:String(f.size),md5Checksum:f.md5Checksum||null,sha256Checksum:f.sha256Checksum||null,sourceParent:f.parents[0],version:f.version||null};});
+ const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(f?.appProperties?.technicalStatus!=='pass')throw Error('技術検品の合格記録がない画像は申請用へ移動できません。');if(!setIds.has(setId)||!f||f.mimeType!=='image/png'||!validId(fileId)||f.parents?.length!==1||!f.size||!f.md5Checksum&&!f.sha256Checksum)throw Error('画像の場所または内容が不明です。再読み込みしてください。');return {fileId,setId,name:f.name,size:String(f.size),md5Checksum:f.md5Checksum||null,sha256Checksum:f.sha256Checksum||null,sourceParent:f.parents[0],version:f.version||null,...(f.fromHold?{sourceRating:'h',fromHold:true}:{})};});
  entries.splice(0,entries.length,...orderPlanEntries(draft,files,entries));
  return {schema:'animal-stickers-submission/v1',id,characterId,at,sets:selected.map(({id,name,target})=>({id,name:name.trim(),target})),entries};
 }
@@ -19,13 +19,13 @@ export function validateSubmission(operation){
 }
 
 // Trial planning never asserts technical approval and cannot be sent to move().
-export function trialCandidates(items){return items.filter(x=>x.origin==='crop-local'&&x.touched===true&&x.rating==='o'&&validId(x.imageId)).map(x=>({id:x.imageId,phrase:x.phrase||'',name:x.sequenceLabel?(x.sequenceLabel+' '+(x.phrase||'')):x.name,mimeType:'image/png',localItemId:x.id,trial:true,technicalStatus:x.technicalPassed===true?'pass':'review'}));}
+export function trialCandidates(items,{includeHeld=false}={}){return items.filter(x=>x.origin==='crop-local'&&x.touched===true&&(x.rating==='o'||includeHeld&&x.rating==='h')&&validId(x.imageId)).map(x=>({id:x.imageId,phrase:x.phrase||'',name:x.sequenceLabel?(x.sequenceLabel+' '+(x.phrase||'')):x.name,mimeType:'image/png',localItemId:x.id,trial:true,sourceRating:x.rating,fromHold:x.rating==='h',technicalStatus:x.technicalPassed===true?'pass':'review'}));}
 export function prepareTrialSubmission(draft,files,{characterId,id,at=new Date().toISOString()}){
  if(!validId(characterId)||!validId(id)||!Array.isArray(draft.sets)||!draft.sets.length||draft.sets.length>20)throw Error('セットを作成してください。');
  const counts=setCounts(draft),setIds=new Set(counts.map(s=>s.id));if(setIds.size!==counts.length||counts.some(s=>!validId(s.id)||!SET_COUNTS.includes(s.target)||!s.name?.trim()||s.name.length>60))throw Error('セット名・目標枚数を確認してください。');
  const selected=counts.filter(s=>s.count>0);if(!selected.length||selected.some(s=>s.count!==s.target))throw Error('画像を目標枚数に合わせてください。');
  const byId=new Map(files.map(f=>[f.id,f]));if(byId.size!==files.length)throw Error('候補IDが重複しています。');
- const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(!setIds.has(setId)||!validId(fileId)||!f?.localItemId||f.trial!==true)throw Error('試用候補の対応を確認できません。');return {fileId,setId,name:f.name,imageId:f.id,localItemId:f.localItemId};});
+ const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(!setIds.has(setId)||!validId(fileId)||!f?.localItemId||f.trial!==true)throw Error('試用候補の対応を確認できません。');return {fileId,setId,name:f.name,imageId:f.id,localItemId:f.localItemId,...(f.fromHold?{sourceRating:'h',fromHold:true}:{})};});
  entries.splice(0,entries.length,...orderPlanEntries(draft,files,entries));
  return {schema:'animal-stickers-submission-trial/v1',purpose:'selection-test-only',technicalApproval:false,id,characterId,at,sets:selected.map(({id,name,target})=>({id,name:name.trim(),target})),entries};
 }
