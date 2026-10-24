@@ -15,3 +15,14 @@ export function validateSubmission(operation){
  const ids=new Set();for(const s of operation.sets){if(!validId(s.id)||ids.has(s.id)||!SET_COUNTS.includes(s.target)||typeof s.name!=='string'||!s.name.trim()||s.name.length>60||operation.entries.filter(e=>e.setId===s.id).length!==s.target)throw Error('セットの枚数・名前が不正です。');ids.add(s.id);}
  const files=new Set();for(const e of operation.entries){if(!validId(e.fileId)||files.has(e.fileId)||!ids.has(e.setId)||!validId(e.sourceParent)||!e.name||!(Number(e.size)>0)||!e.md5Checksum&&!e.sha256Checksum)throw Error('画像の割り当てが不正です。');files.add(e.fileId);}return operation;
 }
+
+// Trial planning never asserts technical approval and cannot be sent to move().
+export function trialCandidates(items){return items.filter(x=>x.origin==='crop-local'&&x.touched===true&&x.rating==='o'&&validId(x.imageId)).map(x=>({id:x.imageId,name:x.sequenceLabel?(x.sequenceLabel+' '+(x.phrase||'')):x.name,mimeType:'image/png',localItemId:x.id,trial:true,technicalStatus:x.technicalPassed===true?'pass':'review'}));}
+export function prepareTrialSubmission(draft,files,{characterId,id,at=new Date().toISOString()}){
+ if(!validId(characterId)||!validId(id)||!Array.isArray(draft.sets)||!draft.sets.length||draft.sets.length>20)throw Error('セットを作成してください。');
+ const counts=setCounts(draft),setIds=new Set(counts.map(s=>s.id));if(setIds.size!==counts.length||counts.some(s=>!validId(s.id)||!SET_COUNTS.includes(s.target)||!s.name?.trim()||s.name.length>60))throw Error('セット名・目標枚数を確認してください。');
+ const selected=counts.filter(s=>s.count>0);if(!selected.length||selected.some(s=>s.count!==s.target))throw Error('画像を目標枚数に合わせてください。');
+ const byId=new Map(files.map(f=>[f.id,f]));if(byId.size!==files.length)throw Error('候補IDが重複しています。');
+ const entries=Object.entries(draft.assignments).map(([fileId,setId])=>{const f=byId.get(fileId);if(!setIds.has(setId)||!validId(fileId)||!f?.localItemId||f.trial!==true)throw Error('試用候補の対応を確認できません。');return {fileId,setId,name:f.name,imageId:f.id,localItemId:f.localItemId};});
+ return {schema:'animal-stickers-submission-trial/v1',purpose:'selection-test-only',technicalApproval:false,id,characterId,at,sets:selected.map(({id,name,target})=>({id,name:name.trim(),target})),entries};
+}

@@ -75,9 +75,9 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   await fs.mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/pending-'+engine+(process.env.TEST_PENDING_MANIFEST?'-private':'')+'.png',fullPage:true});await page.screenshot({path:'test-results/pending-'+engine+'-viewport.png'});
   console.log('PASS '+engine+' Drive pending: Google readonly -> live master + reviewed PNGs -> 72 trial + formal cards; repeat/read/reload retain choices; auth expiry preserves work; no Drive writes or ZIP transfer.');
   await page.evaluate(()=>{for(let i=0;i<41;i++){const input=document.querySelectorAll('.card')[i].querySelector('input[value="o"]');input.checked=true;input.dispatchEvent(new Event('change'));}});
-  assert.match(await page.locator('#selectionTotals').innerText(),/採用 ◯ 41／40枚（1枚超過）/);
+  assert.match(await page.locator('#selectionTotals').innerText(),/候補 ◯ 41枚 ／ 申請予定 40枚/);
   await page.locator('.card').first().locator('.choices label').nth(1).click();
-  assert.match(await page.locator('#selectionTotals').innerText(),/採用 ◯ 40／40枚（目標達成）/);
+  assert.match(await page.locator('#selectionTotals').innerText(),/候補 ◯ 40枚 ／ 申請予定 40枚/);
   await page.evaluate(()=>scrollTo(0,document.body.scrollHeight));const totalBox=await page.locator('#selectionTotals').boundingBox();assert.ok(totalBox.y>=0&&totalBox.y+totalBox.height<=844);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   console.log('PASS live footer counts untouched votes correctly, updates 41 to 40, and stays visible at the last card.');
