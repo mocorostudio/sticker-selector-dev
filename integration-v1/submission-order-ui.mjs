@@ -19,5 +19,5 @@ export function initSubmissionOrder({getDraft,getFiles,getSetId,commit,loadPrevi
  $('submissionOrderFirst').onclick=()=>{if(source)apply(moveBefore(getDraft(),getFiles(),getSetId(),source,orderedFiles(getDraft(),getFiles(),getSetId())[0]?.id),'先頭に移動して自動保存しました。');};
  $('submissionOrderLast').onclick=()=>{if(source)apply(moveBefore(getDraft(),getFiles(),getSetId(),source,null),'最後に移動して自動保存しました。');};
  $('submissionOrderCancel').onclick=()=>{source=null;status.textContent='移動をやめました。';render({preserveScroll:true});};
- return {update:render};
+ return {update:render,close(){host.hidden=true;source=null;for(const el of selectionParts)el.hidden=false;render();}};
 }

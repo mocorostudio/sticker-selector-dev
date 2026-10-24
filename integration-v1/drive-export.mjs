@@ -58,6 +58,13 @@ export function createExportDrive({getToken,fetchImpl=globalThis.fetch,readJourn
   character,characterFolder,
   async account(){const r=await request('https://www.googleapis.com/drive/v3/about?fields=user(permissionId,emailAddress)');const user=(await r.json()).user;if(!user?.permissionId)throw Error('保存するGoogleアカウントを確認できません。');return user;},
   async roots(){const r=await request(API+'?'+new URLSearchParams({q:"trashed = false and mimeType = '"+FOLDER+"' and appProperties has { key='exportApp' and value='"+EXPORT_APP+"' } and appProperties has { key='kind' and value='export-root' }",fields:'files('+FIELDS+'),nextPageToken',pageSize:'100'}));return (await r.json()).files;},
+  async saveArtwork(bundle,{accountId,characterId}){
+   id(accountId);if(bundle.characterId!==characterId||bundle.images?.length!==2||new Set(bundle.images.map(e=>e.kind)).size!==2||!bundle.images.every(e=>['main','tab'].includes(e.kind)))throw Error('メイン・タブのキャラと画像を確認できません。');
+   for(const e of bundle.images)if(e.blob?.type!=='image/png'||e.blob.size>1000000||e.technicalStatus!=='review'||!/^PREVIEW_(main|tab)_[a-f0-9]{12}\.png$/.test(e.name)||await digest(e.blob)!==e.sha)throw Error('メイン・タブの内容を確認できません。');
+   if(bundle.manifest?.blob?.type!=='application/json'||bundle.manifest.sha!==await digest(bundle.manifest.blob))throw Error('編集記録を確認できません。');const record=JSON.parse(await bundle.manifest.blob.text());if(record.schema!=='animal-stickers-artwork/v1'||record.characterId!==characterId||record.technicalApproval!==false)throw Error('編集記録の技術判定を確認できません。');
+   await characterFolder(characterId);const history=await children(characterId,'03_元画像・生成履歴');if(history.length!==1||history[0].parents?.length!==1||history[0].parents[0]!==characterId)throw Error('編集画像の保存先を照合できません。');const prefix='artwork:'+accountId+':'+characterId+':',files=[];
+   for(const e of bundle.images){const f=await put(prefix+e.kind+':'+e.sha,history[0].id,e);files.push({id:f.id,name:f.name,link:f.webViewLink||'https://drive.google.com/file/d/'+f.id+'/view'});}await put(prefix+'record:'+bundle.manifest.sha,history[0].id,bundle.manifest);return {files,folderId:history[0].id};
+  },
   async saveArchives(bundle,{accountId,characterId,onProgress=()=>{}}){
    id(accountId);if(bundle.characterId!==characterId||typeof bundle.trial!=='boolean'||!bundle.archives?.length)throw Error('ZIPのキャラを確認できません。');
    onProgress({stage:'destination'});const characterInfo=await characterFolder(characterId),targetName=bundle.trial?'03_元画像・生成履歴':'04_申請用',targets=await children(characterInfo.id,targetName),history=await children(characterInfo.id,'03_元画像・生成履歴');
