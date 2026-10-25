@@ -1,10 +1,10 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261024-progress1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261025-draft1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
  const title=document.createElement('h2');title.id='drivePendingTitle';title.textContent='Driveの画像を選抜する';
- const description=document.createElement('p');description.textContent='キャラの「00_選抜待ち」から検品済み画像を読み込みます。';
+ const description=document.createElement('p');description.textContent='キャラを選んで画像を読み込みます。検品未確定の画像は仮選抜と表示し、申請用には進めません。';
  const status=document.createElement('p');status.id='drivePendingStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const connect=document.createElement('button');connect.id='pendingConnect';connect.textContent='Googleに接続して読み込む';connect.disabled=true;
  const label=document.createElement('label');label.textContent='選ぶキャラ';label.hidden=true;
@@ -17,7 +17,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  let auth,ready=false,token='',drive,busy=false;
  const controls=()=>{connect.disabled=busy||!ready;select.disabled=busy;load.disabled=busy||!select.value;close.disabled=busy;dialog.setAttribute('aria-busy',String(busy));};
  dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
- select.onchange=controls;
+ select.onchange=()=>{api.setCharacter(select.value);controls();};
  const progress=document.createElement('p');progress.id='drivePendingProgress';progress.setAttribute('role','status');progress.setAttribute('aria-live','polite');progress.hidden=true;document.getElementById('list').before(progress);
  const report=text=>{status.textContent=text;progress.textContent=text;};
  async function read(characterId){
@@ -35,7 +35,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
      while(api.isBusy())await new Promise(resolve=>setTimeout(resolve,50));
      const old=api.items().find(x=>x.imageId===e.record.imageId);
      if(old?.driveFileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');
-     const part=await importCrops([e],{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}}},master,{forSelection:!!e.record.trialSelection});
+     const part=await importCrops([e],{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}}},master,{forSelection:!!e.record.trialSelection||e.record.draftSelection===true});
      if(part.errors.length)throw Error(part.errors.map(x=>x.message).join(' / '));
      const item=api.items().find(x=>x.imageId===e.record.imageId);
      item.driveFileId=e.record.pendingDrive.fileId;item.characterId=characterId;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);
@@ -52,10 +52,10 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  connect.onclick=()=>run(async()=>{
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
   drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
-  if(target){await read(target);return;}
   status.textContent='選抜待ちのあるキャラを探しています…';const characters=await drive.characters();
   select.replaceChildren(...characters.map(c=>new Option(c.name,c.id)));label.hidden=load.hidden=characters.length===0;
   if(!characters.length){status.textContent='「00_選抜待ち」のあるキャラが見つかりません。画像を保存したGoogleアカウントで接続してください。';return;}
+  if(target&&characters.some(c=>c.id===target))select.value=target;
   if(characters.length===1){await read(characters[0].id);return;}
   status.textContent='選ぶキャラを選んで、読み込みを押してください。';
  });

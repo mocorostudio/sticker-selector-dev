@@ -1,3 +1,4 @@
+import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-draft1';
 import {gate,inspect} from './crop-v9/core.mjs?v=20261023-bear1';
 const FILES='https://www.googleapis.com/drive/v3/files',SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const FOLDER='application/vnd.google-apps.folder',SHEET='application/vnd.google-apps.spreadsheet';
@@ -12,7 +13,7 @@ export async function pngHash(bytes){return [...new Uint8Array(await crypto.subt
 export function masterId(reference){try{const u=new URL(reference);if(u.origin!=='https://docs.google.com')throw Error();const m=u.pathname.match(/^\/spreadsheets\/d\/([-\w]+)(?:\/edit)?\/?$/);if(!m)throw Error();return id(m[1]);}catch{throw Error('検品記録の参照マスターが不明です。');}}
 export function readMasterRows(rows){
  if(!Array.isArray(rows)||!rows.length)throw Error('セリフのマスターが空です。');
- const header=rows[0],a=header.indexOf('ID'),b=header.indexOf('セリフ（厳密）'),c=header.indexOf('基本ポーズ');
+ const header=rows[0],a=header.includes('ID')?header.indexOf('ID'):header.indexOf('候補ID'),b=header.indexOf('セリフ（厳密）'),c=header.includes('基本ポーズ')?header.indexOf('基本ポーズ'):header.indexOf('構図・ポーズ・目線');
  if([a,b,c].some(x=>x<0))throw Error('マスターのID・セリフ・基本ポーズを確認できません。');
  const seen=new Set(),out=[];
  for(const row of rows.slice(1)){if(!row[a])continue;if(typeof row[a]!=='string'||seen.has(row[a]))throw Error('マスターの候補IDが不正または重複しています。');seen.add(row[a]);out.push({candidateId:row[a],phrase:row[b]||'',pose:row[c]||''});}
@@ -31,7 +32,7 @@ export function validatePendingManifest(value,{characterId,pendingFolderId,maste
  }
  return spreadsheetId;
 }
-export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false,onRetry=()=>{},retryWait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
+export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false,unpack=unpackDraft,onRetry=()=>{},retryWait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
  let calls=0;
  const transient=error=>error?.retryable===true||['AbortError','TimeoutError','TypeError'].includes(error?.name);
  async function retry(read){for(let attempt=0;;attempt++){try{return await read();}catch(error){if(!transient(error)||attempt>=3)throw error;onRetry({attempt:attempt+1,max:3});await retryWait(1000*2**attempt);}}}
@@ -63,11 +64,11 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
   if(['id','name','mimeType','size','version','modifiedTime','sha256Checksum'].some(k=>String(file[k]??'')!==String(after[k]??''))||after.trashed||JSON.stringify(file.parents)!==JSON.stringify(after.parents))throw Error('読み込み中に画像や保存先が変更されました。もう一度読み込んでください。');
   return new Blob(chunks).arrayBuffer();
  }
- async function readMaster(spreadsheetId){
+ async function readMaster(spreadsheetId,sheetName='116候補マスター'){
   const book=await json(SHEETS+'/'+id(spreadsheetId)+'?fields=spreadsheetId,sheets(properties)');
-  const sheet=book.sheets?.find(s=>s.properties?.title==='116候補マスター'),grid=sheet?.properties?.gridProperties;
-  if(!grid||grid.columnCount<7||grid.rowCount<2)throw Error('116候補マスターを確認できません。');
-  const range="'116候補マスター'!A1:G"+Math.min(grid.rowCount,2000);
+  const sheet=book.sheets?.find(s=>s.properties?.title===sheetName),grid=sheet?.properties?.gridProperties;
+  if(!grid||grid.columnCount<7||grid.rowCount<2)throw Error('参照する候補マスターを確認できません。');
+  const range="'"+sheetName.replaceAll("'","''")+"'!A1:"+(sheetName==='116候補マスター'?'G':'Z')+Math.min(grid.rowCount,2000);
   return readMasterRows((await json(SHEETS+'/'+id(spreadsheetId)+'/values/'+encodeURIComponent(range))).values);
  }
  return {
@@ -82,6 +83,26 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    function folder(name){const found=children.filter(f=>validFolder(f)&&f.name===name&&inFolder(f,characterId));if(found.length!==1)throw Error(name+'がないか重複しています。');return found[0];}
    const pending=folder('00_選抜待ち'),history=folder('03_元画像・生成履歴'),masters=children.filter(f=>f.mimeType===SHEET&&inFolder(f,characterId));
    let images=(await list('trashed = false and '+quote(pending.id)+' in parents')).filter(f=>f.mimeType==='image/png'&&inFolder(f,pending.id));
+   if(!images.length){
+    const drafts=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-draft_'"));
+    if(!drafts.length&&!includeTrials)return {character,entries:[],master:[],skipped:0};
+    if(drafts.length){
+    if(drafts.length!==1)throw Error('仮選抜記録が複数あります。ルイに整理を依頼してください。');
+    const value=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(drafts[0],3000000))));
+    const spreadsheetId=validateDraft(value,{characterId,pendingFolderId:pending.id,masters,historyId:history.id});
+    onProgress({stage:'master',character:character.name});const master=await readMaster(spreadsheetId,value.masterSheet);
+    for(const e of value.entries){const m=master.find(m=>m.candidateId===e.candidateId);if(!m||m.phrase!==e.phrase||m.pose!==e.pose)throw Error('仮選抜記録のセリフ・ポーズが最新マスターと一致しません。');}
+    const archive=await meta(value.archive.fileId);if(!inFolder(archive,history.id)||archive.mimeType!=='application/zip')throw Error('仮選抜ZIPの保存先が一致しません。');
+    const archiveBytes=await retry(()=>bytes(archive,30000000));if(await pngHash(archiveBytes)!==value.archive.sha256)throw Error('仮選抜ZIPが変更されています。');
+    const files=await unpack(archiveBytes,value.entries),entries=[];
+    for(const e of value.entries){const png=files.get(e.filename);if(!png||await pngHash(png)!==e.sha256)throw Error('仮選抜PNGの照合に失敗しました。');
+     const decoded=await decode(new Blob([png],{type:'image/png'})),qa=inspect(decoded,false);if(decoded.width!==370||decoded.height!==320||qa.issues.includes('空画像'))throw Error('仮選抜PNGのサイズ・描画を確認できません。');
+     const record={...e,hasPixels:true,crossing:false,qa,review:[],decision:'review',draftSelection:true,masterReference:value.masterReference,cropReview:{confirmed:true,imageId:e.imageId},pendingDrive:{characterId,folderId:history.id,archiveFileId:archive.id,manifestFileId:drafts[0].id,sha256:e.sha256}};
+     const verified={record,png};await onEntry({entry:verified,character,master,done:entries.length+1,total:value.entries.length});entries.push(verified);onProgress({stage:'images',done:entries.length,total:value.entries.length,character:character.name});
+    }
+    return {character,entries,master,skipped:0,draft:true};
+    }
+   }
    if(includeTrials)images.push(...(await list('trashed = false and '+quote(history.id)+' in parents')).filter(f=>f.mimeType==='image/png'&&inFolder(f,history.id)));
    if(images.length>200||images.reduce((n,f)=>n+Number(f.size||0),0)>150000000)throw Error('一度の読み込みは200枚・150MB以下にしてください。');
    if(!images.length)return {character,entries:[],master:[],skipped:0};

@@ -1,5 +1,24 @@
 # v9 development status
 
+## 2026-10-25: character switching and remote draft loading
+
+The Drive picker always offers character selection, including when opened from a
+character-specific or older trial bookmark. Switching characters changes the view;
+it preserves existing images, votes and comments. A character with no inspected
+pending PNGs may load a `selection-draft_*.json` manifest from its own history
+folder. The manifest references a private ZIP in that same folder. No private
+image, master content, character identifier or manifest is shipped in this repo.
+
+Draft import checks folder ancestry, current master text/pose, archive and PNG
+SHA-256, dimensions, and local readback. Drafts remain `decision: review` with
+empty visual approvals; the existing technical gate still controls promotion.
+The loader supports the character master header names and sheet named by the
+manifest. Existing inspected and explicit outline-trial loaders remain intact.
+
+Validation: 121 Node tests; actual 72-image draft imported twice through simulated
+Google responses, with no duplicates and an existing other-character vote intact.
+Real Google authorization and physical iPhone behavior require separate validation.
+
 ## Integrated review 2026-10-23
 
 The canonical integration remains this repository's `development/integration-v1`.
