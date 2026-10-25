@@ -22,3 +22,12 @@ test('application kit includes the ordered stickers plus main/tab and retries to
 test('held candidates are opt-in, preserve the original rating, and are rechecked before ZIP creation',async()=>{
  const {trialCandidates}=await import('../integration-v1/submission-core.mjs'),items=candidateItems().filter(x=>x.rating==='o').slice(0,7),held=candidateItems().find(x=>x.rating==='h');items.push(held);items.forEach(x=>x.characterId='char');const before=structuredClone(items);assert.equal(trialCandidates(items).length,7);const files=trialCandidates(items,{includeHeld:true}),draft={sets:[{id:'set',name:'補充',target:8}],assignments:Object.fromEntries(files.map(f=>[f.id,'set']))},plan=prepareTrialSubmission(draft,files,{characterId:'char',id:'plan'}),b=await prepareSelectionZip(plan,{items,get:async()=>png,decode:async()=>validPixels()});assert.equal(plan.entries.filter(e=>e.fromHold).length,1);assert.equal(b.archives[0].mapping.filter(e=>e.sourceRating==='h').length,1);assert.deepEqual(items,before);const denied=structuredClone(plan);delete denied.entries.find(e=>e.fromHold).fromHold;await assert.rejects(prepareSelectionZip(denied,{items,get:async()=>png,decode:async()=>validPixels()}),/選抜/);held.rating='x';await assert.rejects(prepareSelectionZip(plan,{items,get:async()=>png,decode:async()=>validPixels()}),/選抜/);
 });
+
+test('verified draft ZIP preserves review status and rejects wrong character, altered bytes or bad pixels',async()=>{
+ const {digest}=await import('../integration-v1/drive-export.mjs');const {items,plan}=await bundle();const sha=await digest(png);
+ for(const item of items){item.technicalPassed=false;delete item.crop.trialSelection;item.crop.draftSelection=true;item.crop.pendingDrive={characterId:'char',archiveFileId:'archive',manifestFileId:'manifest',sha256:sha};}
+ const options={items,get:async()=>png,decode:async()=>validPixels()};const b=await prepareSelectionZip(plan,options);assert.ok(b.archives[0].mapping.every(e=>e.technicalStatus==='review'));assert.equal(JSON.parse(await b.manifest.blob.text()).technicalApproval,false);
+ await assert.rejects(prepareSelectionZip(plan,{...options,get:async()=>new Blob(['changed'],{type:'image/png'})}),/技術検品/);
+ await assert.rejects(prepareSelectionZip(plan,{...options,decode:async()=>({width:370,height:320,data:new Uint8ClampedArray(370*320*4)})}),/技術検品/);
+ items[1].crop.pendingDrive.characterId='other';await assert.rejects(prepareSelectionZip(plan,options),/技術検品/);
+});
