@@ -51,3 +51,14 @@ test('a directly addressed character remains selectable when global folder searc
  await assert.rejects(drive.characters({preferredId:'inaccessible'}),/見つかりません/);
  f.folder('extra','00_選抜待ち','char');await assert.rejects(drive.characters({preferredId:'char'}),/重複/);
 });
+
+test('all candidates reopen even when 00 is empty and adopted/held contain copies; saved rejection is restored',async()=>{
+ const f=await fixture();f.files.set('adopt',{id:'adopt',name:'01_採用予定',mimeType:'application/vnd.google-apps.folder',parents:['char']});f.files.set('hold',{id:'hold',name:'02_保留',mimeType:'application/vnd.google-apps.folder',parents:['char']});
+ f.put('copy','copy.png','adopt','image/png',png);const r=f.draft.entries[0];const results={schema:'animal-stickers-selection-export/v1',results:[{imageId:r.imageId,candidateId:r.candidateId,phrase:r.phrase,rating:'x',confirmed:true,revision:'saved',comment:'再検討',selectionHistory:[{revision:'saved',rating:'x',comment:'再検討'}],sourceProof:{characterId:'char',sha256:r.sha256}}]};f.put('votes','selection-results_saved.json','history','application/json',new TextEncoder().encode(JSON.stringify(results)));
+ const drive=createPendingDrive({getToken:()=> 'fixture',fetchImpl:f.fetch.bind(f)}),result=await drive.load('char',{allCandidates:true,decode});assert.equal(result.entries.length,2);assert.equal(result.entries[0].savedEvaluation.rating,'x');assert.equal(result.entries[0].savedEvaluation.comment,'再検討');assert.equal(result.draft,true);
+});
+
+test('formally inspected PNGs remain readable after moving from 00 into adopted and held',async()=>{
+ const f=await new PendingFixture().setup(png,2);f.files.set('adopt',{id:'adopt',name:'01_採用予定',mimeType:'application/vnd.google-apps.folder',parents:['char']});f.files.set('hold',{id:'hold',name:'02_保留',mimeType:'application/vnd.google-apps.folder',parents:['char']});f.files.get('png1').parents=['adopt'];f.files.get('png2').parents=['hold'];
+ const result=await createPendingDrive({getToken:()=> 'fixture',fetchImpl:f.fetch.bind(f)}).load('char',{allCandidates:true,decode});assert.equal(result.entries.length,2);assert.equal(result.entries[0].record.pendingDrive.folderId,'adopt');assert.equal(result.entries[1].record.pendingDrive.folderId,'hold');
+});

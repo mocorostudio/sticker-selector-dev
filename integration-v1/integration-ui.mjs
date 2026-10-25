@@ -1,9 +1,9 @@
-import {initInspection} from './inspection-ui.mjs?v=20261025-inspect2';
-import {initSubmission} from './submission-ui.mjs?v=20261025-inspect2';
+import {initInspection} from './inspection-ui.mjs?v=20261025-reselectall1';
+import {initSubmission} from './submission-ui.mjs?v=20261025-reselectall1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261025-inspect2';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261025-direct2';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261025-reselectall1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261025-reselectall1';
 export function initWorkflow(api){
  initInspection(api);
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
@@ -12,7 +12,7 @@ export function initWorkflow(api){
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
  const pending=initDrivePending(api,{onLoaded:r=>{show('selection',{preserve:true});$('driveStatus').textContent=r.character.name+'：'+r.count+'枚をDriveから読み込みました。'+(r.draft?'仮選抜です。技術検品は未確定で、申請用には進めません。':r.entries.some(e=>e.record.trialSelection)?'試用画像を含みます。申請用の技術合格ではありません。':'検品済みです。')+'◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
- $('loadPending').textContent='Driveの選抜待ちを読み込む';$('loadPending').onclick=pending.open;
+ $('loadPending').textContent='Driveから全候補を読み込む・再選抜';$('loadPending').onclick=pending.open;
  const driveExport=initDriveExport(api,{onSnapshot:()=>{if(new URLSearchParams(location.search).get('selectionMode')==='trial')show('submission');}});
  $('sync').hidden=true;$('mode').textContent='切り出し → 選抜 → Google Driveに保存';
  $('driveStatus').textContent=new URLSearchParams(location.search).has('character')?'このキャラの画像だけを表示します。画像がなければ「Driveの選抜待ちを読み込む」を押してください。':'◯・△・✕を選び、「Google Driveに保存」を押してください。';

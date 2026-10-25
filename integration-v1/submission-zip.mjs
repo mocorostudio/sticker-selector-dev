@@ -1,5 +1,5 @@
 import {SET_COUNTS,validateSubmission} from './submission-core.mjs?v=20261024-zip1';
-import {digest} from './drive-export.mjs?v=20261025-pngsave1';
+import {digest} from './drive-export.mjs?v=20261025-reselectall1';
 import {inspect,gate} from './crop-v9/core.mjs?v=20261023-merge1';
 import {trialEligible} from './drive-pending.mjs?v=20261024-progress1';
 const encoder=new TextEncoder();

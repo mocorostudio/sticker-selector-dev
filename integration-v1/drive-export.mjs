@@ -20,6 +20,7 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
  for(const item of rows){
   const confirmed=isLocalConfirmed(item),trial=trialEligible(item.crop),approved=item.technicalPassed===true&&gate(item.crop||{})==='pass';
   const row={imageId:item.imageId,number:item.sequenceLabel||'',candidateId:item.candidate||null,phrase:item.phrase||'',rating:confirmed?item.rating:null,comment:item.comment||'',revision:item.revision||null,confirmed,selectionHistory:structuredClone(item.selectionHistory||[]),technicalStatus:approved?'pass':'review'};
+  if(confirmed&&item.rating==='x'&&!item.crop?.draftSelection){const original=await get(item.id);if(!original||original.type!=='image/png')throw Error('不採用画像の保存記録を照合できません。');row.sha256=await digest(original);}
   if(item.inspectionAudit){row.inspectionAudit=structuredClone(item.inspectionAudit);row.inspectionHistory=structuredClone(item.inspectionHistory||[]);}
   if(item.crop?.trialSelection){row.purpose='selection-test-only';row.technicalStatus='review';row.qualityException=structuredClone(item.crop.trialSelection);}
   if(item.crop?.draftSelection===true){

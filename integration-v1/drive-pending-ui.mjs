@@ -1,10 +1,11 @@
+import {restoreEvaluation} from './reselection.mjs?v=20261025-reselectall1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261025-direct2';
+import {createPendingDrive} from './drive-pending.mjs?v=20261025-reselectall1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
  const title=document.createElement('h2');title.id='drivePendingTitle';title.textContent='Driveの画像を選抜する';
- const description=document.createElement('p');description.textContent='キャラを選んで画像を読み込みます。検品未確定の画像は仮選抜と表示し、申請用には進めません。';
+ const description=document.createElement('p');description.textContent='キャラを選んで画像を読み込みます。採用・保留・不採用を含む全候補を再表示します。検品未確定の画像は仮選抜として表示します。';
  const status=document.createElement('p');status.id='drivePendingStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const connect=document.createElement('button');connect.id='pendingConnect';connect.textContent='Googleに接続して読み込む';connect.disabled=true;
  const label=document.createElement('label');label.textContent='選ぶキャラ';label.hidden=true;
@@ -26,7 +27,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
   const ids=api.visible().map(x=>x.id);let received=0;
   progress.hidden=false;report('キャラと検品記録を確認中…');
   try{
-   const result=await drive.load(characterId,{decode:api.decode,
+   const result=await drive.load(characterId,{allCandidates:true,decode:api.decode,
     getCachedBytes:async({record,image,sha256})=>{const old=api.items().find(x=>x.imageId===record.imageId),proof=old?.crop?.pendingDrive;if(!proof||!image.version||proof.version!==String(image.version)||proof.sha256!==sha256||proof.fileId!==image.id)return null;const blob=await api.get(old.id);return blob?blob.arrayBuffer():null;},
     onProgress:p=>report(p.stage==='master'?'セリフと検品記録を照合中…':p.character+'：'+p.done+'／'+p.total+'枚読み込み済み。表示された画像から選べます。'),
     onEntry:async({entry:e,master,done,total})=>{
@@ -38,12 +39,13 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
      const part=await importCrops([e],{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}}},master,{forSelection:!!e.record.trialSelection||e.record.draftSelection===true});
      if(part.errors.length)throw Error(part.errors.map(x=>x.message).join(' / '));
      const item=api.items().find(x=>x.imageId===e.record.imageId);
+     restoreEvaluation(item,e.savedEvaluation);
      item.driveFileId=e.record.pendingDrive.fileId;item.characterId=characterId;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);
      api.save();for(const id of part.ids)if(!ids.includes(id))ids.push(id);
      api.setView(ids,false,{forceReplace:true});api.redraw({appendOnly:true});received=done;
      if(dialog.open)dialog.close();report(done+'／'+total+'枚読み込み済み。残りを読み込みながら選べます。');
     }});
-   if(!result.entries.length){report(result.character.name+'の選抜待ちはありません。');return;}
+   if(!result.entries.length){report(result.character.name+'の候補は見つかりません。');return;}
    report(result.entries.length+'枚の読み込みが完了しました。');
    onLoaded({...result,count:result.entries.length});
   }catch(error){report('読み込みは途中で止まりました：'+error.message+(received?' 読み込み済み'+received+'枚と選抜結果は残っています。残りは再接続して読み込めます。':''));error.pendingReported=true;throw error;}
