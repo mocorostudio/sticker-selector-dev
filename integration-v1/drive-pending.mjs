@@ -1,6 +1,6 @@
 import {savedEvaluation} from './reselection.mjs?v=20261025-reselectall1';
 import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-direct2';
-import {gate,inspect} from './crop-v9/core.mjs?v=20261023-bear1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261026-inspected1';
 const FILES='https://www.googleapis.com/drive/v3/files',SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const FOLDER='application/vnd.google-apps.folder',SHEET='application/vnd.google-apps.spreadsheet';
 const FIELDS='id,name,mimeType,parents,size,version,modifiedTime,sha256Checksum,trashed,capabilities(canDownload)';
@@ -16,8 +16,9 @@ export function readMasterRows(rows){
  if(!Array.isArray(rows)||!rows.length)throw Error('セリフのマスターが空です。');
  const header=rows[0],a=header.includes('ID')?header.indexOf('ID'):header.indexOf('候補ID'),b=header.indexOf('セリフ（厳密）'),c=header.includes('基本ポーズ')?header.indexOf('基本ポーズ'):header.indexOf('構図・ポーズ・目線');
  if([a,b,c].some(x=>x<0))throw Error('マスターのID・セリフ・基本ポーズを確認できません。');
+ const textlessColumn=header.indexOf('文字なしテーマ');
  const seen=new Set(),out=[];
- for(const row of rows.slice(1)){if(!row[a])continue;if(typeof row[a]!=='string'||seen.has(row[a]))throw Error('マスターの候補IDが不正または重複しています。');seen.add(row[a]);out.push({candidateId:row[a],phrase:row[b]||'',pose:row[c]||''});}
+ for(const row of rows.slice(1)){if(!row[a])continue;if(typeof row[a]!=='string'||seen.has(row[a]))throw Error('マスターの候補IDが不正または重複しています。');seen.add(row[a]);out.push({candidateId:row[a],phrase:row[b]||'',pose:row[c]||'',...(!row[b]&&textlessColumn>=0&&row[textlessColumn]?{textless:true}:{})});}
  return out;
 }
 export function validatePendingManifest(value,{characterId,pendingFolderId,masters,includeTrials=false}){
@@ -126,9 +127,9 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    for(const file of records){
     if(!inFolder(file,history.id)||file.mimeType!=='application/json')throw Error('検品記録の保存先が一致しません。');
     const value=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(file,3000000)))),spreadsheetId=validatePendingManifest(value,{characterId,pendingFolderId:pending.id,masters,includeTrials});
-    onProgress({stage:'master',character:character.name});if(!masterCache.has(spreadsheetId))masterCache.set(spreadsheetId,await readMaster(spreadsheetId));const master=masterCache.get(spreadsheetId);
+    onProgress({stage:'master',character:character.name});const masterKey=JSON.stringify([spreadsheetId,value.masterSheet||'116候補マスター']);if(!masterCache.has(masterKey))masterCache.set(masterKey,await readMaster(spreadsheetId,value.masterSheet));const master=masterCache.get(masterKey);
     for(const entry of value.entries){const r=entry.record,m=master.find(x=>x.candidateId===r.candidateId);
-     if(!m||m.phrase!==r.phrase||m.pose!==r.pose)throw Error('マスターのセリフ・基本ポーズと検品記録が一致しません。');
+     if(!m||m.phrase!==r.phrase||m.pose!==r.pose||r.textless===true&&m.textless!==true)throw Error('マスターのセリフ・基本ポーズと検品記録が一致しません。');
      const key=JSON.stringify([r.imageId,entry.driveFileId,entry.sha256,r.filename,r.candidateId,r.phrase,r.pose]);
      if(known.has(r.imageId)){if(known.get(r.imageId)!==key)throw Error('同じ画像IDの検品記録が矛盾しています。');continue;}
      if(knownFiles.has(entry.driveFileId))throw Error('同じPNGに複数の画像IDがあります。');known.set(r.imageId,key);knownFiles.set(entry.driveFileId,key);

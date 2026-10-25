@@ -1,7 +1,7 @@
 import {restoreEvaluation} from './reselection.mjs?v=20261025-reselectall1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261025-reselectall1';
-import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261026-inspected1';
+import {importCrops} from './crop-handoff.mjs?v=20261026-inspected1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
  const title=document.createElement('h2');title.id='drivePendingTitle';title.textContent='Driveの画像を選抜する';
