@@ -1,4 +1,4 @@
-import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-draft1';
+import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-direct2';
 import {gate,inspect} from './crop-v9/core.mjs?v=20261023-bear1';
 const FILES='https://www.googleapis.com/drive/v3/files',SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const FOLDER='application/vnd.google-apps.folder',SHEET='application/vnd.google-apps.spreadsheet';
@@ -72,8 +72,17 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
   return readMasterRows((await json(SHEETS+'/'+id(spreadsheetId)+'/values/'+encodeURIComponent(range))).values);
  }
  return {
-  async characters(){
-   const pending=await list("trashed = false and mimeType = '"+FOLDER+"' and name = '00_選抜待ち'"),out=[];
+  async characters({preferredId=null}={}){
+   const out=[];
+   // A URL identifies an explicit folder. Verify it directly rather than
+   // requiring it to appear in an account-wide name-search response first.
+   if(preferredId){
+    const parent=await meta(id(preferredId));if(!validFolder(parent))throw Error('指定したキャラのフォルダを確認できません。');
+    const children=await list('trashed = false and '+quote(parent.id)+' in parents');
+    if(children.filter(f=>validFolder(f)&&f.name==='00_選抜待ち'&&inFolder(f,parent.id)).length!==1)throw Error('指定したキャラの00_選抜待ちがないか重複しています。');
+    out.push({id:parent.id,name:parent.name});
+   }
+   const pending=await list("trashed = false and mimeType = '"+FOLDER+"' and name = '00_選抜待ち'");
    for(const f of pending){if(f.parents?.length!==1||out.some(x=>x.id===f.parents[0]))continue;const parent=await meta(f.parents[0]);if(validFolder(parent))out.push({id:parent.id,name:parent.name});}
    return out.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   },

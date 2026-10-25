@@ -2,7 +2,7 @@ import {initSubmission} from './submission-ui.mjs?v=20261024-ready1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
 import {initDriveExport} from './drive-export-ui.mjs?v=20261024-ready1';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261025-draft1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261025-direct2';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
  function show(screen,{preserve=false}={}){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection&&!preserve)api.redraw();if(screen==='submission')submission.open();window.dispatchEvent(new Event('resize'));}

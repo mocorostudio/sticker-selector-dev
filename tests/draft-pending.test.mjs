@@ -43,3 +43,11 @@ test('an old trial-mode bookmark can switch to a draft character without treatin
 test('character-specific master headers are supported without changing exact text',()=>{
  assert.deepEqual(readMasterRows([['候補ID','セリフ（厳密）','構図・ポーズ・目線'],['PMD001','ほんと？','斜め上']]),[{candidateId:'PMD001',phrase:'ほんと？',pose:'斜め上'}]);
 });
+test('a directly addressed character remains selectable when global folder search omits it',async()=>{
+ const f=await fixture();f.folder('bear','05_Bear','root');f.folder('bearPending','00_選抜待ち','bear');
+ const original=f.fetch.bind(f);const fetchImpl=async(url,options)=>{const u=new URL(url);if(u.pathname==='/drive/v3/files'&&u.searchParams.get('q')?.includes("name = '00_選抜待ち'"))return Response.json({files:[f.files.get('bearPending')]});return original(url,options);};
+ const drive=createPendingDrive({getToken:()=> 'fixture',fetchImpl});const chars=await drive.characters({preferredId:'char'});assert.deepEqual(new Set(chars.map(c=>c.id)),new Set(['char','bear']));
+ assert.equal((await drive.load('char',{decode})).entries.length,2);
+ await assert.rejects(drive.characters({preferredId:'inaccessible'}),/見つかりません/);
+ f.folder('extra','00_選抜待ち','char');await assert.rejects(drive.characters({preferredId:'char'}),/重複/);
+});

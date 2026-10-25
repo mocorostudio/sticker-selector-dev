@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261025-draft1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261025-direct2';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
@@ -52,7 +52,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  connect.onclick=()=>run(async()=>{
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
   drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
-  status.textContent='選抜待ちのあるキャラを探しています…';const characters=await drive.characters();
+  status.textContent='指定キャラと選抜待ちを確認しています…';const characters=await drive.characters({preferredId:target});
   select.replaceChildren(...characters.map(c=>new Option(c.name,c.id)));label.hidden=load.hidden=characters.length===0;
   if(!characters.length){status.textContent='「00_選抜待ち」のあるキャラが見つかりません。画像を保存したGoogleアカウントで接続してください。';return;}
   if(target&&characters.some(c=>c.id===target))select.value=target;
