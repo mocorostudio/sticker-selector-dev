@@ -6,3 +6,13 @@ export function availableRecovery(store,key){const current=store.getItem(key);fo
 export function selectAllAdopted(draft,files,setId){if(!draft.sets.some(s=>s.id===setId))throw Error('セットを選んでください。');const next=structuredClone(draft),seen=new Set(next.seenCandidateIds||[]);for(const f of files){if(f.fromHold)continue;if(!next.assignments[f.id]||next.assignments[f.id]===setId)next.assignments[f.id]=setId;seen.add(f.id);}next.seenCandidateIds=[...seen];return next;}
 // A legacy local draft can be associated only by all referenced image IDs matching this character.
 export function legacySubmission(store,{pathname,characterId,trial,files}){const current=submissionKey(pathname,characterId,trial),known=new Set(files.map(f=>f.id)),keys=new Set([submissionKey(pathname,characterId,!trial),submissionKey(pathname,'local-trial',trial)]),matches=[];for(const key of keys){if(key===current)continue;let value;try{value=readSubmission(store,key);}catch{continue;}const d=value?.draft;if(!d?.sets?.length||!Object.keys(d.artwork||{}).length&&!Object.keys(d.orders||{}).length)continue;const refs=[...Object.keys(d.assignments),...Object.values(d.orders||{}).flat(),...Object.values(d.artwork||{}).flatMap(a=>[a.mainId,a.tabId]).filter(Boolean)];if(refs.length&&refs.every(id=>known.has(id)))matches.push({draft:structuredClone(d),operation:null});}return matches.length===1?matches[0]:null;}
+// Apply only explicit rating transitions; keep application edits and unchecked adopted candidates.
+export function reconcileSelectionRatings(draft,items,{characterId,setId}={}){
+ const next=structuredClone(draft),previous=next.selectionRatings||{},ratings={},target=next.sets.some(s=>s.id===setId)?setId:next.sets[0]?.id;
+ for(const item of items){if((item.characterId||item.crop?.pendingDrive?.characterId)!==characterId||item.origin!=='crop-local'||!item.touched||!item.imageId||!['o','h','x'].includes(item.rating))continue;
+  const id=item.imageId;ratings[id]=item.rating;
+  if(item.rating==='x')delete next.assignments[id];
+  else if(item.rating==='o'&&['h','x'].includes(previous[id])&&target&&!next.assignments[id])next.assignments[id]=target;
+ }
+ next.selectionRatings=ratings;return next;
+}

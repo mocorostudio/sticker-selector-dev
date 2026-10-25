@@ -6,3 +6,12 @@ test('the original pre-upgrade draft is preserved, previous work is recoverable,
 test('select all restores adopted checks without changing tab edits, order, other sets or held choices',()=>{const d={...structuredClone(draft),sets:[...draft.sets,{id:'second',name:'別',target:8}],assignments:{a:'set',other:'second',held:'set'}},before=structuredClone(d),next=selectAllAdopted(d,[{id:'a'},{id:'b'},{id:'other'},{id:'held',fromHold:true},{id:'unselected-held',fromHold:true}],'set');assert.deepEqual(next.assignments,{a:'set',b:'set',other:'second',held:'set'});assert.deepEqual(next.artwork,d.artwork);assert.deepEqual(next.orders,d.orders);assert.deepEqual(d,before);});
 
 test('legacy scopes are recovered only when every referenced image belongs to the same character',()=>{const s=storage(),pathname='/integration-v1/workflow.html',oldKey=submissionKey(pathname,'local-trial');s.setItem(oldKey,JSON.stringify({draft,operation:null}));const before=s.getItem(oldKey);assert.deepEqual(legacySubmission(s,{pathname,characterId:'char',trial:true,files:[{id:'a'}]}).draft,draft);assert.equal(legacySubmission(s,{pathname,characterId:'other',trial:true,files:[{id:'different'}]}),null);assert.equal(s.getItem(oldKey),before);});
+
+test('returning from selection applies changed ratings without resetting manual exclusions, artwork or order',async()=>{
+ const {reconcileSelectionRatings}=await import('../integration-v1/submission-store.mjs');
+ const item=(imageId,rating,char='char')=>({imageId,rating,characterId:char,origin:'crop-local',touched:true});
+ const before={...structuredClone(draft),assignments:{a:'set',rejected:'set'},selectionRatings:{a:'o',rejected:'o',restored:'x',unchecked:'o'}};
+ const next=reconcileSelectionRatings(before,[item('a','o'),item('rejected','x'),item('restored','o'),item('unchecked','o'),item('foreign','o','other')],{characterId:'char',setId:'set'});
+ assert.deepEqual(next.assignments,{a:'set',restored:'set'});assert.deepEqual(next.artwork,before.artwork);assert.deepEqual(next.orders,before.orders);assert.equal(before.assignments.rejected,'set');
+ assert.deepEqual(reconcileSelectionRatings(next,[item('a','o'),item('rejected','x'),item('restored','o'),item('unchecked','o')],{characterId:'char'}),next);
+});
