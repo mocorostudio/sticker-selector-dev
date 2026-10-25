@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261024-auth1';
-import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261025-draftsave1';
+import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261025-pngsave1';
 export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=createExportDrive,onSnapshot=()=>{}}={}){
  const params=new URLSearchParams(location.search),trial=params.get('selectionMode')==='trial';
  const tray=document.createElement('aside');tray.id='driveExport';tray.hidden=true;tray.setAttribute('aria-label','Google Driveの保存状況');
@@ -34,7 +34,7 @@ export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=cre
   for(const g of groups){g.plan=await prepareExport(g.items,{get:api.get,decode:api.decode,encode,preparedCache,onProgress:p=>{status.textContent='保存する画像を確認中 '+p.done+'／'+p.total+'枚。申請候補を選べます。';}});const li=document.createElement('li');li.textContent=g.character.name+' ／ '+exportSummary([g.plan]);destinations.append(li);}
   const total=groups.reduce((n,g)=>n+g.plan.images.length,0);let finished=0;progress.hidden=false;progress.max=Math.max(total,1);progress.value=0;
   for(const g of groups){const result=await drive.save(g.plan,{accountId:account.permissionId,characterId:g.character.id,onProgress:p=>{const done=finished+Math.min(p.done,g.plan.images.length);progress.value=done;status.textContent='Drive保存・照合済み '+done+'／'+total+'枚（残り '+(total-done)+'枚）'+(done===total?'。選抜結果の記録を照合中…':'。申請候補を選べます。');}});finished+=g.plan.images.length;const a=document.createElement('a');a.textContent=g.character.name+'の保存先を開く';a.href=result.link;a.target='_blank';a.rel='noopener noreferrer';links.append(a,document.createElement('br'));}
-  record('complete');label();retry.hidden=true;status.textContent='Drive保存・照合が完了しました。'+exportSummary(groups.map(g=>g.plan))+(snapshot.some(x=>x.crop?.draftSelection)?' 仮選抜の評価を03に保存しました。画像は元のZIPに保持し、技術検品は未確定です。':'');note.textContent='Driveに保存済みです。申請候補の選択は端末に自動保存されます。';
+  record('complete');label();retry.hidden=true;status.textContent='Drive保存・照合が完了しました。'+exportSummary(groups.map(g=>g.plan))+(snapshot.some(x=>x.crop?.draftSelection)?' 仮選抜の◯は01、△は02へPNGを保存しました。評価記録は03、技術検品は未確定です。':'');note.textContent='Driveに保存済みです。申請候補の選択は端末に自動保存されます。';
  }catch(e){label(true);status.textContent='保存は完了していません：'+(e.message||'通信に失敗しました。')+' 選択は端末に残っています。「Drive保存を再開」で続けられます。';note.textContent='ブラウザを閉じた場合も、同じSafariで開き直して再開できます。';
  }finally{lock(false);let pending=true;try{pending=JSON.parse(localStorage.getItem(jobKey))?.state!=='complete';}catch{}retry.hidden=!pending;resize();}}
  function open(){if(busy||!authReady)return;jobKey=scopeKey();let token;try{token=auth.getToken();}catch(e){reveal();status.textContent=e.message;return;}void save(token);}
