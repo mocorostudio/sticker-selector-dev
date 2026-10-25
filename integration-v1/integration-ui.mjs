@@ -1,7 +1,7 @@
 import {initSubmission} from './submission-ui.mjs?v=20261024-ready1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261024-ready1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261025-draftsave1';
 import {initDrivePending} from './drive-pending-ui.mjs?v=20261025-direct2';
 export function initWorkflow(api){
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;

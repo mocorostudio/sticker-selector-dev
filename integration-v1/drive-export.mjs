@@ -21,6 +21,12 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
   const confirmed=isLocalConfirmed(item),trial=trialEligible(item.crop),approved=item.technicalPassed===true&&gate(item.crop||{})==='pass';
   const row={imageId:item.imageId,number:item.sequenceLabel||'',candidateId:item.candidate||null,phrase:item.phrase||'',rating:confirmed?item.rating:null,comment:item.comment||'',revision:item.revision||null,confirmed,selectionHistory:structuredClone(item.selectionHistory||[]),technicalStatus:approved?'pass':'review'};
   if(item.crop?.trialSelection){row.purpose='selection-test-only';row.technicalStatus='review';row.qualityException=structuredClone(item.crop.trialSelection);}
+  if(item.crop?.draftSelection===true){
+   const proof=item.crop.pendingDrive,blob=await get(item.id);
+   if(!proof?.archiveFileId||!proof?.manifestFileId||!proof?.characterId||!blob||await digest(blob)!==proof.sha256)throw Error('仮選抜の画像と読込記録が一致しません。');
+   row.purpose='draft-selection-only';row.technicalStatus='review';row.sourceProof=structuredClone(proof);
+   results.push(row);onProgress({done:results.length,total:rows.length});continue;
+  }
   if(confirmed&&['o','h'].includes(item.rating)){
    if(!approved&&!trial)throw Error((row.number||item.name)+'は技術検品・試用許可を照合できません。');
    id(item.imageId);let blob=await get(item.id);if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error((row.number||item.name)+'のPNGを読み込めません。');
@@ -104,7 +110,7 @@ if(matches.length===1&&matches[0].appProperties?.submissionSet){const file=match
  };
 }
 
-export function sourceFileId(item){return item.crop?.driveSource?.fileId||[...(item.crop?.history||[])].reverse().find(h=>h.action==='read-drive-source'&&h.fileId)?.fileId||null;}
+export function sourceFileId(item){return item.crop?.pendingDrive?.archiveFileId||item.crop?.driveSource?.fileId||[...(item.crop?.history||[])].reverse().find(h=>h.action==='read-drive-source'&&h.fileId)?.fileId||null;}
 export async function groupCharacters(items,{resolve,fallback}){
  const groups=new Map(),cache=new Map();
  for(const item of items.filter(x=>x.origin==='crop-local')){const source=sourceFileId(item);let character;if(source){if(!cache.has(source))cache.set(source,await resolve(source));character=cache.get(source);}else character=fallback;if(!character?.id)throw Error('元画像の場所が不明です。キャラフォルダを指定してください。');if(!groups.has(character.id))groups.set(character.id,{character,items:[]});groups.get(character.id).items.push(item);}
