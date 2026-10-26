@@ -14,7 +14,7 @@ export async function pngHash(bytes){return [...new Uint8Array(await crypto.subt
 export function masterId(reference){try{const u=new URL(reference);if(u.origin!=='https://docs.google.com')throw Error();const m=u.pathname.match(/^\/spreadsheets\/d\/([-\w]+)(?:\/edit)?\/?$/);if(!m)throw Error();return id(m[1]);}catch{throw Error('検品記録の参照マスターが不明です。');}}
 export function readMasterRows(rows){
  if(!Array.isArray(rows)||!rows.length)throw Error('セリフのマスターが空です。');
- const header=rows[0],a=header.includes('ID')?header.indexOf('ID'):header.indexOf('候補ID'),b=header.indexOf('セリフ（厳密）'),c=header.includes('基本ポーズ')?header.indexOf('基本ポーズ'):header.indexOf('構図・ポーズ・目線');
+ const header=rows[0],a=header.includes('ID')?header.indexOf('ID'):header.indexOf('候補ID'),b=header.indexOf('セリフ（厳密）'),c=header.includes('基本ポーズ')?header.indexOf('基本ポーズ'):header.includes('構図・ポーズ・目線')?header.indexOf('構図・ポーズ・目線'):header.indexOf('親子の動作');
  if([a,b,c].some(x=>x<0))throw Error('マスターのID・セリフ・基本ポーズを確認できません。');
  const textlessColumn=header.indexOf('文字なしテーマ');
  const seen=new Set(),out=[];
