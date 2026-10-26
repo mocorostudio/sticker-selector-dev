@@ -4,7 +4,7 @@
 <p class="notice">あかさが修正した申請用ZIPを読み込み、画像をそのまま保って順番だけ変更します。メイン・タブは元のPNGを変更せず引き継ぎます。元のZIPや選抜履歴は変更しません。</p>
 <label class="filepick" for="file">申請用ZIPを選ぶ<input id="file" type="file" accept=".zip,application/zip" aria-label="申請用ZIPファイル"></label>
 <p id="status" role="status">40枚＋main.png＋tab.pngのZIPを選んでください。</p>
-<section id="editor" hidden><h2>メイン・タブ（変更しません）</h2><div class="artwork"><figure><figcaption>メイン 240×240</figcaption><img id="main" alt="メイン画像"></figure><figure><figcaption>タブ 96×74（2倍プレビュー）</figcaption><img class="tab" id="tab" alt="タブ画像"></figure></div><h2>スタンプの並び順</h2><p>① 動かしたい画像をタップ → ② 入れたい位置の画像をタップ。その画像の直前に入ります。</p><div id="reorderTools" class="reorder-tools"><p id="moveStatus" role="status">移動する画像を選んでください。</p><button id="moveFirst" hidden>先頭へ</button><button id="moveLast" hidden>最後へ</button><button id="moveCancel" hidden>選択をやめる</button><button id="undoMove" disabled>1つ戻す</button></div><div id="items"></div><label for="folder">キャラ専用フォルダのDrive URL（04_申請用の親フォルダ）</label><input id="folder" type="url" placeholder="https://drive.google.com/drive/folders/..." style="box-sizing:border-box;width:100%;min-height:44px;font-size:16px" autocomplete="off"><p id="saveProgress" role="status" aria-live="polite" hidden></p><button id="save">この順番で04_申請用に保存</button><p id="saveResult" role="status"></p></section>
+<section id="editor" hidden><h2>メイン・タブ（変更しません）</h2><div class="artwork"><figure><figcaption>メイン 240×240</figcaption><img id="main" alt="メイン画像"></figure><figure><figcaption>タブ 96×74（2倍プレビュー）</figcaption><img class="tab" id="tab" alt="タブ画像"></figure></div><h2>スタンプの並び順</h2><p>① 動かしたい画像をタップ → ② 入れたい位置の画像をタップ。その画像の直前に入ります。</p><div id="reorderTools" class="reorder-tools"><p id="moveStatus" role="status">移動する画像を選んでください。</p><button id="moveFirst" hidden>先頭へ</button><button id="moveLast" hidden>最後へ</button><button id="moveCancel" hidden>選択をやめる</button><button id="undoMove" disabled>1つ戻す</button></div><p id="draftStatus" role="status" aria-live="polite"></p><div id="items"></div><label for="folder">キャラ専用フォルダのDrive URL（04_申請用の親フォルダ）</label><input id="folder" type="url" placeholder="https://drive.google.com/drive/folders/..." style="box-sizing:border-box;width:100%;min-height:44px;font-size:16px" autocomplete="off"><p id="saveProgress" role="status" aria-live="polite" hidden></p><button id="save">この順番で04_申請用に保存</button><p id="saveResult" role="status"></p></section>
 <script type="module">
 import {storedZip} from './submission-zip.mjs';
 import {googleTestAuth} from './google-auth.mjs';
@@ -12,8 +12,26 @@ import {digest} from './drive-export.mjs';
 const auth=googleTestAuth();
 function progress(message){$('saveProgress').hidden=false;$('saveProgress').textContent=message;$('status').textContent=message;}
 function saveButton(active){$('save').disabled=active;$('save').setAttribute('aria-busy',String(active));$('save').textContent=active?'保存処理中…（画面を閉じないでください）':'この順番で04_申請用に保存';}
-const $=id=>document.getElementById(id);let entries=[],art={},urls=[],busy=false,selected=null,undo=[];
+const $=id=>document.getElementById(id);let entries=[],art={},urls=[],busy=false,selected=null,undo=[],currentKey='',restoring=false;
 const u16=(v,o)=>v.getUint16(o,true),u32=(v,o)=>v.getUint32(o,true);
+const DB_NAME='sticker-finished-reorder-v1',RECENT_KEY='sticker-finished-reorder-latest-v1';
+function openStore(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore('archives');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+async function dbGet(key){const db=await openStore();try{return await new Promise((resolve,reject)=>{const t=db.transaction('archives','readonly'),q=t.objectStore('archives').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}finally{db.close();}}
+async function dbPut(key,value){const db=await openStore();try{await new Promise((resolve,reject)=>{const t=db.transaction('archives','readwrite');t.objectStore('archives').put(value,key);t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);});}finally{db.close();}}
+function orderKey(){return 'sticker-finished-order-v1:'+currentKey;}
+function rememberOrder(){if(!currentKey||restoring)return;try{localStorage.setItem(orderKey(),JSON.stringify(entries.map(e=>e.originalIndex)));$('draftStatus').textContent='✓ 並び順を端末に自動保存しました。';}catch(e){$('draftStatus').textContent='並び順を端末に保存できません：'+e.message;}}
+async function setArchive(blob,{restore=false}={}){const bytes=await blob.arrayBuffer(),hash=await digest(new Blob([bytes])),key='archive:'+hash;const map=await extract(new Blob([bytes],{type:'application/zip'}));const next=[];
+ for(let i=1;i<=40;i++){const name=String(i).padStart(2,'0')+'.png',image=map.get(name);if(!image)throw Error(name+'がありません。');await verify(name,image,370,320);next.push({blob:image,originalIndex:i-1});}
+ const artworks={};for(const [name,w,h] of [['main.png',240,240],['tab.png',96,74]]){const image=map.get(name);if(!image)throw Error(name+'がありません。');await verify(name,image,w,h);artworks[name]=image;}
+ if(!restore)await dbPut(key,bytes);
+ let saved=[];try{saved=JSON.parse(localStorage.getItem('sticker-finished-order-v1:'+key)||'[]');}catch{}
+ if(saved.length===40&&new Set(saved).size===40&&saved.every(n=>Number.isInteger(n)&&n>=0&&n<40))next.sort((a,b)=>saved.indexOf(a.originalIndex)-saved.indexOf(b.originalIndex));
+ urls.forEach(URL.revokeObjectURL);urls=[];entries=next.map(e=>({...e,preview:url(e.blob)}));art=artworks;currentKey=key;selected=null;undo=[];restoring=true;
+ $('main').src=url(art['main.png']);$('tab').src=url(art['tab.png']);render();restoring=false;$('editor').hidden=false;
+ localStorage.setItem(RECENT_KEY,key);rememberOrder();$('draftStatus').textContent='✓ ZIPと並び順を端末に保存しました。次回は自動復元できます。';
+}
+async function restoreSaved(){const key=localStorage.getItem(RECENT_KEY);if(!key)return;try{const bytes=await dbGet(key);if(!bytes)return;$('status').textContent='前回のZIPと並び順を復元中…';await setArchive(new Blob([bytes],{type:'application/zip'}),{restore:true});$('status').textContent='前回の40枚と並び順を復元しました。そのまま続けられます。';}catch(e){$('status').textContent='前回の作業は復元できませんでした：'+e.message+'。元のDriveデータは変更していません。';}}
+
 async function extract(blob){
  const bytes=new Uint8Array(await blob.arrayBuffer());if(bytes.length>60000000)throw Error('ZIPが60MBを超えます。');const v=new DataView(bytes.buffer),min=Math.max(0,bytes.length-65557);let end=-1;
  for(let p=bytes.length-22;p>=min;p--)if(u32(v,p)===0x06054b50){end=p;break;}if(end<0)throw Error('ZIPの終端を確認できません。');
@@ -50,12 +68,12 @@ function render(){const host=$('items'),scroll=window.scrollY;host.replaceChildr
  }
  window.scrollTo(0,scroll);
 }
-function move(target){if(!selected||busy)return;const before=entries.indexOf(selected);if(before<0)return;const snapshot=[...entries];entries.splice(before,1);const index=target>before?target-1:target;entries.splice(Math.max(0,Math.min(entries.length,index)),0,selected);selected=null;if(entries.some((e,i)=>e!==snapshot[i]))undo.push(snapshot);render();}
+function move(target){if(!selected||busy)return;const before=entries.indexOf(selected);if(before<0)return;const snapshot=[...entries];entries.splice(before,1);const index=target>before?target-1:target;entries.splice(Math.max(0,Math.min(entries.length,index)),0,selected);selected=null;if(entries.some((e,i)=>e!==snapshot[i])){undo.push(snapshot);rememberOrder();}render();}
 $('moveFirst').onclick=()=>move(0);
 $('moveLast').onclick=()=>move(entries.length);
 $('moveCancel').onclick=()=>{selected=null;render();};
-$('undoMove').onclick=()=>{if(!undo.length||busy)return;entries=undo.pop();selected=null;render();};
-$('file').addEventListener('change',async()=>{const file=$('file').files?.[0];if(!file)return;$('editor').hidden=true;entries=[];art={};selected=null;undo=[];urls.forEach(URL.revokeObjectURL);urls=[];$('status').textContent='ZIPの42画像を検査しています…';try{const map=await extract(file);for(let i=1;i<=40;i++){const name=String(i).padStart(2,'0')+'.png',blob=map.get(name);if(!blob)throw Error(name+'がありません。');await verify(name,blob,370,320);entries.push({blob,preview:url(blob)});}for(const [name,w,h] of [['main.png',240,240],['tab.png',96,74]]){const blob=map.get(name);if(!blob)throw Error(name+'がありません。');await verify(name,blob,w,h);art[name]=blob;}$('main').src=url(art['main.png']);$('tab').src=url(art['tab.png']);render();$('editor').hidden=false;$('status').textContent='42枚を読み込みました。順番を変更できます。メイン・タブは元の修正済みPNGです。';}catch(error){entries=[];$('status').textContent='読込を中止しました：'+error.message;}});
+$('undoMove').onclick=()=>{if(!undo.length||busy)return;entries=undo.pop();selected=null;rememberOrder();render();};
+$('file').addEventListener('change',async()=>{const file=$('file').files?.[0];if(!file)return;if(busy)return;$('status').textContent='ZIPを読み込み、端末に保存中…';try{await setArchive(file);$('status').textContent='42枚を読み込みました。画像と並び順は自動保存されます。';}catch(e){$('status').textContent='読込を完了できませんでした：'+e.message;}});
 function folderIdFromUrl(value){let u;try{u=new URL(value.trim());}catch{throw Error('キャラフォルダのDrive URLを入力してください。');}if(u.origin!=='https://drive.google.com'||u.pathname.split('/').length!==4||u.pathname.split('/')[1]!=='drive'||u.pathname.split('/')[2]!=='folders'||!u.pathname.split('/')[3]||!/^[a-zA-Z0-9_-]+$/.test(u.pathname.split('/')[3]))throw Error('キャラフォルダのDrive URLが不正です。');return u.pathname.split('/')[3];}
 async function driveRequest(url,token,options={}){const r=await fetch(url,{...options,headers:{...options.headers,Authorization:'Bearer '+token},signal:AbortSignal.timeout(120000)});if(!r.ok)throw Error('Drive通信エラー（'+r.status+'）。保存済みの可能性があるため同じ内容で照合してください。');return r;}
 async function inspectFolder(parent,token){const api='https://www.googleapis.com/drive/v3/files',meta=await driveRequest(api+'/'+encodeURIComponent(parent)+'?fields=id,name,mimeType,trashed',token).then(r=>r.json());if(meta.trashed||meta.mimeType!=='application/vnd.google-apps.folder')throw Error('キャラフォルダを確認できません。');
@@ -89,4 +107,5 @@ $('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{f
  }catch(e){progress('保存未確認：'+e.message+'。元のZIPは変更していません。');}
  finally{busy=false;saveButton(false);render();}};
 
+void restoreSaved();
 </script></html>
