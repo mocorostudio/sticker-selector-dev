@@ -7,7 +7,14 @@ import {initDrivePending} from './drive-pending-ui.mjs?v=20261026-inspected1';
 export function initWorkflow(api){
  initInspection(api);
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
- function show(screen,{preserve=false}={}){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection&&!preserve)api.redraw();if(screen==='submission')submission.open();window.dispatchEvent(new Event('resize'));}
+ const guide=document.createElement('aside');guide.id='workflowNextGuide';guide.setAttribute('role','status');guide.style.cssText='margin:8px 12px;padding:9px 12px;border:1px solid #b7c9bc;border-radius:10px;background:#f4f8f4;color:#19422e;font-size:14px;line-height:1.5';
+ const guideText=document.createElement('span'),guideAction=document.createElement('button');guideAction.style.cssText='margin-left:10px;min-height:40px;border:2px solid #175e40;border-radius:8px;background:#fff;color:#175e40;font-weight:bold';guide.append(guideText,guideAction);document.querySelector('.workflow-tabs').after(guide);
+ function nextGuide(screen){
+  if(screen==='crop'){guideText.textContent='次：切り出した画像を技術検品へ。';guideAction.textContent='選抜・検品へ';guideAction.onclick=()=>show('selection');}
+  else if(screen==='selection'){const images=api.visible().filter(x=>x.origin==='crop-local');const pending=images.filter(x=>x.inspectionAudit?.decision!=='pass'||x.inspectionAudit?.imageId!==x.imageId).length;guideText.textContent=pending?'次：技術検品（未合格・未確認 '+pending+'枚）。選抜より先に確認します。':'次：選抜結果を保存して申請用40枚を確定。';guideAction.textContent=pending?'技術検品を開く':'申請用へ';guideAction.onclick=()=>pending?$('inspectImages')?.click():show('submission');}
+  else{guideText.textContent='次：40枚確定後は並べ替え・メイン／タブ確認・新しい申請用ZIP保存。';guideAction.textContent='修正済みZIPを並べ替え';guideAction.onclick=()=>location.assign('reorder-finished.html');}
+ }
+ function show(screen,{preserve=false}={}){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection&&!preserve)api.redraw();if(screen==='submission')submission.open();nextGuide(screen);window.dispatchEvent(new Event('resize'));}
  submission.tab.onclick=()=>show('submission');
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
