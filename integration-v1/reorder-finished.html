@@ -23,12 +23,12 @@ function rememberOrder(){if(!currentKey||restoring)return;try{localStorage.setIt
 async function setArchive(blob,{restore=false}={}){const bytes=await blob.arrayBuffer(),hash=await digest(new Blob([bytes])),key='archive:'+hash;const map=await extract(new Blob([bytes],{type:'application/zip'}));const next=[];
  for(let i=1;i<=40;i++){const name=String(i).padStart(2,'0')+'.png',image=map.get(name);if(!image)throw Error(name+'がありません。');await verify(name,image,370,320);next.push({blob:image,originalIndex:i-1});}
  const artworks={};for(const [name,w,h] of [['main.png',240,240],['tab.png',96,74]]){const image=map.get(name);if(!image)throw Error(name+'がありません。');await verify(name,image,w,h);artworks[name]=image;}
- if(!restore)await dbPut(key,bytes);
+ let savedArchive=true;if(!restore){try{await dbPut(key,bytes);}catch(e){savedArchive=false;}}
  let saved=[];try{saved=JSON.parse(localStorage.getItem('sticker-finished-order-v1:'+key)||'[]');}catch{}
  if(saved.length===40&&new Set(saved).size===40&&saved.every(n=>Number.isInteger(n)&&n>=0&&n<40))next.sort((a,b)=>saved.indexOf(a.originalIndex)-saved.indexOf(b.originalIndex));
  urls.forEach(URL.revokeObjectURL);urls=[];entries=next.map(e=>({...e,preview:url(e.blob)}));art=artworks;currentKey=key;selected=null;undo=[];restoring=true;
  $('main').src=url(art['main.png']);$('tab').src=url(art['tab.png']);render();restoring=false;$('editor').hidden=false;
- localStorage.setItem(RECENT_KEY,key);rememberOrder();$('draftStatus').textContent='✓ ZIPと並び順を端末に保存しました。次回は自動復元できます。';
+ if(savedArchive){try{localStorage.setItem(RECENT_KEY,key);}catch(e){savedArchive=false;}}rememberOrder();$('draftStatus').textContent=savedArchive?'✓ ZIPと並び順を端末に保存しました。次回は自動復元できます。':'画像は読み込めましたが端末保存に失敗。ZIPは保持しておいてください。';
 }
 async function restoreSaved(){const key=localStorage.getItem(RECENT_KEY);if(!key)return;try{const bytes=await dbGet(key);if(!bytes)return;$('status').textContent='前回のZIPと並び順を復元中…';await setArchive(new Blob([bytes],{type:'application/zip'}),{restore:true});$('status').textContent='前回の40枚と並び順を復元しました。そのまま続けられます。';}catch(e){$('status').textContent='前回の作業は復元できませんでした：'+e.message+'。元のDriveデータは変更していません。';}}
 
@@ -89,7 +89,7 @@ async function saveToDrive(blob,name,sha,folder,token){const api='https://www.go
  const checked=await driveRequest(api+'/'+created.id+'?fields=id,name,size,parents,appProperties,webViewLink,trashed',token).then(r=>r.json());
  if(checked.trashed||checked.name!==name||checked.parents?.length!==1||checked.parents[0]!==folder||Number(checked.size)!==blob.size||checked.appProperties?.sha256!==sha)throw Error('Driveへ送信しましたが、保存後の照合が未完了です。再送信せずフォルダを確認してください。');
  return {file:checked,reused:false};}
-$('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{folder=folderIdFromUrl($('folder').value);}catch(e){$('status').textContent=e.message;return;}
+$('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{folder=folderIdFromUrl($('folder').value);}catch(e){$('saveResult').textContent='保存を開始できません：'+e.message;$('saveResult').scrollIntoView({block:'nearest'});return;}
  busy=true;saveButton(true);const snapshot=[...entries];progress('①／④ Google認証を確認中…');$('saveResult').textContent='';
  // Start OAuth synchronously from user click (popup blockers on iOS).
  const tokenPromise=auth.getToken();
@@ -104,8 +104,8 @@ $('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{f
  progress('✓ Driveへの保存を確認しました。40枚＋main.png＋tab.png、全42枚を照合済み。');
  const link=document.createElement('a');link.href=saved.file.webViewLink||'https://drive.google.com/file/d/'+saved.file.id+'/view';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Driveの新しい申請用ZIPを開く';
  $('saveResult').replaceChildren(document.createTextNode((saved.reused?'同じ内容の保存済みZIPを確認：':'新規保存：')+filename+' ／ 保存先：'+target.characterName+'／04_申請用 ／ ファイルID：'+saved.file.id+' '),link);
- }catch(e){progress('保存未確認：'+e.message+'。元のZIPは変更していません。');}
+ }catch(e){progress('保存未確認：'+e.message+'。元のZIPは変更していません。');$('saveResult').textContent='保存できたか確認が必要です。'+e.message;}
  finally{busy=false;saveButton(false);render();}};
 
-void restoreSaved();
+$('folder').value=localStorage.getItem('sticker-finished-folder-v1')||'';$('folder').addEventListener('change',()=>{try{localStorage.setItem('sticker-finished-folder-v1',$('folder').value.trim());}catch{}});void restoreSaved();
 </script></html>
