@@ -1,4 +1,4 @@
-import {initInspection} from './inspection-ui.mjs?v=20261025-reselectall1';
+import {initInspection} from './inspection-ui.mjs?v=20261026-autoqa1';
 import {initSubmission} from './submission-ui.mjs?v=20261026-compact1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
