@@ -113,7 +113,7 @@ if(matches.length===1&&matches[0].appProperties?.submissionSet){const file=match
  };
 }
 
-export function sourceFileId(item){return item.crop?.pendingDrive?.archiveFileId||item.crop?.driveSource?.fileId||[...(item.crop?.history||[])].reverse().find(h=>h.action==='read-drive-source'&&h.fileId)?.fileId||null;}
+export function sourceFileId(item){return item.crop?.pendingDrive?.archiveFileId||item.crop?.pendingDrive?.manifestFileId||item.crop?.driveSource?.fileId||[...(item.crop?.history||[])].reverse().find(h=>h.action==='read-drive-source'&&h.fileId)?.fileId||null;}
 export async function groupCharacters(items,{resolve,fallback}){
  const groups=new Map(),cache=new Map();
  for(const item of items.filter(x=>x.origin==='crop-local')){const source=sourceFileId(item);let character;if(source){if(!cache.has(source))cache.set(source,await resolve(source));character=cache.get(source);}else character=fallback;if(!character?.id)throw Error('元画像の場所が不明です。キャラフォルダを指定してください。');if(!groups.has(character.id))groups.set(character.id,{character,items:[]});groups.get(character.id).items.push(item);}
