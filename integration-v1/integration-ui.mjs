@@ -3,7 +3,7 @@ import {initSubmission} from './submission-ui.mjs?v=20261027-handoff1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
 import {initDriveExport} from './drive-export-ui.mjs?v=20261027-sourceproof1';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261026-inspected1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261027-extra18';
 export function initWorkflow(api){
  initInspection(api);
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
