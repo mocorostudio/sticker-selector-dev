@@ -35,12 +35,12 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
      // loader itself must never make the selection list inert.
      while(api.isBusy())await new Promise(resolve=>setTimeout(resolve,50));
      const old=api.items().find(x=>x.imageId===e.record.imageId);
-     if(old?.driveFileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');
+     if(old?.driveFileId&&e.record.pendingDrive.fileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');
      const part=await importCrops([e],{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}}},master,{forSelection:!!e.record.trialSelection||e.record.draftSelection===true});
      if(part.errors.length)throw Error(part.errors.map(x=>x.message).join(' / '));
      const item=api.items().find(x=>x.imageId===e.record.imageId);
      restoreEvaluation(item,e.savedEvaluation);
-     item.driveFileId=e.record.pendingDrive.fileId;item.characterId=characterId;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);
+     if(e.record.pendingDrive.fileId)item.driveFileId=e.record.pendingDrive.fileId;item.characterId=characterId;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);
      api.save();for(const id of part.ids)if(!ids.includes(id))ids.push(id);
      api.setView(ids,false,{forceReplace:true});api.redraw({appendOnly:true});received=done;
      if(dialog.open)dialog.close();report(done+'／'+total+'枚読み込み済み。残りを読み込みながら選べます。');
