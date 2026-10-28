@@ -14,16 +14,15 @@ release operation, or confirmation-dialog handler is included.
 
 The trial preserves existing tags, validates the image number, rejects unknown
 tags, duplicate input and union counts over nine. It checks again before writes,
-adds through checkbox labels, and clicks only a uniquely identified enabled
-button whose text is `保存` or `Save`. Exceptions can leave unsaved checkbox
+adds through checkbox labels, and does not click any save button: selection may persist automatically in the observed LINE UI. Exceptions can leave unsaved checkbox
 changes; the tool reports this and never automatically retries or removes tags.
 An outstanding trial blocks a second trial until readback is resolved. Failed
 verification records are deliberately retained for investigation.
 
-After any LINE confirmation is completed by the user, a full document reload and
+A full document reload and
 second launch compares the same editor path/number and exact expected tag set.
 The result is UI readback, not independent inspection of LINE's server database.
-Same-document reopening cannot pass. A failed synthetic save does not pass.
+Same-document reopening cannot pass. A failed synthetic autosave does not pass. Older prepared-stage records can pass only when exact expected tags match after reload.
 
 ## Verification
 
@@ -54,3 +53,7 @@ https://help2.line.me/creators/web/categoryId/20002324/3/pc?contentid=20005124&l
 
 Official terms checked without accepting or modifying them:
 https://creator.line.me/ja/terms/
+
+## v3 field evidence, 2026-10-28
+
+The user confirmed that tags ネコ and ダッシュ remained after returning to the tag list and reopening image 01 on iPhone Safari, without pressing LINE's Save button. This verifies that single-image field flow as reported by the user; it does not prove bulk processing or a general server contract. v3 removes save-button interaction and retains exact reload readback. 17 synthetic Chromium scenarios pass, including failed autosave and legacy-record recovery. Physical iPhone execution of v3 remains unverified.
