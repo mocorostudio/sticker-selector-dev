@@ -32,3 +32,11 @@ only after identifying the exact product and matching its numbered actual images
 ## Skip handling v2
 
 Unavailable tags are recorded without substituting an unrequested tag. Over-limit additions are also omitted instead of deleting existing selections. Progress reports include the omitted count and full per-image list; processing all rows must not be called completion of every requested tag. Existing session records without omitted metadata remain resumable. The user's 01/40 checkpoint is retained. Twelve synthetic scenarios pass, including unknown-tag continuation, existing-nine preservation and resuming an older stopped job. Live skip behavior remains unverified.
+
+## v3 loading and catalog capture
+
+The user confirmed 2/40 and reported tag-list absence after advancing. Its cause is not proven from the screenshot. Settling now tolerates only transient missing/partial tag-list or number observations for a bounded polling window; URL changes, selection conflicts and other errors still stop. A synthetic delayed-empty render succeeds and a permanently empty view times out without marking completion.
+
+The catalog button copies the current image number, observed offered tag names and checked names as JSON. It performs no tag writes or navigation, and reads no account, credential or image data. A fallback read-only textarea supports manual copy. The list is limited to the current rendered editor; it is not certified complete for every image/language. New assignments must use this actual catalog rather than a guessed external dictionary.
+
+The explicit list-replacement button archives the old session job under a history key before allowing new rows; existing LINE selections are unaffected. Terser is pinned as a dev-only build dependency to keep the self-contained copied payload under 8000 UTF-8 bytes; the deployed bookmarklet has no loader or minifier dependency. Seventeen local synthetic browser cases pass, including capture without writes, preserved job history, bounded loading and execution of the minified payload. v3 has not been run on the user's iPhone.
