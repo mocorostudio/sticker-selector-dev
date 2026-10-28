@@ -57,3 +57,10 @@ Each new tag now waits for observed fetch calls to complete with 2xx status and 
 Pending work offers an explicit missing-only recovery button. It requires current selection to be a subset of expected tags and to preserve every original before-tag, archives the prior job, then selects only missing tags serially. Confirmed rows remain unchanged. Recovery never runs automatically. The catalog control copies JSON or uses a native prompt fallback.
 
 22 synthetic browser scenarios pass, including delayed autosave, HTTP 500 stop, absent transport stop, existing pending recovery, minified payload and forty-row flow. The v4 bulk path has not yet been tested on LINE. The separate successful one-tag probe must not be represented as full bulk validation.
+
+
+## v5 remove redundant navigation waits
+
+Keep per-tag observed fetch completion, 750ms quiet period, bounded display stabilization and away/back tag equality checks. Remove the unconditional 1000ms navigation sleep and return the already stabilized target instead of stabilizing it a second time. Typical adjacent-row flow makes three moves, eliminating approximately 5.25s of redundant waits per row (3 x (1000+750)ms). This is an estimate of removed waits, not a live speed guarantee; LINE rendering/network latency remains.
+
+Job keys and pending recovery are unchanged, so existing progress can resume in the original tab. Closing/backgrounding Safari still cannot guarantee background execution. 22 synthetic scenarios pass, including delayed rendering, missing rendering timeout, delayed autosave, transport errors, recovery and forty rows; live v5 remains unverified.
