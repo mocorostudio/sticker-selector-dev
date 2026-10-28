@@ -46,3 +46,14 @@ The explicit list-replacement button archives the old session job under a histor
 The user reported 3/40 confirmed, mismatch on image 04, then exported image 04 with zero selected tags. A later screenshot showed one manually selected ネコ. No cause is proven by those observations. The catalog control now exports a short LINE-tag-diagnostic-v1 record when a pending trial exists: current image, current checked tags, recorded pending before/expected tags and confirmed numbers. It excludes the large offered dictionary in that mode. It reads neither credentials nor account data, does not navigate or select tags, and leaves the job record intact. Users should copy this diagnosis rather than retry the pending additions.
 
 Nineteen synthetic cases pass. An added fixture with delayed persistence cancelled by navigation reproduces the mismatch without completion; this is a possible mechanism, not a diagnosis of LINE. Another case verifies exact pending evidence extraction and unchanged tag-write count/session job. The live cause and remaining 37 images remain unresolved. No automatic retry, slower-write workaround or success promotion is introduced in this release.
+
+
+## v4 observed fetch completion and explicit recovery
+
+The user's isolated image 04 save probe observed two fetch responses with status 200, starting roughly one second after selection and completing around 1.5 seconds. After a full reload, selected tags matched the expected pair. This supports delayed autosave as a possible cause; it does not prove the earlier failure mechanism.
+
+Each new tag now waits for observed fetch calls to complete with 2xx status and a 750 ms quiet period, bounded to 15 seconds. Missing transport, timeout or failed responses stop the job. The observer reads only status/timing/count, never URLs, credentials or payloads. Background fetch calls cannot be conclusively distinguished from tag saves; subsequent away/back UI readback remains mandatory and is not an independent database guarantee.
+
+Pending work offers an explicit missing-only recovery button. It requires current selection to be a subset of expected tags and to preserve every original before-tag, archives the prior job, then selects only missing tags serially. Confirmed rows remain unchanged. Recovery never runs automatically. The catalog control copies JSON or uses a native prompt fallback.
+
+22 synthetic browser scenarios pass, including delayed autosave, HTTP 500 stop, absent transport stop, existing pending recovery, minified payload and forty-row flow. The v4 bulk path has not yet been tested on LINE. The separate successful one-tag probe must not be represented as full bulk validation.
