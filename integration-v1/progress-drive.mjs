@@ -2,9 +2,9 @@ import {SCHEMA,parseMaster,validateProgress,mergeProgress} from './progress-core
 const FILES='https://www.googleapis.com/drive/v3/files',SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const PREFIX='sticker-progress_';
 const id=s=>{if(!/^[-\w]{1,256}$/.test(s||''))throw Error('保存先IDが不正です。');return s;};
-export function progressDrive({getToken,fetchImpl=globalThis.fetch}){
+export function progressDrive({getToken,fetchImpl=globalThis.fetch,signal}){
  let master,root,known=[];
- async function request(url,options={}){const r=await fetchImpl(url,{...options,headers:{...options.headers,Authorization:'Bearer '+await getToken()},signal:AbortSignal.timeout(30000),redirect:'error'});if(!r.ok){const e=Error('Googleとの通信に失敗（'+r.status+'）。記録は保持しています。');e.status=r.status;throw e;}return r;}
+ async function request(url,options={}){signal?.throwIfAborted();const r=await fetchImpl(url,{...options,headers:{...options.headers,Authorization:'Bearer '+await getToken()},signal:signal?AbortSignal.any([signal,AbortSignal.timeout(30000)]):AbortSignal.timeout(30000),redirect:'error'});if(!r.ok){const e=Error('Googleとの通信に失敗（'+r.status+'）。記録は保持しています。');e.status=r.status;throw e;}return r;}
  const json=async(url,options)=>(await request(url,options)).json();
  async function list(q){let pageToken='',files=[];do{const r=await json(FILES+'?'+new URLSearchParams({q,fields:'nextPageToken,files(id,name,mimeType,parents,modifiedTime)',pageSize:'100',...(pageToken?{pageToken}:{})}));files.push(...(r.files||[]));pageToken=r.nextPageToken||'';if(files.length>2000)throw Error('履歴が多いため読み込みを止めました。');}while(pageToken);return files;}
  async function load(){
