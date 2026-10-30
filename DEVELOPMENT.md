@@ -129,3 +129,19 @@ Real Drive test mode now uses dedicated localStorage, visible-ID and IndexedDB n
 Synchronization now reports per-image progress. Within one confirmed run, immutable journal bytes are reused only after actual readback; verified static folder/master reads are also reused. Every run starts fresh and releases the cache afterward. PNG metadata and actual upload readbacks remain checked, and retry/fault tests remain required. This reduces repeated Google reads without treating unverified work as complete.
 
 Browser regression tests seed 39 legacy records, including the exact conflicting image ID, and verify that old ratings remain byte-for-byte unchanged, unrelated images stay out of the test view, valid drafts are recovered, and PNGs decode successfully. Physical-device confirmation of the revised screen remains a separate check after deployment.
+
+## 2026-10-30: submission density and tab crop
+
+Application-kit exports and finished-ZIP reorder saves now embed at least 72 dpi
+in every PNG via a single pHYs chunk. Compressed image data is preserved; exported
+hashes cover the final bytes. Plain source archives retain their original bytes.
+Tab editing adds a separate drag-to-select crop mode with automatic fitting inside
+96×74 and 10px padding. Crop regions persist with the existing artwork draft and
+history, independently of eraser strokes, and reset when changing the tab source.
+The original image and main artwork are preserved. This is a manual region choice;
+there is no automatic face detection or automatic visual approval.
+
+Validation: 145 Node tests; isolated phone-size Chromium test for crop gestures,
+preview, reload/reset, main-image retention and DPI metadata. The older full
+candidate-save browser scenario encounters a toolbar layout assertion before the
+artwork screen on the supplied Chromium runtime; physical iPhone remains untested.

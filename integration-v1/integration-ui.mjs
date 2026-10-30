@@ -1,5 +1,5 @@
 import {initInspection} from './inspection-ui.mjs?v=20261026-autoqa1';
-import {initSubmission} from './submission-ui.mjs?v=20261027-handoff1';
+import {initSubmission} from './submission-ui.mjs?v=20261030-cropdpi1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-merge1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
 import {initDriveExport} from './drive-export-ui.mjs?v=20261027-sourceproof1';
