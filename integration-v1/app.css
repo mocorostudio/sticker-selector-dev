@@ -40,3 +40,5 @@ body #driveExport details[open]{max-height:30dvh;overflow:auto}
 body #submissionGrid{scroll-margin-top:56px}
 body .submission-card{padding:4px;border-radius:10px}
 body .submission-card span{font-size:13px;padding:4px 2px}
+
+body #submissionCount{display:block;font-size:14px;padding:8px 10px;margin:8px 0;background:#f0f8f3;border:1px solid #c9ddd0;border-radius:8px}
