@@ -20,3 +20,23 @@ body{padding-bottom:250px}
 #submissionScreen{max-width:760px;margin:auto;padding-bottom:145px}#submissionScreen label{display:block;margin:12px 0}#submissionScreen select,#submissionScreen input{max-width:100%;padding:9px;font-size:16px}#submissionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.submission-card{position:relative;padding:8px;overflow:hidden;border:3px solid #ddd;min-width:0;text-align:center}.submission-card img{display:block;width:100%;aspect-ratio:370/320;object-fit:contain}.submission-card span{display:block;background:#fff;color:#18302c;padding:8px 2px;font-weight:700}.submission-card small{display:block;background:#fff;overflow-wrap:anywhere;font-size:10px}.submission-card.assigned{border-color:#14805b;box-shadow:0 0 0 2px #b1e0cf}.submission-set{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}.submission-set input{width:45%}.submission-pages{display:flex;justify-content:space-between;align-items:center;gap:8px}#submissionBar{position:fixed;bottom:0;left:0;right:0;z-index:22;background:#f0f8f3;border-top:2px solid #225b42;padding:12px 12px calc(12px + env(safe-area-inset-bottom));text-align:center}#submissionBar strong{display:block;margin:4px auto 10px;max-width:740px;font-size:18px}#submissionBar button{margin:4px;min-height:48px}#submissionResults a{display:block;padding:10px;color:#145e50}#submissionConfirm{width:min(94vw,680px);max-height:85dvh;overflow:auto;padding:20px}#submissionConfirm button{width:100%;margin-top:12px}#submissionConfirm::backdrop{background:#0008}.submission-summary{display:grid;gap:6px;grid-template-columns:1fr 1fr;font-size:11px;overflow-wrap:anywhere}@media(min-width:650px){#submissionGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
 #selectionTotals{display:block;font-size:18px;line-height:1.5;font-weight:800;color:#145e50;overflow-wrap:anywhere}
+
+/* Keep the artwork visible while selecting on mobile. */
+body #submissionBar{position:static;inset:auto;margin:16px 0;padding:12px;border:1px solid #b8d2c2;border-radius:12px}
+body #submissionScreen{padding-bottom:24px!important}
+body .workflow-tabs{padding:4px 0;gap:6px}
+body .workflow-tabs>button{min-height:40px;padding:6px;font-size:14px}
+body #driveExport{width:100%;max-width:none;border-radius:0;padding:6px 12px calc(6px + env(safe-area-inset-bottom));max-height:30dvh;box-shadow:0 -2px 8px #0001}
+body #driveExportStatus{font-size:12px;line-height:1.35;margin:0 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body #driveExport>small{display:none}
+body #driveExport progress{height:5px;min-height:0;margin:4px auto}
+body #driveExport>details{margin:0 auto}
+body #driveExport>details>summary{padding:4px 0;font-size:12px;min-height:28px}
+body #driveExport>div{margin:0 auto;gap:6px}
+body #driveExport>div button{width:auto;min-height:32px;margin:2px 0;padding:4px 12px;font-size:12px}
+body #driveExport[aria-busy="true"]>div{display:none}
+body #driveExport:has(details[open]){max-height:45dvh}
+body #driveExport details[open]{max-height:30dvh;overflow:auto}
+body #submissionGrid{scroll-margin-top:56px}
+body .submission-card{padding:4px;border-radius:10px}
+body .submission-card span{font-size:13px;padding:4px 2px}
