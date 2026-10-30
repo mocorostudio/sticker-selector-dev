@@ -34,3 +34,8 @@ test('expired authorization stops and clears the connection',async()=>{const f=a
 test('an account without the character and a character without review records cannot fake an empty successful import',async()=>{const f=await new PendingFixture().setup(png);await assert.rejects(reader(f).load('missing',{decode}));f.files.delete('manifest');await assert.rejects(reader(f).load('char',{decode}),/検品記録/);});
 test('live master duplicate IDs never silently choose a phrase',()=>{assert.throws(()=>readMasterRows([['ID','セリフ（厳密）','基本ポーズ'],['D01','a','pose'],['D01','b','pose']]),/重複/);});
 test('130 PNGs keep identity and all remain unselected at the transport layer',async()=>{const f=await new PendingFixture().setup(png,130);const result=await reader(f).load('char',{decode});assert.equal(result.entries.length,130);assert.equal(new Set(result.entries.map(x=>x.record.imageId)).size,130);assert.ok(result.entries.every(x=>x.record.rating===undefined));});
+test('character-specific exact-text and pose headers retain verbatim punctuation',()=>{
+ const rows=[['候補ID','正確なセリフ','ポーズ'],['C001','ありがとうございます♪','両手をそろえる'],['C002','ご都合いかがでしょうか？','会釈']];
+ assert.deepEqual(readMasterRows(rows),[{candidateId:'C001',phrase:'ありがとうございます♪',pose:'両手をそろえる'},{candidateId:'C002',phrase:'ご都合いかがでしょうか？',pose:'会釈'}]);
+ assert.throws(()=>readMasterRows([['候補ID','不明な文章','ポーズ'],['C001','推測禁止','会釈']]),/マスター/);
+});
