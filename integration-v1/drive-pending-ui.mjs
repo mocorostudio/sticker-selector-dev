@@ -1,6 +1,6 @@
-import {restoreEvaluation} from './reselection.mjs?v=20261025-reselectall1';
+import {restoreEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261030-master1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261030-reviewlabels1';
 import {importCrops} from './crop-handoff.mjs?v=20261026-inspected1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');

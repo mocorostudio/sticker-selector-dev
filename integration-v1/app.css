@@ -42,3 +42,5 @@ body .submission-card{padding:4px;border-radius:10px}
 body .submission-card span{font-size:13px;padding:4px 2px}
 
 body #submissionCount{display:block;font-size:14px;padding:8px 10px;margin:8px 0;background:#f0f8f3;border:1px solid #c9ddd0;border-radius:8px}
+
+.inspection-summary{margin:10px 0;padding:10px 12px;border:1px solid #b7c6be;border-left:5px solid #75857c;border-radius:8px;background:#f4f7f5;color:#233d30;overflow-wrap:anywhere}.inspection-summary strong{display:block;font-size:15px}.inspection-summary ul{margin:6px 0;padding-left:20px}.inspection-summary small{display:block;margin-top:7px;font-size:12px}.inspection-summary[data-inspection-status=fail]{border-color:#ad4040;background:#fff2f2;color:#702020}.inspection-summary[data-inspection-status=review]{border-color:#ac7c21;background:#fff9e8;color:#674700}.inspection-summary[data-inspection-status=pass]{border-color:#42885b;background:#edf8f0}
