@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261024-auth1';
-import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261027-sourceproof1';
+import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261030-draftsave1';
 export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=createExportDrive,onSnapshot=()=>{}}={}){
  const params=new URLSearchParams(location.search),trial=params.get('selectionMode')==='trial';
  const tray=document.createElement('aside');tray.id='driveExport';tray.hidden=true;tray.setAttribute('aria-label','Google Driveの保存状況');

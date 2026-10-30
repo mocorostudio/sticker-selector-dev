@@ -145,3 +145,17 @@ Validation: 145 Node tests; isolated phone-size Chromium test for crop gestures,
 preview, reload/reset, main-image retention and DPI metadata. The older full
 candidate-save browser scenario encounters a toolbar layout assertion before the
 artwork screen on the supplied Chromium runtime; physical iPhone remains untested.
+
+## 2026-10-30: save provisional selections with inspection warnings
+
+Draft loading accepts byte-verified 370x320 nonempty PNGs before final visual
+inspection. Saving their votes now uses the same provisional image criteria:
+margin, opaque-edge and crossing warnings are retained in the export record,
+while every copied draft PNG remains `technicalStatus: review`. Hash/source
+proofs, decoding, dimensions, empty-image rejection and the application gate
+remain enforced. Browser storage keys and existing selections are unchanged.
+
+Validation: Node suite including an 80-rating / 53-circle draft save and repeated
+mock Drive save with stable file IDs, warning retention, and rejection of altered,
+empty, incorrectly sized and undecodable images. Real iPhone/Google writes were
+not exercised in this change.
