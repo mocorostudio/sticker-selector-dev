@@ -1,5 +1,5 @@
 export const SCHEMA='animal-stickers-progress/v1';
-export const GROUPS={you:'あなたの確認待ち',lui:'ルイの作業待ち',hold:'保留箱',submitted:'申請済み',selling:'販売中',unknown:'進捗の照合待ち'};
+export const GROUPS={you:'あなたの確認待ち',lui:'ルイの作業待ち',hold:'保留箱',submitted:'申請済み',selling:'販売中',unknown:'進捗の照合待ち',trash:'ゴミ箱'};
 export function folderId(url){try{const u=new URL(url);return u.origin==='https://drive.google.com'?u.pathname.match(/^\/drive\/folders\/([-\w]+)$/)?.[1]||null:null;}catch{return null;}}
 export function parseMaster(rows){
  const h=rows[0]||[],col=name=>h.indexOf(name);

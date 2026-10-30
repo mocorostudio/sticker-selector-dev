@@ -22,3 +22,8 @@ test('create-only save reconciles 409 and reads content and parent back',async()
  const fixture=async(url,opt)=>{if(url.startsWith('https://www.googleapis.com/drive/v3/files?')){const q=new URL(url).searchParams.get('q');return Response.json({files:q.includes('spreadsheet')?[{id:'master',parents:['root']}]:[]});}return fetchImpl(url,opt);};
  const drive=progressDrive({getToken:()=> 'fixture-token',fetchImpl:fixture});await drive.load();await drive.save(doc,'abcfile');assert.equal(writes,1);
 });
+test('trash is excluded from next task and requires explicit confirmation',async()=>{
+ const r=mergeProgress(parseMaster(rows),[event('trash')]);assert.equal(r[0].stage,'trash');assert.equal(nextTask(r),null);
+ let calls=0;const drive=progressDrive({getToken:()=> 'fixture',fetchImpl:async()=>{calls++;throw Error('unexpected');}});
+ await assert.rejects(drive.setFolderTrashed('abc',true),/確認/);assert.equal(calls,0);
+});
