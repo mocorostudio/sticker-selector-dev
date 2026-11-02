@@ -4,8 +4,8 @@ const validRef=x=>typeof x==='string'&&/^https:\/\/docs\.google\.com\/spreadshee
 const pngSignature=[137,80,78,71,13,10,26,10];
 const hex=bytes=>[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
 // Strict nine-cell handoff. Does not infer characters, mapping, or inspection approval.
-export async function buildVerifiedNineCellManifest({entries,assignments,master,masterReference,masterVerified=false,subtle=globalThis.crypto?.subtle}){
- if(masterVerified!==true||!validRef(masterReference)||!Array.isArray(master)||!master.length)throw Error('最新キャラ別マスターの取得・照合が必要です');
+async function buildVerifiedNineCellManifest({entries,assignments,master,masterReference,subtle=globalThis.crypto?.subtle}){
+ if(!validRef(masterReference)||!Array.isArray(master)||!master.length)throw Error('最新キャラ別マスターの取得・照合が必要です');
  if(!Array.isArray(entries)||entries.length!==9||!Array.isArray(assignments)||assignments.length!==9)throw Error('3×3の9候補を指定してください');
  if(!subtle?.digest)throw Error('SHA-256が使えません');
  const records=[],images=new Set();
@@ -28,4 +28,13 @@ export async function buildVerifiedNineCellManifest({entries,assignments,master,
  }
  if(slots.size!==9||mapped.size!==9||batches.size!==1)throw Error('独立した3×3バッチの9セルが必要です');
  return {...buildCandidateManifest(assignments,master,records),masterReference};
+}
+
+// The public entry point always fetches the current character master; callers
+// cannot approve a stale or invented master with a boolean flag.
+export async function buildNineCellManifestFromDrive({drive,characterId,entries,assignments,subtle}){
+ if(!validId(characterId)||typeof drive?.masterForCharacter!=='function')throw Error('対象キャラとDrive接続が必要です');
+ const current=await drive.masterForCharacter(characterId);
+ if(current?.characterId!==characterId||!validRef(current.masterReference)||!current.masterSheet||!current.modifiedTime||!Array.isArray(current.master)||!current.master.length)throw Error('最新キャラ別マスターを照合できません');
+ return buildVerifiedNineCellManifest({entries,assignments,master:current.master,masterReference:current.masterReference,subtle});
 }
