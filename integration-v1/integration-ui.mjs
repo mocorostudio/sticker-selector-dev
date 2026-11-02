@@ -1,3 +1,4 @@
+import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs';
 import {initInspection} from './inspection-ui.mjs?v=20261030-reviewlabels1';
 import {initSubmission} from './submission-ui.mjs?v=20261030-draftzip1';
 import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261102-verified1';
@@ -30,7 +31,7 @@ export function initWorkflow(api){
   const {requestId,entries}=event.data;if(typeof requestId!=='string')return;
   const reply=data=>frame.contentWindow.postMessage({type:'crop-handoff-result-v1',requestId,...data},location.origin);
   if(importing||api.isBusy()){reply({error:'処理中です。完了後にもう一度押してください。'});return;}
-  importing=true;try{await api.ready;const verified=event.data.verifiedHandoff===true;let master,manifest=event.data.manifest;if(verified){const characterId=event.data.characterId||new URLSearchParams(location.search).get('character');if(!/^[A-Za-z0-9_-]{1,256}$/.test(characterId||''))throw Error('対象キャラのDriveフォルダIDが必要です');const current=await pending.masterForCharacter(characterId);master=current.master;if(manifest?.masterReference!==current.masterReference)throw Error('manifestのマスターと最新キャラ別マスターが一致しません');}else{master=await fetch('./crop-v9/master.json').then(r=>{if(!r.ok)throw Error('旧候補マスター読込失敗');return r.json();});}let result;
+  importing=true;try{await api.ready;const verified=event.data.verifiedHandoff===true;let master,manifest=event.data.manifest;if(verified){const characterId=event.data.characterId||new URLSearchParams(location.search).get('character');if(!/^[A-Za-z0-9_-]{1,256}$/.test(characterId||''))throw Error('対象キャラのDriveフォルダIDが必要です');const prepared=await prepareNineCellHandoff({pending,characterId,entries,assignments:event.data.assignments});master=prepared.master;manifest=prepared.manifest;}else{master=await fetch('./crop-v9/master.json').then(r=>{if(!r.ok)throw Error('旧候補マスター読込失敗');return r.json();});}let result;
    await api.withBusy(async()=>{result=await (event.data.verifiedHandoff===true?importVerifiedCrops:importCrops)(entries,{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},master,...(event.data.verifiedHandoff===true?[manifest]:[{forSelection:event.data.forSelection===true}]));if(result.ids.length){api.setView(result.ids,event.data.append===true);api.redraw();}});
    if(!result)throw Error('受け渡しを完了できませんでした');reply(result);if(result.ids.length){show('selection');$('driveStatus').textContent='切り出しから追加 '+result.added+'枚／取込済み '+result.existing+'枚／失敗 '+result.errors.length+'件。技術検品が未完了の画像は仮選別のみで、採用予定・保留へのPNG保存は停止します。';}
   }catch(e){reply({error:e.message});}finally{importing=false;}
