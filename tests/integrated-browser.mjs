@@ -13,7 +13,7 @@ try{
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=600;const g=c.getContext('2d');g.fillStyle='black';for(const y of [100,300,500])for(const x of [100,300,500]){g.beginPath();g.arc(x,y,35,0,Math.PI*2);g.fill();}return c.toDataURL().split(',')[1]});
  await crop.locator('#files').setInputFiles({name:'synthetic-3x3.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
  await crop.locator('#run').click();await crop.locator('#handoff').filter({hasText:'全9枚'}).waitFor();
- await crop.locator('#handoff').click();await page.locator('#selectionScreen:not([hidden])').waitFor();
+ await page.locator('#selectionScreen:not([hidden])').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].every(im=>im.naturalWidth===370));
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -27,7 +27,7 @@ try{
  await crop.locator('#files').setInputFiles({name:'second-batch.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
  await crop.locator('#run').click();
  await crop.locator('#queueStatus').filter({hasText:'2/2'}).waitFor();
- await crop.locator('#handoff').click();await page.locator('#selectionScreen:not([hidden])').waitFor();
+ await page.locator('#selectionScreen:not([hidden])').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
  assert.equal(await page.locator('.chosen').count(),0);
  const retained=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('sticker-selector-v9:crop-workflow:')&&!k.endsWith('-visible-ids')).map(k=>JSON.parse(localStorage.getItem(k))).find(v=>v.items)?.items);
