@@ -33,7 +33,7 @@ export async function prepareFormalCropPayload({records,pngs,assignments,charact
 }
 
 export async function prepareAuditedFormalPayload({records,pngs,assignments,characterId,items,master,subtle}){
- if(!Array.isArray(records)||records.length!==9||!Array.isArray(items)||!Array.isArray(master))throw Error('実検品記録・最新マスターが必要です');
+ if(!Array.isArray(records)||records.length!==9||!Array.isArray(pngs)||pngs.length!==9||!Array.isArray(assignments)||assignments.length!==9||!Array.isArray(items)||!Array.isArray(master))throw Error('実検品記録・最新マスターが必要です');
  const checked=[];
  for(let i=0;i<records.length;i++){
   const r=records[i],item=items.find(x=>x.imageId===r.imageId),a=assignments.find(x=>x.imageId===r.imageId);
@@ -41,7 +41,7 @@ export async function prepareAuditedFormalPayload({records,pngs,assignments,char
   const blob=new Blob([pngs[i]],{type:'image/png'});
   const binding=await auditedCandidateBinding(item,blob,master,a);
   if(r.pngSha256&&r.pngSha256!==binding.sha256)throw Error('元画像ハッシュ不一致');
-  checked.push({...r,pngSha256:binding.sha256,qa:item.inspectionAudit.qa,technicalStatus:'pass',inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true,candidateBinding:binding}});
+  checked.push({...r,pngSha256:binding.sha256,qa:item.inspectionAudit.qa,technicalStatus:'pass',decision:'pass',review:[...item.inspectionAudit.checks],inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true,candidateBinding:binding}});
  }
  return prepareFormalCropPayload({records:checked,pngs,assignments,characterId,subtle});
 }

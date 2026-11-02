@@ -25,3 +25,16 @@ export async function auditedCandidateBinding(item,blob,master,assignment){
  if(a.imageId!==item.imageId||a.decision!=='pass'||a.qa?.automatic!=='pass'||!a.reviewedAt||!Array.isArray(a.checks)||a.checks.length!==visualChecks.length||!a.checks.every(x=>x===true))throw Error('目視・機械検品未完了');
  return {imageId:item.imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,sha256:a.sha256,inspectionIdentity:a.identity};
 }
+
+// Stage metadata before visual inspection. An assignment never grants approval.
+export function stageCandidateAssignments(items,assignments,master){
+ if(!Array.isArray(assignments)||assignments.length!==9||new Set(assignments.map(a=>a.imageId)).size!==9||new Set(assignments.map(a=>a.candidateId)).size!==9)throw Error('9候補の重複しない対応が必要です');
+ return assignments.map(a=>{
+  const matches=items.filter(x=>x.imageId===a.imageId&&x.origin==='crop-local'),m=master.find(x=>x.candidateId===a.candidateId);
+  if(matches.length!==1||!m||m.phrase!==a.phrase||m.pose!==a.pose)throw Error('最新マスターと画像対応が不一致');
+  const item=matches[0];
+  if(item.candidate&&item.candidate!==m.candidateId||item.phrase&&item.phrase!==m.phrase||item.pose&&item.pose!==m.pose)throw Error('既存の候補対応は変更できません');
+  if(item.candidate===m.candidateId&&item.phrase===m.phrase&&item.pose===m.pose)return {item,next:item};
+  return {item,next:{...item,candidate:m.candidateId,phrase:m.phrase,pose:m.pose,inspectionAudit:undefined,candidateBindingHistory:[...(item.candidateBindingHistory||[]),{at:new Date().toISOString(),candidateId:m.candidateId,phrase:m.phrase,pose:m.pose}]}};
+ });
+}

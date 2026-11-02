@@ -1,6 +1,6 @@
 import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261030-reviewlabels1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
-import {initWorkflow} from './integration-ui.mjs?v=20261030-reviewlabels1';
+import {initWorkflow} from './integration-ui.mjs?v=20261103-audited1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261023-bear1';
 import {reviewedBundle} from './reviewed-bundle.mjs?v=20261023-bear1';

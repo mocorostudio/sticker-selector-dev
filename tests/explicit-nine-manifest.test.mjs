@@ -9,13 +9,13 @@ const records=master.map((m,i)=>({imageId:'img'+(i+1),candidateId:m.candidateId,
 const entries=records.map(record=>({record,png}));
 const assignments=records.map((record,i)=>({imageId:record.imageId,candidateId:record.candidateId,batchId:'B01',slot:i+1}));
 const base={entries,assignments,characterId:'character1',drive:{masterForCharacter:async()=>({characterId:'character1',master,masterReference:'https://docs.google.com/spreadsheets/d/VerifiedMasterID/edit',masterSheet:'候補',modifiedTime:'2026-11-03T00:00:00Z'})},subtle:webcrypto.subtle};
-test('nine explicit mappings with verified master',async()=>assert.equal((await buildVerifiedNineCellManifest(base)).entries.length,9));
-test('unverified master blocks formal handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,drive:null}),/最新/));
-test('missing slot blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,assignments:assignments.slice(0,8)}),/9候補/));
-test('duplicate slots block handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,assignments:assignments.map((a,i)=>i===8?{...a,slot:1}:a)}),/重複/));
-test('phrase mismatch blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,drive:{masterForCharacter:async()=>({...await base.drive.masterForCharacter(),master:[{...master[0],phrase:'違う'},...master.slice(1)]})}}),/明示対応/));
-test('visual inspection missing blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,entries:entries.map((e,i)=>i?e:{...e,record:{...e.record,technicalStatus:'review'}})}),/manifest検証失敗/));
-test('modified PNG bytes block handoff',async()=>{const bad=png.slice(0);new Uint8Array(bad)[25]=1;await assert.rejects(buildVerifiedNineCellManifest({...base,entries:[{record:records[0],png:bad},...entries.slice(1)]}),/ハッシュ/);});
+test('nine explicit mappings with verified master',async()=>assert.equal((await buildNineCellManifestFromDrive(base)).entries.length,9));
+test('unverified master blocks formal handoff',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,drive:null}),/Drive接続/));
+test('missing slot blocks handoff',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,assignments:assignments.slice(0,8)}),/9候補/));
+test('duplicate slots block handoff',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,assignments:assignments.map((a,i)=>i===8?{...a,slot:1}:a)}),/重複/));
+test('phrase mismatch blocks handoff',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,drive:{masterForCharacter:async()=>({...await base.drive.masterForCharacter(),master:[{...master[0],phrase:'違う'},...master.slice(1)]})}}),/明示対応/));
+test('visual inspection missing blocks handoff',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,entries:entries.map((e,i)=>i?e:{...e,record:{...e.record,technicalStatus:'review'}})}),/manifest検証失敗/));
+test('modified PNG bytes block handoff',async()=>{const bad=png.slice(0);new Uint8Array(bad)[25]=1;await assert.rejects(buildNineCellManifestFromDrive({...base,entries:[{record:records[0],png:bad},...entries.slice(1)]}),/ハッシュ/);});
 
 test('fabricated masterVerified flag cannot bypass unavailable Drive',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,masterVerified:true,drive:null}),/Drive接続/));
 test('stale or wrong character master is refused',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,drive:{masterForCharacter:async()=>({...await base.drive.masterForCharacter(),characterId:'wrong'})}}),/最新/));

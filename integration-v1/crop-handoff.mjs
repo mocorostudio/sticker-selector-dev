@@ -69,5 +69,8 @@ export async function importVerifiedCrops(entries,adapter,master,manifest) {
  if (!check.ok) return {ids:[],added:0,existing:0,errors:check.errors.map(x=>({imageId:x.imageId,message:x.reasons.join('／')}))};
  // Formal handoff still uses the existing image decoder, pixel inspection,
  // gate and save/readback checks. No remote writes are performed.
- return importCrops(entries,adapter,master);
+ const result=await importCrops(entries,adapter,master);
+ // Existing local choices and edit/history fields remain on the same item.
+ for(const id of result.ids){const item=adapter.items().find(x=>x.id===id),entry=entries.find(e=>e.record.imageId===item.imageId);if(adapter.promote)await adapter.promote(item,entry.record);}
+ return result;
 }

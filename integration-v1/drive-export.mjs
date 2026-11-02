@@ -1,3 +1,4 @@
+import {auditedCandidateBinding} from './inspection-core.mjs';
 import {completeSelection} from './selection-completion.mjs?v=20261024-save1';
 import {trialEligible} from './drive-pending.mjs?v=20261024-progress1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
@@ -33,7 +34,7 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
   if(confirmed&&['o','h'].includes(item.rating)){
    if(!approved&&!trial)throw Error((row.number||item.name)+'は技術検品・試用許可を照合できません。');
    id(item.imageId);let blob=await get(item.id);if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error((row.number||item.name)+'のPNGを読み込めません。');
-   total+=blob.size;if(total>150000000)throw Error('一度の保存は150MB以下にしてください。');
+if(item.candidateManifest)await auditedCandidateBinding(item,blob,[{candidateId:item.candidate,phrase:item.phrase,pose:item.pose}],{imageId:item.imageId,candidateId:item.candidate,phrase:item.phrase,pose:item.pose});   total+=blob.size;if(total>150000000)throw Error('一度の保存は150MB以下にしてください。');
    const cacheKey=preparedCache?await digest(blob)+':'+!!item.crop?.crossing+':'+row.technicalStatus:null;let prepared=preparedCache?.get(cacheKey);
    if(!prepared){const decoded=await decode(blob),cleaned=trial?decoded:cleanTransparency(decoded);
     if(cleaned.removed){if(!encode)throw Error('透過仕上げを準備できません。アプリを再読み込みしてください。');blob=await encode(cleaned);}
