@@ -24,3 +24,23 @@ export function validateCandidateManifest(manifest, master, records) {
   if (manifest.entries.length !== records.length) errors.push({imageId:'',reasons:['登録件数不一致']});
   return {ok:errors.length===0,ready:errors.length===0?manifest.entries.map(e=>e.imageId):[],errors};
 }
+
+/**
+ * Build a candidate manifest only from an explicit latest-master mapping.
+ * No phrase/pose inference from grid position and no inferred approval.
+ * This does not generate visual-inspection evidence.
+ */
+export function buildCandidateManifest(assignments,master,records) {
+ if(!Array.isArray(assignments)||!Array.isArray(master)||!Array.isArray(records))throw Error('候補対応情報がありません');
+ const entries=assignments.map(a=>{
+  const r=records.find(x=>x.imageId===a.imageId);
+  const m=master.find(x=>x.candidateId===a.candidateId);
+  if(!r||!m)throw Error('候補IDまたは画像IDが最新マスターと一致しません');
+  if(r.candidateId!==a.candidateId||r.phrase!==m.phrase||r.pose!==m.pose)throw Error('画像と候補の明示対応がありません');
+  return {imageId:r.imageId,candidateId:a.candidateId,batchId:a.batchId,slot:a.slot,phrase:m.phrase,pose:m.pose,filename:r.filename,pngSha256:r.pngSha256};
+ });
+ const manifest={schemaVersion:1,entries};
+ const check=validateCandidateManifest(manifest,master,records);
+ if(!check.ok)throw Error('manifest検証失敗: '+check.errors.map(e=>e.reasons.join('／')).join('; '));
+ return manifest;
+}
