@@ -74,6 +74,30 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
   return readMasterRows((await json(SHEETS+'/'+id(spreadsheetId)+'/values/'+encodeURIComponent(range))).values);
  }
  return {
+  // Read-only discovery. Refuse ambiguous or unparseable character masters;
+  // never fall back to the historical shared 116-candidate sheet.
+  async masterForCharacter(characterId){
+   id(characterId);
+   const character=await meta(characterId);
+   if(!validFolder(character))throw Error('対象キャラのフォルダが見つかりません。');
+   const children=await list('trashed = false and '+quote(characterId)+' in parents');
+   const sheets=children.filter(f=>f.mimeType===SHEET&&inFolder(f,characterId)&&/マスター|master/i.test(f.name));
+   if(!sheets.length)throw Error('対象キャラのマスターが見つかりません。');
+   sheets.sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')||a.name.localeCompare(b.name));
+   if(sheets.length>1&&sheets[0].modifiedTime===sheets[1].modifiedTime)throw Error('最新マスターを特定できません。重複を確認してください。');
+   const file=sheets[0],book=await json(SHEETS+'/'+id(file.id)+'?fields=spreadsheetId,sheets(properties)');
+   const candidates=[];
+   for(const sheet of book.sheets||[]){
+    const props=sheet.properties,grid=props?.gridProperties;
+    if(!props?.title||!grid||grid.rowCount<2)continue;
+    const name=props.title,range="'"+name.replaceAll("'","''")+"'!A1:Z"+Math.min(grid.rowCount,2000);
+    try{const rows=(await json(SHEETS+'/'+id(file.id)+'/values/'+encodeURIComponent(range))).values;
+     const parsed=readMasterRows(rows);if(parsed.length)candidates.push({name,rows:parsed});
+    }catch(error){if(!/マスター|候補/i.test(name))continue;throw error;}
+   }
+   if(candidates.length!==1)throw Error('候補ID・セリフ・ポーズを持つマスターシートを一意に特定できません。');
+   return {characterId,masterReference:'https://docs.google.com/spreadsheets/d/'+file.id+'/edit',masterSheet:candidates[0].name,modifiedTime:file.modifiedTime||null,master:candidates[0].rows};
+  },
   async characters({preferredId=null}={}){
    const out=[];
    // A URL identifies an explicit folder. Verify it directly rather than
