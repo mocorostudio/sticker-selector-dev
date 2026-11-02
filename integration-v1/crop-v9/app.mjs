@@ -1,3 +1,4 @@
+import {prepareFormalCropPayload} from './formal-sender.mjs';
 import {isolateComponents} from './component-crops.mjs?v=20261030-whole1';
 import {initSourceSave} from './source-save-ui.mjs?v=20261023-merge1';
 import {createBusyScreen} from '../busy-screen.mjs?v=20261023-merge1';
@@ -110,5 +111,17 @@ if(new URLSearchParams(location.search).get('integrated')==='1'&&parent!==window
   const transfer=(entries,append)=>new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();pending={requestId,resolve,reject,timer:setTimeout(()=>{pending=null;reject(Error('受け渡しの応答がありません。再試行しても同じ画像IDは重複しません。'));},60000)};parent.postMessage({type:'crop-handoff-v1',requestId,entries,append,forSelection:true},location.origin);});
   let added=0,existing=0,failed=0;const errors=[];for(let offset=0;offset<passed.length;offset+=16){const entries=[];for(const r of passed.slice(offset,offset+16)){const pixels=await recordPixels(r),blob=await new Promise((resolve,reject)=>canvas(pixels).toBlob(b=>b?resolve(b):reject(Error('PNG出力失敗')),'image/png'));entries.push({record:selectionDraft(clean(r)),png:await blob.arrayBuffer()});}const result=await transfer(entries,offset>0||!!editImageId);if(result.error)throw Error(result.error);added+=result.added;existing+=result.existing;failed+=result.errors.length;errors.push(...result.errors.map(e=>e.message));for(const id of result.ids){const r=records.find(r=>'crop:'+r.imageId===id);if(r&&!r.history.some(h=>h.action==='selection-draft-sent'&&h.imageId===r.imageId))r.history.push({action:'selection-draft-sent',imageId:r.imageId,at:new Date().toISOString()});}}await save();$('status').textContent='選別へ追加 '+added+'枚／取込済み '+existing+'枚／失敗 '+failed+'件'+(errors.length?'：'+errors.join(' / '):'');
  }catch(e){$('status').textContent=e.message;}finally{setBusy(false);}};
+ // Strict path: explicit mapping, original inspection evidence and live parent Drive checks.
+ const formal=document.createElement('button');formal.id='formalHandoff';formal.textContent='9候補を正式照合して送る（検品済みのみ）';button.after(formal);
+ formal.onclick=async()=>{if(busy||pending)return;const characterId=new URLSearchParams(parent.location.search).get('character');if(!characterId){$('status').textContent='対象キャラのDriveフォルダを指定してください';return;}
+ const passed=transferRecords();if(passed.length!==9){$('status').textContent='正式照合は1バッチ9候補だけで実行してください';return;}
+ const text=window.prompt('明示割当JSON（imageId, candidateId, batchId, slot, phrase, pose）を9件入力');if(text===null)return;
+ setBusy(true);try{const assignments=JSON.parse(text),pngs=[];for(const r of passed){const pixels=await recordPixels(r),blob=await new Promise((resolve,reject)=>canvas(pixels).toBlob(x=>x?resolve(x):reject(Error('PNG出力失敗')),'image/png'));pngs.push(await blob.arrayBuffer());}
+ const payload=await prepareFormalCropPayload({records:passed,pngs,assignments,characterId});
+ const requestId=crypto.randomUUID();const response=new Promise((resolve,reject)=>{pending={requestId,resolve,reject,timer:setTimeout(()=>{pending=null;reject(Error('正式引き渡しの応答なし'));},60000)};});
+ parent.postMessage({...payload,requestId,append:true},location.origin);const result=await response;
+ if(result.error||result.errors?.length)throw Error(result.error||result.errors.map(x=>x.message).join('／'));
+ $('status').textContent='正式照合送信完了：'+result.ids.length+'件（選抜は別）';
+ }catch(e){$('status').textContent='正式引き渡し停止：'+e.message;}finally{setBusy(false);}};
  window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==parent||event.data?.type!=='crop-handoff-result-v1'||event.data.requestId!==pending?.requestId)return;const item=pending;clearTimeout(item.timer);pending=null;item.resolve(event.data);});
 }
