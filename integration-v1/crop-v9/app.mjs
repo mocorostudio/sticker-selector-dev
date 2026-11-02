@@ -134,8 +134,8 @@ if(new URLSearchParams(location.search).get('integrated')==='1'&&parent!==window
  }
  const ok=document.createElement('button');ok.type='submit';ok.value='ok';ok.textContent='割当を照合して正式送信';
  const cancel=document.createElement('button');cancel.type='submit';cancel.value='cancel';cancel.textContent='中止';form.append(ok,cancel);dialog.append(form);document.body.append(dialog);
- const response=await new Promise(resolve=>{dialog.addEventListener('close',()=>resolve(dialog.returnValue),{once:true});dialog.showModal();});
- const values=selects.map(x=>x.value);dialog.remove();if(response!=='ok')return;
+ const dialogResult=await new Promise(resolve=>{dialog.addEventListener('close',()=>resolve(dialog.returnValue),{once:true});dialog.showModal();});
+ const values=selects.map(x=>x.value);dialog.remove();if(dialogResult!=='ok')return;
  if(values.some(x=>!x)||new Set(values).size!==9)throw Error('9セルすべてに重複しない候補を割り当ててください');
  const assignments=passed.map((r,i)=>{const m=master.find(x=>x.candidateId===values[i]);return {imageId:r.imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,batchId:'B01',slot:i+1};});
  const pngs=[];for(const r of passed){const pixels=await recordPixels(r),blob=await new Promise((resolve,reject)=>canvas(pixels).toBlob(x=>x?resolve(x):reject(Error('PNG出力失敗')),'image/png'));pngs.push(await blob.arrayBuffer());}
