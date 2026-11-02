@@ -116,9 +116,9 @@ if(new URLSearchParams(location.search).get('integrated')==='1'&&parent!==window
  formal.onclick=async()=>{if(busy||pending)return;const characterId=new URLSearchParams(parent.location.search).get('character');if(!characterId){$('status').textContent='対象キャラのDriveフォルダを指定してください';return;}
  const passed=transferRecords();if(passed.length!==9){$('status').textContent='正式照合は1バッチ9候補だけで実行してください';return;}
  setBusy(true);try{
- const requestId=crypto.randomUUID();
- const answer=new Promise((resolve,reject)=>{pending={requestId,resolve,reject,timer:setTimeout(()=>{pending=null;reject(Error('マスター取得応答なし'));},60000)};});
- parent.postMessage({type:'crop-handoff-v1',action:'master-options',requestId,characterId},location.origin);
+ const masterRequestId=crypto.randomUUID();
+ const answer=new Promise((resolve,reject)=>{pending={requestId:masterRequestId,resolve,reject,timer:setTimeout(()=>{pending=null;reject(Error('マスター取得応答なし'));},60000)};});
+ parent.postMessage({type:'crop-handoff-v1',action:'master-options',requestId:masterRequestId,characterId},location.origin);
  const reply=await answer;if(reply.error)throw Error(reply.error);
  const master=reply.masterOptions?.master;if(!Array.isArray(master)||master.length<9)throw Error('最新マスターに9候補がありません');
  const unique=new Set(master.map(x=>x.candidateId));if(unique.size!==master.length)throw Error('マスターID重複');
