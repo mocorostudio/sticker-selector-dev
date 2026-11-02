@@ -41,7 +41,7 @@ export async function prepareAuditedFormalPayload({records,pngs,assignments,char
   const blob=new Blob([pngs[i]],{type:'image/png'});
   const binding=await auditedCandidateBinding(item,blob,master,a);
   if(r.pngSha256&&r.pngSha256!==binding.sha256)throw Error('元画像ハッシュ不一致');
-  checked.push({...r,pngSha256:binding.sha256,qa:item.inspectionAudit.qa,technicalStatus:'pass',decision:'pass',review:[...item.inspectionAudit.checks],inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true,candidateBinding:binding}});
+  checked.push({...r,pngSha256:binding.sha256,qa:item.inspectionAudit.qa,technicalStatus:'pass',decision:'pass',review:[...item.inspectionAudit.checks],inspection:{scope:'actual-source',at:item.inspectionAudit.reviewedAt,audit:structuredClone(item.inspectionAudit),visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true,candidateBinding:binding}});
  }
  return prepareFormalCropPayload({records:checked,pngs,assignments,characterId,subtle});
 }

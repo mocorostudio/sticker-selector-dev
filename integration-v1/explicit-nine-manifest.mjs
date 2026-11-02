@@ -36,5 +36,5 @@ export async function buildNineCellManifestFromDrive({drive,characterId,entries,
  if(!validId(characterId)||typeof drive?.masterForCharacter!=='function')throw Error('対象キャラとDrive接続が必要です');
  const current=await drive.masterForCharacter(characterId);
  if(current?.characterId!==characterId||!validRef(current.masterReference)||!current.masterSheet||!current.modifiedTime||!Array.isArray(current.master)||!current.master.length)throw Error('最新キャラ別マスターを照合できません');
- return buildVerifiedNineCellManifest({entries,assignments,master:current.master,masterReference:current.masterReference,subtle});
+ return {...await buildVerifiedNineCellManifest({entries,assignments,master:current.master,masterReference:current.masterReference,subtle}),characterId,masterModifiedTime:current.modifiedTime,masterSheet:current.masterSheet};
 }

@@ -121,7 +121,7 @@ if(new URLSearchParams(location.search).get('integrated')==='1'&&parent!==window
  const reply=await answer;if(reply.error)throw Error(reply.error);
  const master=reply.masterOptions?.master;if(!Array.isArray(master)||master.length<9)throw Error('最新マスターに9候補がありません');
  const unique=new Set(master.map(x=>x.candidateId));if(unique.size!==master.length)throw Error('マスターID重複');
- const dialog=document.createElement('dialog'),form=document.createElement('form');form.method='dialog';
+ const dialog=document.createElement('dialog'),form=document.createElement('form');dialog.id='formalCandidateDialog';dialog.style.cssText='box-sizing:border-box;width:min(94vw,640px);max-height:min(65dvh,520px);overflow:auto;inset:6dvh 0 auto;margin:0 auto;overflow-wrap:anywhere';form.method='dialog';
  const heading=document.createElement('h3');heading.textContent='9セルと最新マスターの明示対応';form.append(heading);
  const note=document.createElement('p');note.textContent='候補ID・セリフ・ポーズを確認してください。未検品画像は正式送信できません。';form.append(note);
  const selects=[];
@@ -134,7 +134,7 @@ if(new URLSearchParams(location.search).get('integrated')==='1'&&parent!==window
  }
  const batchLabel=document.createElement('label');batchLabel.textContent='バッチID ';const batchInput=document.createElement('input');batchInput.value='B01';batchInput.required=true;batchInput.pattern='[A-Za-z0-9_-]+';batchLabel.append(batchInput);form.append(batchLabel);
  const ok=document.createElement('button');ok.type='submit';ok.value='ok';ok.textContent='割当を照合して正式送信';
- const cancel=document.createElement('button');cancel.type='submit';cancel.value='cancel';cancel.textContent='中止';form.append(ok,cancel);dialog.append(form);document.body.append(dialog);
+ const cancel=document.createElement('button');cancel.type='submit';cancel.value='cancel';cancel.textContent='中止';const actions=document.createElement('div');actions.style.cssText='position:sticky;bottom:0;background:white;padding:6px 0;display:flex;flex-wrap:wrap';actions.append(ok,cancel);form.append(actions);dialog.append(form);document.body.append(dialog);
  const dialogResult=await new Promise(resolve=>{dialog.addEventListener('close',()=>resolve(dialog.returnValue),{once:true});dialog.showModal();});
  const values=selects.map(x=>x.value);const batchId=batchInput.value;dialog.remove();if(dialogResult!=='ok')return;
  if(values.some(x=>!x)||new Set(values).size!==9)throw Error('9セルすべてに重複しない候補を割り当ててください');
