@@ -5,7 +5,9 @@ export function validateCandidateManifest(manifest, master, records) {
   if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.entries) || !Array.isArray(master) || !Array.isArray(records)) throw Error('manifest形式不正');
   const errors=[], usedImages=new Set(), usedSlots=new Set(), usedFiles=new Set();
   const lookup=new Map(master.map(m=>[m.candidateId,m]));
+  if (lookup.size!==master.length) errors.push({imageId:'',reasons:['マスター候補ID重複']});
   const images=new Map(records.map(r=>[r.imageId,r]));
+  if (images.size!==records.length) errors.push({imageId:'',reasons:['実画像ID重複']});
   for (const e of manifest.entries) {
     const reasons=[], key=`${e?.batchId}:${e?.slot}`;
     const m=lookup.get(e?.candidateId), r=images.get(e?.imageId);
