@@ -115,8 +115,30 @@ if(new URLSearchParams(location.search).get('integrated')==='1'&&parent!==window
  const formal=document.createElement('button');formal.id='formalHandoff';formal.textContent='9候補を正式照合して送る（検品済みのみ）';button.after(formal);
  formal.onclick=async()=>{if(busy||pending)return;const characterId=new URLSearchParams(parent.location.search).get('character');if(!characterId){$('status').textContent='対象キャラのDriveフォルダを指定してください';return;}
  const passed=transferRecords();if(passed.length!==9){$('status').textContent='正式照合は1バッチ9候補だけで実行してください';return;}
- const text=window.prompt('明示割当JSON（imageId, candidateId, batchId, slot, phrase, pose）を9件入力');if(text===null)return;
- setBusy(true);try{const assignments=JSON.parse(text),pngs=[];for(const r of passed){const pixels=await recordPixels(r),blob=await new Promise((resolve,reject)=>canvas(pixels).toBlob(x=>x?resolve(x):reject(Error('PNG出力失敗')),'image/png'));pngs.push(await blob.arrayBuffer());}
+ setBusy(true);try{
+ const requestId=crypto.randomUUID();
+ const answer=new Promise((resolve,reject)=>{pending={requestId,resolve,reject,timer:setTimeout(()=>{pending=null;reject(Error('マスター取得応答なし'));},60000)};});
+ parent.postMessage({type:'crop-handoff-v1',action:'master-options',requestId,characterId},location.origin);
+ const reply=await answer;if(reply.error)throw Error(reply.error);
+ const master=reply.masterOptions?.master;if(!Array.isArray(master)||master.length<9)throw Error('最新マスターに9候補がありません');
+ const unique=new Set(master.map(x=>x.candidateId));if(unique.size!==master.length)throw Error('マスターID重複');
+ const dialog=document.createElement('dialog'),form=document.createElement('form');form.method='dialog';
+ const heading=document.createElement('h3');heading.textContent='9セルと最新マスターの明示対応';form.append(heading);
+ const note=document.createElement('p');note.textContent='候補ID・セリフ・ポーズを確認してください。未検品画像は正式送信できません。';form.append(note);
+ const selects=[];
+ for(let i=0;i<passed.length;i++){
+  const label=document.createElement('label');label.textContent='セル '+(i+1)+'／画像 '+passed[i].imageId+' ';
+  const select=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='候補を選択';select.append(blank);
+  for(const m of master){const o=document.createElement('option');o.value=m.candidateId;o.textContent=m.candidateId+'｜'+m.phrase+'｜'+m.pose;select.append(o);}
+  label.append(select);form.append(label,document.createElement('p'));selects.push(select);
+ }
+ const ok=document.createElement('button');ok.type='submit';ok.value='ok';ok.textContent='割当を照合して正式送信';
+ const cancel=document.createElement('button');cancel.type='submit';cancel.value='cancel';cancel.textContent='中止';form.append(ok,cancel);dialog.append(form);document.body.append(dialog);
+ const response=await new Promise(resolve=>{dialog.addEventListener('close',()=>resolve(dialog.returnValue),{once:true});dialog.showModal();});
+ const values=selects.map(x=>x.value);dialog.remove();if(response!=='ok')return;
+ if(values.some(x=>!x)||new Set(values).size!==9)throw Error('9セルすべてに重複しない候補を割り当ててください');
+ const assignments=passed.map((r,i)=>{const m=master.find(x=>x.candidateId===values[i]);return {imageId:r.imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,batchId:'B01',slot:i+1};});
+ const pngs=[];for(const r of passed){const pixels=await recordPixels(r),blob=await new Promise((resolve,reject)=>canvas(pixels).toBlob(x=>x?resolve(x):reject(Error('PNG出力失敗')),'image/png'));pngs.push(await blob.arrayBuffer());}
  const payload=await prepareFormalCropPayload({records:passed,pngs,assignments,characterId});
  const requestId=crypto.randomUUID();const response=new Promise((resolve,reject)=>{pending={requestId,resolve,reject,timer:setTimeout(()=>{pending=null;reject(Error('正式引き渡しの応答なし'));},60000)};});
  parent.postMessage({...payload,requestId,append:true},location.origin);const result=await response;
