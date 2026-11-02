@@ -13,3 +13,10 @@ test('wrong pose rejected',()=>assert.equal(run({...e,pose:'手を振る'}).ok,f
 test('bad slot rejected',()=>assert.equal(run({...e,slot:10}).ok,false));
 test('duplicate slots and images rejected',()=>{const result=validateCandidateManifest({schemaVersion:1,entries:[e,e]},[m],[r]);assert.equal(result.ok,false)});
 test('unverified draft rejected',()=>assert.equal(run(e,{...r,inspection:{scope:'draft'}}).ok,false));
+
+test('duplicate image records rejected',()=>{const res=validateCandidateManifest({schemaVersion:1,entries:[e]},[m],[r,r]);assert.equal(res.ok,false)});
+test('duplicate master candidate rejected',()=>{const res=validateCandidateManifest({schemaVersion:1,entries:[e]},[m,m],[r]);assert.equal(res.ok,false)});
+test('manifest hash mismatch rejected',()=>assert.equal(run({...e,pngSha256:'b'.repeat(64)}).ok,false));
+test('missing image rejected',()=>{const res=validateCandidateManifest({schemaVersion:1,entries:[e]},[m],[]);assert.equal(res.ok,false)});
+test('no inspection record rejected',()=>assert.equal(run(e,{...r,inspection:null}).ok,false));
+test('failed records never emitted ready',()=>assert.deepEqual(run({...e,phrase:'違う'}).ready,[]));
