@@ -25,7 +25,7 @@ export async function importCrops(entries,adapter,master,{forSelection=false}={}
    result.existing++;
   }else{
    const {pixels,...metadata}=r;
-   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:gate({...r,qa:actualQA})==='pass',technicalStatus:gate({...r,qa:actualQA}),technicalScope:r.inspection?.scope==='actual-source'?'actual-source':'local-test',masterSource:r.masterReference||(r.candidateId?'attached-v3-116':'unmapped'),crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
+   const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:gate({...r,qa:actualQA})==='pass',technicalStatus:gate({...r,qa:actualQA}),technicalScope:r.inspection?.scope==='actual-source'?'actual-source':'local-test',masterSource:r.masterReference||'unverified-master',crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
    await adapter.write(item,blob);
    const check=adapter.items().find(x=>x.id===id),stored=await adapter.get(id);
    if(!check||check.imageId!==r.imageId||check.candidate!==r.candidateId||check.name!==r.filename||!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('端末保存の再照合に失敗');
@@ -64,6 +64,7 @@ export async function importVerifiedCrops(entries,adapter,master,manifest) {
   if (!record || record.pngSha256!==pngSha256) throw Error('PNGハッシュと検品記録が一致しません');
   records.push({...record,pngSha256});
  }
+ if (!manifest.masterReference || !/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+(?:\/edit)?$/.test(manifest.masterReference)) throw Error('正式引き渡しには対象キャラの最新マスターURLが必要です');
  const check=validateCandidateManifest(manifest,master,records);
  if (!check.ok) return {ids:[],added:0,existing:0,errors:check.errors.map(x=>({imageId:x.imageId,message:x.reasons.join('／')}))};
  // Formal handoff still uses the existing image decoder, pixel inspection,
