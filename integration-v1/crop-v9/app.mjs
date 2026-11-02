@@ -39,7 +39,7 @@ $('clearCropView').onclick=()=>{if(busy)return;try{const next=new Set([...hidden
 $('sourceFilter').onchange=()=>{viewSource=$('sourceFilter').value;page=0;render();};$('showHistory').onchange=()=>{page=0;render();};
 $('prevPage').onclick=()=>{page=Math.max(0,page-1);render();};$('nextPage').onclick=()=>{page++;render();};
 function setBusy(value){busy=value;document.querySelector('main').setAttribute('aria-busy',String(value));if(value)processing.show('画像を処理しています…');else processing.hide();$('cards').inert=value;$('overview').inert=value;for(const id of ['run','files','driveOpen','clearCropView','grid','prefix','erase','retry','restore','backup','handoff','sourceFilter','recropOverview'])if($(id))$(id).disabled=value;$('pauseQueue').disabled=!value;}
-$('run').onclick=async()=>{if(busy)return;if(!queue.some(q=>q.state!=='done')){$('status').textContent='元画像を選んでください';return;}pauseRequested=false;setBusy(true);let staged;
+$('run').onclick=async()=>{if(busy)return;if(!queue.some(q=>q.state!=='done')){$('status').textContent='元画像を選んでください';return;}pauseRequested=false;setBusy(true);let staged,autoReady=false;
  try{const result=await runSerial(queue,{
   shouldPause:()=>pauseRequested,
   onProgress:item=>{queueStatus();if(item.state==='processing')$('status').textContent=item.name+'を処理中…';},
