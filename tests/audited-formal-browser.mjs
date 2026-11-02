@@ -1,5 +1,6 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
 import {startServer} from './server.mjs';
 import {PendingFixture} from './pending-drive-fixture.mjs';
 import {storageKeys} from '../integration-v1/session-store.mjs';
@@ -49,4 +50,4 @@ try{
  assert.deepEqual(errors,[]);assert.ok(fixture.calls.every(c=>c.method==='GET'));
  console.log('PASS audited formal browser: actual RGBA 3x3, nine UI assignments, uninspected stop, visual evidence, formal promotion, duplicate resend, IndexedDB reload, vote preservation, tampered audit rejection; mock Drive read-only');
  await context.close();
-}finally{await browser.close();await new Promise(r=>server.server.close(r));}
+}catch(error){for(const p of browser.contexts().flatMap(c=>c.pages())){console.error('PARENT',await p.locator('body').innerText().catch(()=>''));for(const f of p.frames().filter(f=>f.url().includes('/crop-v9/')))console.error('CROP',await f.locator('body').innerText().catch(()=>''));await mkdir('test-results',{recursive:true});await p.screenshot({path:'test-results/audited-formal-failure.png',fullPage:true}).catch(()=>{});}throw error;}finally{await browser.close();await new Promise(r=>server.server.close(r));}

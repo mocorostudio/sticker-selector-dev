@@ -42,14 +42,14 @@ try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]].filter(([
   await frame.locator('#sourceSave').click();await frame.locator('#sourceSaveStatus').filter({hasText:'保存照合済み 1枚'}).waitFor();
   assert.equal(remote.posts,1);assert.deepEqual(Buffer.from(await remote.blobs.get('new1').arrayBuffer()),bytes);
   await frame.locator('#sourceSave').click();await frame.locator('#sourceSaveStatus').filter({hasText:'保存照合済み 1枚'}).waitFor();assert.equal(remote.posts,1);
-  await frame.locator('#run').click();await frame.locator('#handoff').filter({hasText:'全9枚'}).waitFor();
+  await frame.locator('#run').click();await frame.locator('#handoff').filter({hasText:'全9枚'}).waitFor({state:'attached'});
   const qa=await page.frames().find(f=>f.url().includes('/crop-v9/')).evaluate(async()=>{const names=await indexedDB.databases(),name=names.find(x=>x.name.startsWith('sticker-crop-v9:workflow:')).name;const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(name);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});return new Promise(resolve=>{const r=db.transaction('state').objectStore('state').get('current');r.onsuccess=()=>{db.close();resolve(r.result.records.map(x=>({qa:x.qa,review:x.review})));};});});
   assert.equal(qa.length,9);assert.ok(qa.every(x=>x.qa.automatic==='pass'&&x.review.length===0));
-  await frame.locator('#handoff').click();await page.locator('#selectionScreen').waitFor({state:'visible'});assert.equal(await page.locator('.card').count(),9);
+  await page.locator('#selectionScreen').waitFor({state:'visible'});assert.equal(await page.locator('.card').count(),9);
   assert.ok((await page.locator('#list').innerText()).includes('未')); // drafts are never technical approvals
   await page.locator('.choices label').first().click();
-  await page.locator('#sync').evaluate(el=>el.click());await page.locator('#selectionComplete').waitFor({state:'visible'});
-  assert.match(await page.locator('#selectionComplete').innerText(),/保存しました/);
+  assert.equal(await page.locator('#sync').isVisible(),false);
+  assert.equal(await page.locator('.chosen').count(),1);
   await page.reload();await page.locator('#selectionTab').click();assert.equal(await page.locator('.card').count(),9);
   assert.equal(remote.posts,1);assert.deepEqual(errors,[]);
   await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/integration-'+name+'.png',fullPage:true});
