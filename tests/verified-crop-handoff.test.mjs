@@ -23,7 +23,7 @@ function make(overrides={}){
  const state=[], blobs=new Map();
  const adapter={items:()=>state,get:async id=>blobs.get(id),decode:decodePNG,
   write:async(item,blob)=>{state.push(item);blobs.set(item.id,blob)}};
- return {entries:[{record,png:bytes.slice().buffer}],manifest,adapter,state};
+ return {entries:[{record,png:Uint8Array.from(bytes).buffer}],manifest,adapter,state};
 }
 test('strict handoff persists verified record and readback without changing user votes',async()=>{
  const a=make(),result=await importVerifiedCrops(a.entries,a.adapter,master,a.manifest);
