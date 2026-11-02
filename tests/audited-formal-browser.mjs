@@ -38,10 +38,10 @@ try{
   for(const check of await page.locator('#inspectionChecks input').all())await check.check();
   await page.locator('#inspectionPass').click();await page.locator('#inspectionResult').filter({hasText:'記録しました'}).waitFor();
  }
- await page.locator('#inspectionClose').click();await choose();await crop.locator('#status').filter({hasText:'正式照合送信完了：9件'}).waitFor();
+ await page.locator('#inspectionClose').click();await choose();await crop.locator('#status').filter({hasText:'正式照合送信完了：9件'}).waitFor({state:'attached'});
  let saved=await snapshot();assert.equal(saved.length,9);assert.ok(saved.every(i=>i.technicalPassed===true&&i.candidateManifest.entries.length===9));
  assert.equal(saved[0].rating,initial[0].rating);assert.equal(saved[0].touched,initial[0].touched);
- await choose();await crop.locator('#status').filter({hasText:'正式照合送信完了：9件'}).waitFor();assert.equal((await snapshot()).length,9);
+ await choose();await crop.locator('#status').filter({hasText:'正式照合送信完了：9件'}).waitFor({state:'attached'});assert.equal((await snapshot()).length,9);
  await page.reload();await crop.locator('#handoff').waitFor({state:'attached'});saved=await snapshot();assert.ok(saved.every(i=>i.inspectionAudit.decision==='pass'&&i.technicalPassed));
  // Tampering with the persisted visual audit must stop a repeated formal handoff.
  await page.evaluate(key=>{const v=JSON.parse(localStorage.getItem(key));v.items[0].inspectionAudit.checks[0]=false;localStorage.setItem(key,JSON.stringify(v));},keys.store);
