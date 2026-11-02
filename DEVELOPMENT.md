@@ -159,3 +159,58 @@ Validation: Node suite including an 80-rating / 53-circle draft save and repeate
 mock Drive save with stable file IDs, warning retention, and rejection of altered,
 empty, incorrectly sized and undecodable images. Real iPhone/Google writes were
 not exercised in this change.
+
+## 2026-11-03: audited nine-cell workflow connected (Issues #2 / #3)
+
+Validated source: `2689effd54f1ec2b03fca8a8d23b17da87579e19` on
+`development/integration-v1`. Main remains
+`e2ec232e4593f5476c0038d0c87c66af456c8b11`.
+
+The existing inspection core, formal sender, strict nine-cell manifest and crop
+handoff now form one workflow. The parent obtains the current character master;
+the nine-cell dialog shows actual PNG previews and explicit candidate IDs, exact
+phrases and poses. Assigning a candidate records metadata only. Formal sending
+requires the parent's completed inspection audit, exact PNG SHA-256, image and
+candidate identity, every visual check, actual pixel QA, and a fresh master
+check. It stores complete audit/master provenance and registers on the existing
+local item rather than replacing votes, edits or selection history. Uninspected
+images remain available for provisional selection but cannot be formally sent.
+
+The existing Drive save button and transport also register formally checked
+original PNG bytes in `00_選抜待ち` and a reader-compatible
+`selection-manifest_*.json` in `03_元画像・生成履歴`. All images are validated
+before the first write; existing reservation/readback/hash checks make retries
+idempotent. The original 00 images remain available after adoption/hold export.
+There are no new production modules, storage namespaces, paid APIs or buttons.
+
+Regression fixes found by execution: pin browser CI to supported Ubuntu 24.04
+(the old Ubuntu latest runner became unsupported by locked Playwright); retain
+character IDs on newly imported crops; make the nine-cell dialog scrollable with
+reachable actions on phone viewports; retain remembered selection ratings when
+local images are temporarily unavailable. Keep the intentionally static mobile
+submission controls and reserve space for the Drive status tray. Version changed
+workflow imports together so cached old dependencies cannot break the new flow.
+
+Verified:
+- Exact remote source checked out locally: Node 218/218, plus all module syntax.
+- Full Actions check: https://github.com/mocorostudio/sticker-selector-dev/actions/runs/41478721818
+- Dedicated formal E2E: https://github.com/mocorostudio/sticker-selector-dev/actions/runs/41478721745
+- 24 distinct isolated browser scenarios: 16 smoke scenarios, Chromium/WebKit
+  source-save/crop (2), pending-master readback (2), batch isolation (1), full
+  selection/order/artwork/42-PNG application-kit recovery (2), and audited formal
+  send/pending save (1). The integrated batch scenario is repeated in dedicated
+  CI and is counted only once. Browser Google calls use synthetic fixtures.
+- Actual RGBA PNGs, SHA mismatch and unfinished/wrong inspection rejection,
+  IndexedDB reload, duplicate resend, preserved votes/history/order/artwork,
+  failed-save resume, reader-compatible pending registration and ZIP contents.
+- Pages deployment succeeded for the validated commit:
+  https://github.com/mocorostudio/sticker-selector-dev/actions/runs/41478723467
+  Cloud Browser opened the published workflow and confirmed the audited2 entry.
+
+Not verified: real Google OAuth, actual Drive uploads/readbacks of this new
+workflow, an actual character's current master/artwork review, and physical
+Safari on iPhone. Mock transport success is not real Drive success. Synthetic
+visual-check fixtures do not certify any production artwork. Issues #2/#3 remain
+open until those remaining integration checks are documented. Artwork visual
+inspection is still explicit evidence, not an automatic consequence of choosing
+a candidate. Next: one isolated real-Google save/readback run after authentication.
