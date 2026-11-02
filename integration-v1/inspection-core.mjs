@@ -15,3 +15,13 @@ export function inspectionDecision(audit,decision,checks,comment='',at=new Date(
  return {...structuredClone(audit),checks:checks.map(x=>x===true),decision,comment,reviewedAt:at};
 }
 export async function verifyInspection(item,blob){const a=item.inspectionAudit;return !!a&&a.identity===inspectionIdentity(item)&&a.sha256===await pngHash(blob);}
+
+// Derive candidate binding only from the inspected image's unchanged audit.
+export async function auditedCandidateBinding(item,blob,master,assignment){
+ const m=master?.find(x=>x.candidateId===assignment?.candidateId),a=item?.inspectionAudit;
+ if(!m||m.phrase!==assignment.phrase||m.pose!==assignment.pose)throw Error('最新マスター不一致');
+ if(item.imageId!==assignment.imageId||item.candidate!==m.candidateId||item.phrase!==m.phrase||item.pose!==m.pose)throw Error('検品対象と候補が不一致');
+ if(!blob||blob.type!=='image/png'||!await verifyInspection(item,blob))throw Error('検品した実PNGが一致しません');
+ if(a.decision!=='pass'||a.qa?.automatic!=='pass'||!a.reviewedAt||!Array.isArray(a.checks)||a.checks.length!==visualChecks.length||!a.checks.every(x=>x===true))throw Error('目視・機械検品未完了');
+ return {imageId:item.imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,sha256:a.sha256,inspectionIdentity:a.identity};
+}
