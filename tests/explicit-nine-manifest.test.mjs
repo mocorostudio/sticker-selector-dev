@@ -1,18 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash,webcrypto} from 'node:crypto';
-import {buildVerifiedNineCellManifest} from '../integration-v1/explicit-nine-manifest.mjs';
+import {buildNineCellManifestFromDrive} from '../integration-v1/explicit-nine-manifest.mjs';
 const png=new Uint8Array([137,80,78,71,13,10,26,10,...Array(30).fill(0)]).buffer;
 const hash=createHash('sha256').update(Buffer.from(png)).digest('hex');
 const master=Array.from({length:9},(_,i)=>({candidateId:'C'+(i+1),phrase:'文字'+(i+1),pose:'ポーズ'+(i+1)}));
 const records=master.map((m,i)=>({imageId:'img'+(i+1),candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,filename:'image'+(i+1)+'.png',pngSha256:hash,qa:{automatic:'pass'},technicalStatus:'pass',inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true}}));
 const entries=records.map(record=>({record,png}));
 const assignments=records.map((record,i)=>({imageId:record.imageId,candidateId:record.candidateId,batchId:'B01',slot:i+1}));
-const base={entries,assignments,master,masterReference:'https://docs.google.com/spreadsheets/d/VerifiedMasterID/edit',masterVerified:true,subtle:webcrypto.subtle};
+const base={entries,assignments,characterId:'character1',drive:{masterForCharacter:async()=>({characterId:'character1',master,masterReference:'https://docs.google.com/spreadsheets/d/VerifiedMasterID/edit',masterSheet:'候補',modifiedTime:'2026-11-03T00:00:00Z'})},subtle:webcrypto.subtle};
 test('nine explicit mappings with verified master',async()=>assert.equal((await buildVerifiedNineCellManifest(base)).entries.length,9));
-test('unverified master blocks formal handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,masterVerified:false}),/最新/));
+test('unverified master blocks formal handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,drive:null}),/最新/));
 test('missing slot blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,assignments:assignments.slice(0,8)}),/9候補/));
 test('duplicate slots block handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,assignments:assignments.map((a,i)=>i===8?{...a,slot:1}:a)}),/重複/));
-test('phrase mismatch blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,master:[{...master[0],phrase:'違う'},...master.slice(1)]}),/明示対応/));
+test('phrase mismatch blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,drive:{masterForCharacter:async()=>({...await base.drive.masterForCharacter(),master:[{...master[0],phrase:'違う'},...master.slice(1)]})}}),/明示対応/));
 test('visual inspection missing blocks handoff',async()=>assert.rejects(buildVerifiedNineCellManifest({...base,entries:entries.map((e,i)=>i?e:{...e,record:{...e.record,technicalStatus:'review'}})}),/manifest検証失敗/));
 test('modified PNG bytes block handoff',async()=>{const bad=png.slice(0);new Uint8Array(bad)[25]=1;await assert.rejects(buildVerifiedNineCellManifest({...base,entries:[{record:records[0],png:bad},...entries.slice(1)]}),/ハッシュ/);});
+
+test('fabricated masterVerified flag cannot bypass unavailable Drive',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,masterVerified:true,drive:null}),/Drive接続/));
+test('stale or wrong character master is refused',async()=>assert.rejects(buildNineCellManifestFromDrive({...base,drive:{masterForCharacter:async()=>({...await base.drive.masterForCharacter(),characterId:'wrong'})}}),/最新/));
