@@ -66,5 +66,5 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
   if(dialog.open)return;status.textContent=ready?'Googleに接続すると画像を読み込みます。':'Google接続を準備中…';dialog.showModal();controls();
   if(!auth){auth=googleTestAuth({readOnly:true});auth.ready.then(()=>{ready=true;controls();if(dialog.open)status.textContent='「Googleに接続して読み込む」を押してください。';}).catch(e=>status.textContent=e.message);}
  }
- return {open};
+ return {open,masterForCharacter:async characterId=>{if(!drive)throw Error('Google Driveへ読み取り専用で接続し、対象キャラを選択してください。');return drive.masterForCharacter(characterId);}};
 }
