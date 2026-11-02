@@ -1,0 +1,22 @@
+name: Issue 3 isolated crop E2E
+on:
+  push:
+    branches: [development]
+    paths:
+      - 'integration-v1/**'
+      - 'tests/integrated-browser.mjs'
+      - '.github/workflows/issue3-e2e.yml'
+  workflow_dispatch:
+jobs:
+  crop-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:integration-quality
