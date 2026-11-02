@@ -578,5 +578,653 @@
     "candidateId": "R20",
     "phrase": "おやつちょうだい",
     "pose": "おねだりする"
+  },
+  {
+    "candidateId": "WHT001",
+    "phrase": "了解…",
+    "pose": "片手をゆるく上げる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT002",
+    "phrase": "はーい",
+    "pose": "小さく手を振る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT003",
+    "phrase": "ありがとう〜",
+    "pose": "ピンクのハートを抱える",
+    "prop": "ハート",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT004",
+    "phrase": "今むり…",
+    "pose": "床にうつ伏せ",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT005",
+    "phrase": "あとで返す！",
+    "pose": "スマホを見ながら伏せる",
+    "prop": "スマホ",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT006",
+    "phrase": "確認するね",
+    "pose": "メモを持つ",
+    "prop": "メモ",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT007",
+    "phrase": "おつかれさま",
+    "pose": "マグカップを両手で持つ",
+    "prop": "マグカップ",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT008",
+    "phrase": "おはよう〜",
+    "pose": "布団から顔を出す",
+    "prop": "布団",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT009",
+    "phrase": "おやすみ〜",
+    "pose": "布団に潜る",
+    "prop": "布団",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT010",
+    "phrase": "助かる…！",
+    "pose": "両手を合わせる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT011",
+    "phrase": "ちょっと待って〜",
+    "pose": "床から顔だけ出す",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT012",
+    "phrase": "既読だけごめん…！",
+    "pose": "頭を下げる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT013",
+    "phrase": "生きてる…",
+    "pose": "うつ伏せから片手を上げる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT014",
+    "phrase": "なんとかなる…！",
+    "pose": "小さくガッツポーズ",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT015",
+    "phrase": "ごめん…！",
+    "pose": "土下座風に伏せる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT016",
+    "phrase": "大丈夫…！たぶん…！",
+    "pose": "親指を立てる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT017",
+    "phrase": "よろしく〜！",
+    "pose": "手を振る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT018",
+    "phrase": "もう限界…",
+    "pose": "ぺたんと溶ける",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT019",
+    "phrase": "うれしい…！",
+    "pose": "ハートを浮かべる",
+    "prop": "ハート",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT020",
+    "phrase": "最高…！",
+    "pose": "両手を上げる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT021",
+    "phrase": "それだ…！",
+    "pose": "頭上に電球",
+    "prop": "電球",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT022",
+    "phrase": "まじで…？",
+    "pose": "目を丸くする",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT023",
+    "phrase": "わかる…！",
+    "pose": "何度もうなずく",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT024",
+    "phrase": "それな…！",
+    "pose": "頬杖をつく",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT025",
+    "phrase": "がんばる…！",
+    "pose": "鉢巻をつける",
+    "prop": "鉢巻",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT026",
+    "phrase": "休ませて…",
+    "pose": "布団にもぐる",
+    "prop": "布団",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT027",
+    "phrase": "今日はゆるして…",
+    "pose": "毛布を握る",
+    "prop": "毛布",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT028",
+    "phrase": "いま向かう！",
+    "pose": "短い足で走る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT029",
+    "phrase": "もうすぐ着く",
+    "pose": "息を切らせる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT030",
+    "phrase": "遅れます…",
+    "pose": "時計を見る",
+    "prop": "時計",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT031",
+    "phrase": "おまたせ…",
+    "pose": "へたり込んで手を振る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT032",
+    "phrase": "いけそう！",
+    "pose": "立ち上がる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT033",
+    "phrase": "やっぱむり…",
+    "pose": "転がる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT034",
+    "phrase": "行きます！",
+    "pose": "一歩踏み出す",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT035",
+    "phrase": "帰ります…",
+    "pose": "後ろ姿で歩く",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT036",
+    "phrase": "到着！",
+    "pose": "ちょこんと着地する",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT037",
+    "phrase": "よろしくお願いします",
+    "pose": "深くおじぎする",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT038",
+    "phrase": "承知しました",
+    "pose": "背筋を伸ばして会釈",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT039",
+    "phrase": "ありがとうございます",
+    "pose": "両手を揃えて礼",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT040",
+    "phrase": "確認しました",
+    "pose": "チェック印を見せる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT041",
+    "phrase": "少々お待ちください",
+    "pose": "小さな砂時計を持つ",
+    "prop": "砂時計",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT042",
+    "phrase": "また連絡します",
+    "pose": "スマホを持つ",
+    "prop": "スマホ",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT043",
+    "phrase": "お手数おかけします",
+    "pose": "申し訳なさそうに会釈",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT044",
+    "phrase": "助かりました",
+    "pose": "胸に手を当てる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT045",
+    "phrase": "失礼します",
+    "pose": "出口に向かって会釈",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT046",
+    "phrase": "そうなんだ…",
+    "pose": "首をかしげる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT047",
+    "phrase": "えっ",
+    "pose": "飛び上がる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT048",
+    "phrase": "ほんと？",
+    "pose": "両手を頬に当てる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT049",
+    "phrase": "なるほど…",
+    "pose": "考え込む",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT050",
+    "phrase": "それは大変…",
+    "pose": "汗をかく",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT051",
+    "phrase": "すごい！",
+    "pose": "小さく拍手する",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT052",
+    "phrase": "いいね！",
+    "pose": "親指を立てる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT053",
+    "phrase": "いいと思う！",
+    "pose": "うなずきながら手を挙げる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT054",
+    "phrase": "無理しないでね",
+    "pose": "湯気の出るお茶を差し出す",
+    "prop": "お茶",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT055",
+    "phrase": "おめでとう！",
+    "pose": "紙吹雪をあびる",
+    "prop": "紙吹雪",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT056",
+    "phrase": "やったね！",
+    "pose": "跳ね上がる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT057",
+    "phrase": "応援してる！",
+    "pose": "小旗を振る",
+    "prop": "小旗",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT058",
+    "phrase": "ファイト！",
+    "pose": "小さな旗を掲げる",
+    "prop": "旗",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT059",
+    "phrase": "大好き！",
+    "pose": "ハートを抱きしめる",
+    "prop": "ハート",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT060",
+    "phrase": "ありがとね",
+    "pose": "ほっぺを赤らめる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT061",
+    "phrase": "癒やされた…",
+    "pose": "目を閉じてほほえむ",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT062",
+    "phrase": "よかった〜",
+    "pose": "ほっと胸をなでる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT063",
+    "phrase": "お大事に",
+    "pose": "湯たんぽを差し出す",
+    "prop": "湯たんぽ",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT064",
+    "phrase": "今日は無理",
+    "pose": "地面に溶ける",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT065",
+    "phrase": "充電切れ…",
+    "pose": "電池マークを掲げる",
+    "prop": "電池",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT066",
+    "phrase": "休憩中",
+    "pose": "クッションで寝る",
+    "prop": "クッション",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT067",
+    "phrase": "頭まわらん…",
+    "pose": "頭の上にぐるぐる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT068",
+    "phrase": "ねむい…",
+    "pose": "目をこする",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT069",
+    "phrase": "やる気待ち…",
+    "pose": "座って遠くを見る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT070",
+    "phrase": "あと5分…",
+    "pose": "布団から手だけ出す",
+    "prop": "布団",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT071",
+    "phrase": "ゆっくりやる…",
+    "pose": "ゆっくり歩く",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT072",
+    "phrase": "明日の自分頼む",
+    "pose": "未来へ手を振る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT073",
+    "phrase": "いってらっしゃい",
+    "pose": "両手を振って見送る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT074",
+    "phrase": "おかえり〜",
+    "pose": "床から起きる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT075",
+    "phrase": "ただいま…",
+    "pose": "へたり込む",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT076",
+    "phrase": "おなかすいた",
+    "pose": "お腹を押さえる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT077",
+    "phrase": "ごはん楽しみ",
+    "pose": "小さなスプーンを持つ",
+    "prop": "スプーン",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT078",
+    "phrase": "お風呂入る…",
+    "pose": "タオルを持つ",
+    "prop": "タオル",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT079",
+    "phrase": "また明日ね",
+    "pose": "小さく手を振る",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT080",
+    "phrase": "今週もおつかれ",
+    "pose": "枕を差し出す",
+    "prop": "枕",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
+  },
+  {
+    "candidateId": "WHT081",
+    "phrase": "ぼちぼちいこう",
+    "pose": "ゆっくり親指を立てる",
+    "prop": "なし",
+    "character": "限界だけど返信する白いやつ",
+    "masterReference": "https://docs.google.com/spreadsheets/d/1CauI6TP3QWE1dr0AFxNtOR3jmtuxXGVKN1HUt9tNGqw/edit"
   }
 ]
