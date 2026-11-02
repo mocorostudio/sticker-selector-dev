@@ -1,7 +1,7 @@
-import {auditedCandidateBinding} from './inspection-core.mjs';
+import {auditedCandidateBinding} from './inspection-core.mjs?v=20261103-audited2';
 import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
 import {SET_COUNTS,validateSubmission} from './submission-core.mjs?v=20261024-zip1';
-import {digest} from './drive-export.mjs?v=20261025-reselectall1';
+import {digest} from './drive-export.mjs?v=20261103-audited2';
 import {inspect,gate} from './crop-v9/core.mjs?v=20261023-merge1';
 import {trialEligible} from './drive-pending.mjs?v=20261024-progress1';
 // Percentage padding is a generation target. Review archives use actual final pixels;

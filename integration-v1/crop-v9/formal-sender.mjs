@@ -1,4 +1,4 @@
-import {auditedCandidateBinding} from '../inspection-core.mjs';
+import {auditedCandidateBinding} from '../inspection-core.mjs?v=20261103-audited2';
 // Formal sender only. The user must explicitly assign each image and slot.
 // A crop is never promoted to inspected or approved by this module.
 // Bind a selected candidate only when the existing inspection evidence itself

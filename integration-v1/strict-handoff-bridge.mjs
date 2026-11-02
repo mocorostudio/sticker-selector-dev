@@ -1,4 +1,4 @@
-import {buildNineCellManifestFromDrive} from './explicit-nine-manifest.mjs';
+import {buildNineCellManifestFromDrive} from './explicit-nine-manifest.mjs?v=20261103-audited2';
 export async function prepareNineCellHandoff({pending,characterId,entries,assignments}){
  if(typeof pending?.masterForCharacter!=='function')throw Error('実Drive接続が必要です');
  const current=await pending.masterForCharacter(characterId);
