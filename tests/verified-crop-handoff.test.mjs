@@ -19,7 +19,7 @@ const master=[{candidateId:'C01',phrase:'ありがとう',pose:'おじぎ'}];
 function make(overrides={}){
  const record={imageId:'img01',candidateId:'C01',filename:'crop01.png',phrase:'ありがとう',pose:'おじぎ',pngSha256:hash,qa:{automatic:'pass'},technicalStatus:'pass',
   review:Array(9).fill(true),inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true},...overrides};
- const manifest={schemaVersion:1,entries:[{imageId:'img01',candidateId:'C01',batchId:'B01',slot:1,filename:record.filename,phrase:'ありがとう',pose:'おじぎ',pngSha256:hash}]};
+ const manifest={schemaVersion:1,masterReference:'https://docs.google.com/spreadsheets/d/testCharacterMasterID/edit',entries:[{imageId:'img01',candidateId:'C01',batchId:'B01',slot:1,filename:record.filename,phrase:'ありがとう',pose:'おじぎ',pngSha256:hash}]};
  const state=[], blobs=new Map();
  const adapter={items:()=>state,get:async id=>blobs.get(id),decode:decodePNG,
   write:async(item,blob)=>{state.push(item);blobs.set(item.id,blob)}};
