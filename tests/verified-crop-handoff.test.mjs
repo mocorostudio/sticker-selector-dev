@@ -13,7 +13,7 @@ function make(overrides={}){
  const state=[], blobs=new Map();
  const adapter={items:()=>state,get:async id=>blobs.get(id),decode:async(blob)=>{const raw=new Uint8Array(await blob.arrayBuffer());if(raw.length!==bytes.length||raw.some((v,i)=>v!==bytes[i]))throw Error('画像デコード失敗');const data=new Uint8ClampedArray(370*320*4);for(let y=65;y<255;y++)for(let x=75;x<295;x++)data[(y*370+x)*4+3]=255;return {width:370,height:320,data};},
   write:async(item,blob)=>{state.push(item);blobs.set(item.id,blob)}};
- return {entries:[{record,png}],manifest,adapter,state};
+ return {entries:[{record,png:bytes.slice().buffer}],manifest,adapter,state};
 }
 test('strict handoff persists verified record and readback without changing user votes',async()=>{
  const a=make(),result=await importVerifiedCrops(a.entries,a.adapter,master,a.manifest);
