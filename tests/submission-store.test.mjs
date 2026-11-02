@@ -15,3 +15,9 @@ test('returning from selection applies changed ratings without resetting manual 
  assert.deepEqual(next.assignments,{a:'set',restored:'set'});assert.deepEqual(next.artwork,before.artwork);assert.deepEqual(next.orders,before.orders);assert.equal(before.assignments.rejected,'set');
  assert.deepEqual(reconcileSelectionRatings(next,[item('a','o'),item('rejected','x'),item('restored','o'),item('unchecked','o')],{characterId:'char'}),next);
 });
+
+test('temporarily missing local candidates preserve rating transitions and all application edits',async()=>{
+ const {reconcileSelectionRatings}=await import('../integration-v1/submission-store.mjs');
+ const draft={sets:[{id:'set'}],assignments:{a:'set'},selectionRatings:{a:'o',b:'x'},orders:{set:['a']},artwork:{set:{mainId:'a',tabId:'a',strokes:[{radius:2,points:[[0,0]]}]}}};
+ assert.deepEqual(reconcileSelectionRatings(draft,[],{characterId:'char'}),draft);
+});
