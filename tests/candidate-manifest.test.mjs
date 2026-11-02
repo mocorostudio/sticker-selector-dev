@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateCandidateManifest} from '../integration-v1/candidate-manifest.mjs';
+import {validateCandidateManifest,buildCandidateManifest} from '../integration-v1/candidate-manifest.mjs';
 const hash='a'.repeat(64);
 const m={candidateId:'C01',phrase:'ありがとう！',pose:'おじぎ'};
 const r={imageId:'img01',candidateId:'C01',phrase:m.phrase,pose:m.pose,filename:'a.png',pngSha256:hash,qa:{automatic:'pass'},technicalStatus:'pass',inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true}};
@@ -20,3 +20,8 @@ test('manifest hash mismatch rejected',()=>assert.equal(run({...e,pngSha256:'b'.
 test('missing image rejected',()=>{const res=validateCandidateManifest({schemaVersion:1,entries:[e]},[m],[]);assert.equal(res.ok,false)});
 test('no inspection record rejected',()=>assert.equal(run(e,{...r,inspection:null}).ok,false));
 test('failed records never emitted ready',()=>assert.deepEqual(run({...e,phrase:'違う'}).ready,[]));
+
+test('build verified manifest from explicit mapping',()=>assert.equal(buildCandidateManifest([{imageId:'img01',candidateId:'C01',batchId:'B01',slot:1}],[m],[r]).entries[0].candidateId,'C01'));
+test('builder refuses unknown candidate',()=>assert.throws(()=>buildCandidateManifest([{imageId:'img01',candidateId:'C02',batchId:'B01',slot:1}],[m],[r])));
+test('builder refuses unmapped crop',()=>assert.throws(()=>buildCandidateManifest([{imageId:'img01',candidateId:'C01',batchId:'B01',slot:1}],[m],[{...r,candidateId:''}])));
+test('builder never approves uninspected record',()=>assert.throws(()=>buildCandidateManifest([{imageId:'img01',candidateId:'C01',batchId:'B01',slot:1}],[m],[{...r,technicalStatus:'review'}])));
