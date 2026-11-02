@@ -50,7 +50,7 @@ $('run').onclick=async()=>{if(busy)return;if(!queue.some(q=>q.state!=='done')){$
    next.forEach((r,i)=>{r.sequenceLabel=String(sources.length+1).padStart(3,'0')+'-'+String(i+1).padStart(2,'0');if(r.filename)r.filename='ST_'+r.sequenceLabel+'_'+r.imageId+'.png';});staged={source:s,records:next};sources.push(s);records.push(...next);item.sourceId=s.id;viewSource=s.id;page=0;
   },
   persist:async item=>{if(!await save()){if(staged){sources=sources.filter(s=>s.id!==staged.source.id);const ids=new Set(staged.records.map(r=>r.imageId));records=records.filter(r=>!ids.has(r.imageId));staged=null;}delete item.sourceId;const e=Error('端末保存に失敗したため停止しました。容量を確認してください。');e.storageFailure=true;throw e;}staged=null;if(item.state==='done')inputs.delete(item.id);render();}
- });$('status').textContent='今回の処理：完了 '+result.done+'枚／失敗 '+result.failed+'枚／残り '+result.remaining+'枚'+(pauseRequested?'（一時停止）':'');
+ });$('status').textContent='今回の処理：完了 '+result.done+'枚／失敗 '+result.failed+'枚／残り '+result.remaining+'枚'+(pauseRequested?'（一時停止）':'');if(!result.failed&&!result.remaining&&!pauseRequested&&autoHandoff.checked&&$('handoff')){await verifySavedCrops(transferRecords());autoReady=true;}
  }catch(e){$('status').textContent=e.message;}finally{viewSource='current';page=0;setBusy(false);queueStatus();render();}
 };
 
