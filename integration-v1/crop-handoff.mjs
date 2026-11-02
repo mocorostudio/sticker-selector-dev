@@ -1,4 +1,5 @@
 import {gate,inspect} from './crop-v9/core.mjs?v=20261026-inspected1';
+import {validateCandidateManifest} from './candidate-manifest.mjs';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.
@@ -46,3 +47,26 @@ export function confirmLocal(items,now=new Date().toISOString()){
 }
 
 export function isLocalConfirmed(item){return item.origin==='crop-local'&&!!item.touched&&!!item.revision&&!!item.selectionHistory?.some(x=>x.revision===item.revision&&x.rating===item.rating&&(x.comment||'')===(item.comment||''));}
+
+
+
+
+// Explicit strict path for production-ready handoff; provisional selection continues
+// through importCrops(..., {forSelection:true}) without promoting technical status.
+export async function importVerifiedCrops(entries,adapter,master,manifest) {
+ if (!Array.isArray(entries) || !Array.isArray(manifest?.entries) || entries.length !== manifest.entries.length) throw Error('manifestとPNG件数が一致しません');
+ const records=[];
+ for (const entry of entries) {
+  if (!(entry?.png instanceof ArrayBuffer)) throw Error('PNG実体がありません');
+  const digest=await crypto.subtle.digest('SHA-256',entry.png);
+  const pngSha256=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,'0')).join('');
+  const record=entry.record;
+  if (!record || record.pngSha256!==pngSha256) throw Error('PNGハッシュと検品記録が一致しません');
+  records.push({...record,pngSha256});
+ }
+ const check=validateCandidateManifest(manifest,master,records);
+ if (!check.ok) return {ids:[],added:0,existing:0,errors:check.errors.map(x=>({imageId:x.imageId,message:x.reasons.join('／')}))};
+ // Formal handoff still uses the existing image decoder, pixel inspection,
+ // gate and save/readback checks. No remote writes are performed.
+ return importCrops(entries,adapter,master);
+}
