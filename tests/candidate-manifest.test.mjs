@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateCandidateManifest} from '../integration-v1/candidate-manifest.mjs';
+const hash='a'.repeat(64);
+const m={candidateId:'C01',phrase:'ありがとう！',pose:'おじぎ'};
+const r={imageId:'img01',candidateId:'C01',phrase:m.phrase,pose:m.pose,filename:'a.png',pngSha256:hash,qa:{automatic:'pass'},technicalStatus:'pass',inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true}};
+const e={imageId:'img01',candidateId:'C01',batchId:'B01',slot:1,phrase:m.phrase,pose:m.pose,filename:'a.png',pngSha256:hash};
+const run=(entry=e,record=r,master=m)=>validateCandidateManifest({schemaVersion:1,entries:[entry]},[master],[record]);
+test('verified manifest accepted only with all evidence',()=>assert.equal(run().ok,true));
+for(const [name,record] of [['missing visual',{...r,inspection:{...r.inspection,visualPassed:false}}],['bad anatomy',{...r,inspection:{...r.inspection,anatomyVerified:false}}],['unknown alpha',{...r,inspection:{...r.inspection,alphaVerified:false}}],['bad technical status',{...r,technicalStatus:'review'}],['bad automatic QA',{...r,qa:{automatic:'fail'}}],['missing hash',{...r,pngSha256:null}]]) test(name,()=>assert.equal(run(e,record).ok,false));
+test('wrong phrase rejected',()=>assert.equal(run({...e,phrase:'ありがとう'}).ok,false));
+test('wrong pose rejected',()=>assert.equal(run({...e,pose:'手を振る'}).ok,false));
+test('bad slot rejected',()=>assert.equal(run({...e,slot:10}).ok,false));
+test('duplicate slots and images rejected',()=>{const result=validateCandidateManifest({schemaVersion:1,entries:[e,e]},[m],[r]);assert.equal(result.ok,false)});
+test('unverified draft rejected',()=>assert.equal(run(e,{...r,inspection:{scope:'draft'}}).ok,false));
