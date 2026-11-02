@@ -1,6 +1,6 @@
 import {auditedCandidateBinding} from './inspection-core.mjs';
 import {completeSelection} from './selection-completion.mjs?v=20261024-save1';
-import {trialEligible} from './drive-pending.mjs?v=20261024-progress1';
+import {createPendingDrive,PENDING_SCHEMA,trialEligible} from './drive-pending.mjs?v=20261024-progress1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261023-merge1';
 import {gate,inspect,cleanTransparency} from './crop-v9/core.mjs?v=20261023-merge1';
 const API='https://www.googleapis.com/drive/v3/files',FOLDER='application/vnd.google-apps.folder';
@@ -68,6 +68,27 @@ export function createExportDrive({getToken,fetchImpl=globalThis.fetch,readJourn
   character,characterFolder,
   async account(){const r=await request('https://www.googleapis.com/drive/v3/about?fields=user(permissionId,emailAddress)');const user=(await r.json()).user;if(!user?.permissionId)throw Error('保存するGoogleアカウントを確認できません。');return user;},
   async roots(){const r=await request(API+'?'+new URLSearchParams({q:"trashed = false and mimeType = '"+FOLDER+"' and appProperties has { key='exportApp' and value='"+EXPORT_APP+"' } and appProperties has { key='kind' and value='export-root' }",fields:'files('+FIELDS+'),nextPageToken',pageSize:'100'}));return (await r.json()).files;},
+  async registerPending(items,{accountId,characterId,get,decode,onProgress=()=>{}}){
+   id(accountId);id(characterId);
+   if(!Array.isArray(items)||!items.length||items.length>200||new Set(items.map(x=>x.imageId)).size!==items.length)throw Error('正式登録する画像が不正です');
+   const current=await createPendingDrive({getToken,fetchImpl}).masterForCharacter(characterId);
+   const pending=await children(characterId,'00_選抜待ち'),history=await children(characterId,'03_元画像・生成履歴');
+   if(pending.length!==1||history.length!==1)throw Error('正式登録の保存先が不明または重複しています');
+   const staged=[];
+   // Validate every image before the first write. Keep the exact inspected PNG bytes.
+   for(const item of items){
+    if(item.characterId!==characterId||!item.technicalPassed||!item.candidateManifest||gate(item.crop)!=='pass')throw Error('正式照合と技術検品が必要です');
+    const blob=await get(item.id),binding=await auditedCandidateBinding(item,blob,current.master,{imageId:item.imageId,candidateId:item.candidate,phrase:item.phrase,pose:item.pose});
+    const qa=inspect(await decode(blob),item.crop.crossing),entry=item.candidateManifest.entries.find(e=>e.imageId===item.imageId);
+    if(qa.automatic!=='pass'||!entry||entry.pngSha256!==binding.sha256||entry.candidateId!==item.candidate||entry.phrase!==item.phrase||entry.pose!==item.pose||item.crop.candidateId!==item.candidate||item.crop.phrase!==item.phrase||item.crop.pose!==item.pose||item.crop.pngSha256!==binding.sha256||!/^[-\w]+\.png$/.test(item.crop.filename))throw Error('正式記録と実PNGが不一致');
+    staged.push({item,blob,sha:binding.sha256});
+   }
+   const entries=[],prefix='pending:'+accountId+':'+characterId+':';let done=0;
+   for(const {item,blob,sha} of staged){const file=await put(prefix+item.imageId+':'+sha,pending[0].id,{name:item.crop.filename,blob,sha,technicalStatus:'pass'});entries.push({driveFileId:file.id,sha256:sha,record:structuredClone(item.crop)});onProgress({done:++done,total:staged.length});}
+   const value={schema:PENDING_SCHEMA,characterId,pendingFolderId:pending[0].id,masterReference:current.masterReference,masterSheet:current.masterSheet,masterModifiedTime:current.modifiedTime,entries};
+   const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),sha=await digest(blob),file=await put(prefix+'manifest:'+sha,history[0].id,{name:'selection-manifest_'+sha.slice(0,16)+'.json',blob,sha});
+   return {manifestFileId:file.id,pendingFolderId:pending[0].id,entries};
+  },
   async saveArtwork(bundle,{accountId,characterId}){
    id(accountId);if(bundle.characterId!==characterId||bundle.images?.length!==2||new Set(bundle.images.map(e=>e.kind)).size!==2||!bundle.images.every(e=>['main','tab'].includes(e.kind)))throw Error('メイン・タブのキャラと画像を確認できません。');
    for(const e of bundle.images)if(e.blob?.type!=='image/png'||e.blob.size>1000000||e.technicalStatus!=='review'||!/^PREVIEW_(main|tab)_[a-f0-9]{12}\.png$/.test(e.name)||await digest(e.blob)!==e.sha)throw Error('メイン・タブの内容を確認できません。');

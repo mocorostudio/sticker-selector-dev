@@ -25,10 +25,19 @@ export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=cre
  async function encode(im){const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.data),im.width,im.height),0,0);return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(Error('透過仕上げのPNGを作れません。')),'image/png'));}
  async function save(tokenPromise){lock(true);reveal();links.replaceChildren();destinations.replaceChildren();progress.hidden=true;try{
   record('pending');status.textContent='Googleに接続中…';const token=await tokenPromise,drive=driveFactory({getToken:()=>token,...journal});
+  const formal=api.visible().filter(x=>x.candidateManifest);
+  if(formal.length){
+   const account=await drive.account(),groups=new Map();for(const item of formal){if(!item.characterId)throw Error('正式登録するキャラが不明です');if(!groups.has(item.characterId))groups.set(item.characterId,[]);groups.get(item.characterId).push(item);}
+   for(const [characterId,items] of groups){status.textContent='検品済み画像を00_選抜待ちへ保存・照合中…';const result=await drive.registerPending(structuredClone(items),{accountId:account.permissionId,characterId,get:api.get,decode:api.decode});
+    for(const item of items){const entry=result.entries.find(e=>e.record.imageId===item.imageId);item.formalDriveRegistration={characterId,folderId:result.pendingFolderId,fileId:entry.driveFileId,manifestFileId:result.manifestFileId,sha256:entry.sha256};}api.save();
+   }
+   if(!api.visible().some(x=>x.touched)){record('complete');label();status.textContent='検品済み'+formal.length+'枚を00_選抜待ちへ保存・照合しました。好みの画像を選べます。';return;}
+  }
   status.textContent='選択内容を確定中…';await confirmForExport(api);const snapshot=structuredClone(api.visible());
   // The export owns this immutable snapshot. Submission choices use their own draft.
   onSnapshot();status.textContent='選択は端末に保存済み。Driveの保存先を確認中…';const account=await drive.account();
   let manual;if(fallback.value.trim()){const u=new URL(fallback.value.trim());if(u.origin!=='https://drive.google.com'||!/^\/drive\/folders\/[-\w]+\/?$/.test(u.pathname))throw Error('Google DriveのキャラフォルダURLを入力してください。');manual=await drive.characterFolder(u.pathname.split('/')[3]);}
+  if(!manual&&formal.length){const chars=[...new Set(formal.map(x=>x.characterId))];if(chars.length===1)manual=await drive.characterFolder(chars[0]);}
   const groups=await groupCharacters(snapshot,{resolve:drive.character,fallback:manual});
   // Validate all characters before remote writes; do not promote technical review images.
   for(const g of groups){g.plan=await prepareExport(g.items,{get:api.get,decode:api.decode,encode,preparedCache,onProgress:p=>{status.textContent='保存する画像を確認中 '+p.done+'／'+p.total+'枚。申請候補を選べます。';}});const li=document.createElement('li');li.textContent=g.character.name+' ／ '+exportSummary([g.plan]);destinations.append(li);}

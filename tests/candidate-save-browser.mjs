@@ -31,7 +31,10 @@ try{const context=await browser.newContext({viewport:{width:390,height:844},isMo
  await page.locator('#driveExport').getByRole('button',{name:'閉じる',exact:true}).click();await page.locator('#selectionTab').click();await page.locator('#saveToDrive').click();await page.locator('#driveExportStatus').filter({hasText:'Drive保存・照合が完了しました'}).waitFor();assert.equal(fixture.posts,posts);
  const stored=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).items,keys.store);assert.deepEqual(stored.map(x=>x.selectionHistory),afterFailure.map(x=>x.selectionHistory));
  assert.equal(await page.evaluate(()=>JSON.stringify(localStorage).includes('Bearer fixture')),false);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
- const bar=await page.locator('#submissionBar').boundingBox(),tray=await page.locator('#driveExport').boundingBox();assert.ok(bar.y+bar.height<=tray.y+1);
+ // The mobile design intentionally keeps submission controls in document flow.
+ assert.equal(await page.locator('#submissionBar').evaluate(el=>getComputedStyle(el).position),'static');
+ await page.locator('#submissionBar').evaluate(el=>el.scrollIntoView({block:'center'}));
+ const kitButton=await page.locator('#submissionKit').boundingBox(),tray=await page.locator('#driveExport').boundingBox();assert.ok(kitButton.y+kitButton.height<=tray.y+1);
  // The submission screen starts with all 41 selected; two exclusions above survived interruption.
  assert.match(await page.locator('#submissionCount').innerText(),/39／40枚/);await page.locator('.submission-card').nth(1).click();assert.match(await page.locator('#submissionCount').innerText(),/40／40枚/);
  // Arrange all chosen images with taps: no dragging and no changes to the selected set.

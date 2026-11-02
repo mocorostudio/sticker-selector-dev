@@ -45,3 +45,33 @@ test('candidate assignment is atomic, preserves votes and never creates approval
  const staged=stageCandidateAssignments(items,b.assignments,b.master);assert.deepEqual(items,before);assert.ok(staged.every(s=>s.next.inspectionAudit===undefined&&s.next.rating==='h'&&s.next.comment==='keep'));
  assert.throws(()=>stageCandidateAssignments(b.items,b.assignments.map((a,i)=>i? a:{...a,candidateId:'other'}),b.master));assert.deepEqual(items,before);
 });
+
+import {createExportDrive} from '../integration-v1/drive-export.mjs';
+import {createPendingDrive} from '../integration-v1/drive-pending.mjs';
+import {SourceFixture} from './source-save-fixture.mjs';
+async function registrationSetup(){
+ const b=await setup(),payload=await prepareAuditedFormalPayload(b);
+ const current={characterId:'char',master:b.master,modifiedTime:'2026-11-03',masterSheet:'候補',masterReference:'https://docs.google.com/spreadsheets/d/master/edit'};
+ const prepared=await prepareNineCellHandoff({pending:{masterForCharacter:async()=>current},...payload});
+ b.items.forEach((item,i)=>Object.assign(item,{characterId:'char',technicalPassed:true,crop:payload.entries[i].record,candidateManifest:prepared.manifest}));
+ const fixture=new SourceFixture();fixture.files.set('pending',{id:'pending',name:'00_選抜待ち',mimeType:'application/vnd.google-apps.folder',parents:['char']});fixture.files.set('master',{id:'master',name:'Synthetic_Master',mimeType:'application/vnd.google-apps.spreadsheet',parents:['char'],modifiedTime:'2026-11-03'});
+ const fetchImpl=async(url,options={})=>{if(url.startsWith('https://sheets.googleapis.com'))return Response.json(url.includes('/values/')?{values:[['ID','分類','セリフ（厳密）','文字なしテーマ','基本ポーズ','優先度','メモ'],...b.master.map(m=>[m.candidateId,'',m.phrase,'',m.pose,'',''])]}:{sheets:[{properties:{title:'候補',gridProperties:{rowCount:10,columnCount:7}}}]});return fixture.fetch(url,options);};
+ const journal=new Map(),drive=createExportDrive({getToken:()=> 'fixture',fetchImpl,readJournal:k=>journal.get(k),writeJournal:(k,v)=>journal.set(k,v)});
+ return {b,fixture,drive,fetchImpl,options:{accountId:'account',characterId:'char',get:async()=>blob,decode:async()=>pixels}};
+}
+test('formal pending save/readback/retry uses existing transport; reader restores nine original candidates',async()=>{
+ const {b,fixture,drive,fetchImpl,options}=await registrationSetup(),before=structuredClone(b.items);
+ const result=await drive.registerPending(b.items,options);assert.equal(result.entries.length,9);assert.equal(fixture.posts,10);assert.deepEqual(b.items,before);
+ const again=await drive.registerPending(b.items,options);assert.equal(fixture.posts,10);assert.equal(again.manifestFileId,result.manifestFileId);
+ const reader=createPendingDrive({getToken:()=> 'fixture',fetchImpl}),loaded=await reader.load('char',{decode:async()=>pixels});
+ assert.equal(loaded.entries.length,9);assert.deepEqual(loaded.entries.map(e=>e.record.candidateId),b.items.map(i=>i.candidate));assert.ok(loaded.entries.every(e=>e.record.inspection.audit.reviewedAt));
+});
+test('pending registration refuses unfinished evidence before any remote write',async()=>{
+ const {b,fixture,drive,options}=await registrationSetup();b.items[8].inspectionAudit.checks[8]=false;
+ await assert.rejects(drive.registerPending(b.items,options));assert.equal(fixture.posts,0);
+});
+test('pending registration fails closed on mismatched readback and retries without overwriting old files',async()=>{
+ const {b,fixture,drive,options}=await registrationSetup();fixture.badReadback=true;
+ await assert.rejects(drive.registerPending(b.items,options),/照合/);assert.equal(fixture.posts,1);fixture.badReadback=false;
+ const result=await drive.registerPending(b.items,options);assert.equal(result.entries.length,9);assert.equal(fixture.posts,10);
+});

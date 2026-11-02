@@ -23,7 +23,7 @@ body{padding-bottom:250px}
 
 /* Keep the artwork visible while selecting on mobile. */
 body #submissionBar{position:static;inset:auto;margin:16px 0;padding:12px;border:1px solid #b8d2c2;border-radius:12px}
-body #submissionScreen{padding-bottom:24px!important}
+body #submissionScreen{padding-bottom:calc(24px + var(--drive-save-height,0px))!important}
 body .workflow-tabs{padding:4px 0;gap:6px}
 body .workflow-tabs>button{min-height:40px;padding:6px;font-size:14px}
 body #driveExport{width:100%;max-width:none;border-radius:0;padding:6px 12px calc(6px + env(safe-area-inset-bottom));max-height:30dvh;box-shadow:0 -2px 8px #0001}
