@@ -1,3 +1,4 @@
+import {auditedCandidateBinding} from '../inspection-core.mjs';
 // Formal sender only. The user must explicitly assign each image and slot.
 // A crop is never promoted to inspected or approved by this module.
 // Bind a selected candidate only when the existing inspection evidence itself
@@ -29,4 +30,18 @@ export async function prepareFormalCropPayload({records,pngs,assignments,charact
  }
  if(batchIds.size!==1||slots.size!==9)throw Error('9セルを同一バッチで割り当ててください');
  return {type:'crop-handoff-v1',verifiedHandoff:true,characterId,entries,assignments:assignments.map(({imageId,candidateId,batchId,slot})=>({imageId,candidateId,batchId,slot}))};
+}
+
+export async function prepareAuditedFormalPayload({records,pngs,assignments,characterId,items,master,subtle}){
+ if(!Array.isArray(records)||records.length!==9||!Array.isArray(items)||!Array.isArray(master))throw Error('実検品記録・最新マスターが必要です');
+ const checked=[];
+ for(let i=0;i<records.length;i++){
+  const r=records[i],item=items.find(x=>x.imageId===r.imageId),a=assignments.find(x=>x.imageId===r.imageId);
+  if(!item||!a)throw Error('画像に対応した検品結果がありません');
+  const blob=new Blob([pngs[i]],{type:'image/png'});
+  const binding=await auditedCandidateBinding(item,blob,master,a);
+  if(r.pngSha256&&r.pngSha256!==binding.sha256)throw Error('元画像ハッシュ不一致');
+  checked.push({...r,pngSha256:binding.sha256,qa:item.inspectionAudit.qa,technicalStatus:'pass',inspection:{scope:'actual-source',visualPassed:true,phraseVerified:true,anatomyVerified:true,styleVerified:true,alphaVerified:true,candidateBinding:binding}});
+ }
+ return prepareFormalCropPayload({records:checked,pngs,assignments,characterId,subtle});
 }
