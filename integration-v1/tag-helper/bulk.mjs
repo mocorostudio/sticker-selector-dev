@@ -4,7 +4,7 @@ const d=document,S=location.pathname+location.search,K='rui-bulk-tags-v1:'+S;
 if(location.origin!=='https://creator.line.me')return alert('LINEタグ編集画面用です');
 if(d.getElementById('rui-bulk'))return;
 const b=d.createElement('section');b.id='rui-bulk';b.style.cssText='position:fixed;inset:4%;z-index:2147483647;background:white;color:#222;padding:16px;border:2px solid teal;overflow:auto;font:16px sans-serif';
-b.innerHTML='<h2>タグ一括 v5</h2><textarea aria-label="タグ一覧" style="width:95%;height:120px"></textarea><p><button data-x="trial">2枚まで試す</button> <button data-x="all" disabled>残りを実行</button> <button data-x="stop" disabled>停止</button></p><pre role="status" style="white-space:pre-wrap"></pre><p><button data-x="catalog">タグ一覧をコピー</button> <button data-x="edit">一覧を入れ替え</button> <button data-x="close">閉じる</button></p>';
+b.innerHTML='<h2>タグ一括 v6（絵文字対応）</h2><textarea aria-label="タグ一覧" style="width:95%;height:120px"></textarea><p><button data-x="trial">2枚まで試す</button> <button data-x="all" disabled>残りを実行</button> <button data-x="stop" disabled>停止</button></p><pre role="status" style="white-space:pre-wrap"></pre><p><button data-x="catalog">タグ一覧をコピー</button> <button data-x="edit">一覧を入れ替え</button> <button data-x="close">閉じる</button></p>';
 d.body.append(b);
 const q=x=>b.querySelector(x),T=q('textarea'),O=q('[role=status]'),A=q('[data-x=all]'),P=q('[data-x=trial]'),Z=q('[data-x=stop]'),C=q('[data-x=close]'),L=q('[data-x=catalog]'),E=q('[data-x=edit]');
 const msg=x=>O.textContent=x,vis=x=>!!x.getClientRects().length,un=x=>[...new Set(x)],eq=(a,c)=>a.length===c.length&&a.every(x=>c.includes(x));
@@ -13,7 +13,7 @@ const check=()=>{if(stop)throw Error('停止。途中分は保存の可能性あ
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function read(){
 check();const ns=[...d.querySelectorAll('button.btn-dropdown .btn-dropdown-text')].filter(vis);
-if(ns.length!==1||!/^\d{1,2}$/.test(ns[0].textContent.trim()))throw Error('画像番号が不明');
+if(ns.length!==1||!/^\d{1,3}$/.test(ns[0].textContent.trim()))throw Error('画像番号が不明');
 const n=Number(ns[0].textContent.trim()),m=new Map();
 for(const l of [...d.querySelectorAll('label.cm-product-image-tag')].filter(vis)){
 const c=l.querySelector('input[type=checkbox]'),t=l.querySelector('span.cm-product-image-tag-name-text[data-test=tag-name]')?.textContent.trim();
@@ -23,7 +23,7 @@ if(!c||!t)throw Error('タグ一覧が未対応');const p=m.get(t);if(p&&p.c.che
 function button(dir){const xs=[...d.querySelectorAll(dir>0?'button.btn-next-image':'button.btn-previous-image')].filter(vis);if(xs.length!==1||xs[0].disabled)throw Error('画像移動不可');return xs[0];}
 async function settle(n){let old='',count=0;for(let i=0;i<32;i++){check();let s;try{s=read()}catch(e){if(!['タグ一覧がありません','画像番号が不明','タグ一覧が未対応'].includes(e.message))throw e;old='';count=0;await wait(250);continue;}const key=JSON.stringify([s.n,s.t,[...s.m.keys()]]);if(s.n===n&&key===old)count++;else count=0;if(count>=3)return s;old=key;await wait(250);}throw Error('表示待ち時間超過');}
 async function move(n){for(let i=0;i<40;i++){check();const a=read().n;if(a===n)return settle(n);const dir=n>a?1:-1;button(dir).click();const s=await settle(a+dir);if(s.n===n)return s;}throw Error('移動未完了');}
-function parse(){const rows=T.value.trim().split(/\r?\n/).map(x=>x.split(',').map(t=>t.trim()));if(!T.value.trim()||rows.length>40)throw Error('入力は1〜40行');const seen=new Set();return rows.map(p=>{const n=Number(p[0]),tags=p.slice(1);if(!/^\d{1,2}$/.test(p[0])||n<1||n>40||seen.has(n)||!tags.length||tags.some(x=>!x)||un(tags).length!==tags.length||tags.length>9)throw Error('番号・重複・個数・形式エラー');seen.add(n);return {n,tags};});}
+function parse(){const rows=T.value.trim().split(/\r?\n/).map(x=>x.split(',').map(t=>t.trim()));if(!T.value.trim()||rows.length>40)throw Error('入力は1〜40行');const seen=new Set();return rows.map(p=>{const n=Number(p[0]),tags=p.slice(1);if(!/^\d{1,3}$/.test(p[0])||n<1||n>40||seen.has(n)||!tags.length||tags.some(x=>!x)||un(tags).length!==tags.length||tags.length>9)throw Error('番号・重複・個数・形式エラー');seen.add(n);return {n,tags};});}
 const save=()=>sessionStorage.setItem(K,JSON.stringify(job));
 function report(extra=''){const a=job?.omitted||[];msg((job?'確認済み '+job.done.length+'/'+job.rows.length+'枚／未追加 '+a.length+'タグ\n':'')+extra+(a.length?'\n未追加一覧：\n'+a.map(x=>x.n+'番 '+x.tag+'（'+x.reason+'）').join('\n'):''));}
 async function select(e){
