@@ -20,3 +20,16 @@ test('finished sticker page saves only to verified application folder and checks
 test('inspection and progress remain explicit',()=>{
  for(const expected of ['最終チェック','目視検品は別','①／④','②／④','③／④','④／④','saveButton(true)','saveButton(false)'])assert.ok(page.includes(expected),expected);
 });
+
+test('reorder ZIP tolerates directory metadata but requires all 42 images',()=>{
+ for(const expected of [
+  'if(count<42||count>200)',
+  "name.endsWith('/')",
+  "name.startsWith('__MACOSX/')",
+  "name==='.DS_Store'",
+  "name.endsWith('/.DS_Store')",
+  'if(result.size!==42)',
+  "if(!image)throw Error(name+'がありません。')",
+  "if(!/^(?:0[1-9]|[1-3][0-9]|40|main|tab)\\.png$/.test(name)",
+ ])assert.ok(page.includes(expected),expected);
+});
