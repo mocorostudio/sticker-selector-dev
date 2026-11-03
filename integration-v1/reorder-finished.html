@@ -108,7 +108,7 @@ $('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{f
  progress('③／④ ZIP作成・40枚の順番と内容を照合中…');
  const list=snapshot.map((e,i)=>({name:imageName(i+1),blob:e.blob}));if(archiveMode!=='emoji')list.push({name:'main.png',blob:art['main.png']});list.push({name:'tab.png',blob:art['tab.png']});
  for(const entry of list){entry.blob=await withPngDpi(entry.blob);if(archiveMode==='emoji'&&entry.blob.size>1000000)throw Error(entry.name+'が1MBを超えます。');}
- const zip=await storedZip(list,{includeArtwork:true});if(zip.size>(archiveMode==='emoji'?20000000:60000000))throw Error('ZIPが申請上限を超えています。');
+ const zip=await storedZip(list,{includeArtwork:true,emoji:archiveMode==='emoji'});if(zip.size>(archiveMode==='emoji'?20000000:60000000))throw Error('ZIPが申請上限を超えています。');
  const actual=await extract(zip);for(const entry of list){const recovered=actual.get(entry.name);if(!recovered||await digest(recovered)!==await digest(entry.blob))throw Error(entry.name+'の保存時の順番・内容が一致しません。');}
  const sha=await digest(zip),filename='REORDERED_'+archiveMode+'_40_'+sha.slice(0,12)+'.zip';
  progress('④／④ '+target.characterName+'／04_申請用 に送信・保存確認中…');
