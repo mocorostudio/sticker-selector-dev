@@ -4,7 +4,7 @@ const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
 // No remote IO. The adapter persists PNG + metadata, then reads both back.
 export async function importCrops(entries,adapter,master,{forSelection=false}={}){
- if(!Array.isArray(entries)||entries.length>64)throw Error('受け渡し件数が不正です');
+ if(!Array.isArray(entries)||entries.length>130)throw Error('受け渡し件数が不正です');
  const result={ids:[],added:0,existing:0,errors:[]};
  for(const entry of entries){try{
   const r=entry?.record,m=master.find(x=>x.candidateId===r?.candidateId);

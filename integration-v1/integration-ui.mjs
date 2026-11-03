@@ -1,11 +1,11 @@
-import {stageCandidateAssignments} from './inspection-core.mjs?v=20261103-audited2';
-import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261103-audited2';
-import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261103-audited2';
-import {initInspection} from './inspection-ui.mjs?v=20261103-audited2';
-import {initSubmission} from './submission-ui.mjs?v=20261103-audited2';
-import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261103-audited2';
+import {stageCandidateAssignments} from './inspection-core.mjs?v=20261104-efficient1';
+import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261104-efficient1';
+import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261104-efficient1';
+import {initInspection} from './inspection-ui.mjs?v=20261104-efficient1';
+import {initSubmission} from './submission-ui.mjs?v=20261104-efficient1';
+import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261104-efficient1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261103-audited2';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261104-efficient1';
 import {initDrivePending} from './drive-pending-ui.mjs?v=20261030-reviewlabels1';
 export function initWorkflow(api){
  initInspection(api);

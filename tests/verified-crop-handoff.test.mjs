@@ -50,3 +50,17 @@ test('strict handoff rejects failed visual gate despite forged status',async()=>
 });
 
 test('strict handoff rejects absent bytes without writing',async()=>{const a=make();a.entries[0].png=null;await assert.rejects(importVerifiedCrops(a.entries,a.adapter,master,a.manifest),/PNG実体/);assert.equal(a.state.length,0)});
+
+test('81 verified candidates transfer together, retry preserves choices and only adds missing entries',async()=>{
+ const a=make(),masters=[],entries=[],manifest={...a.manifest,entries:[]};
+ for(let i=0;i<81;i++){const candidateId='C'+i,imageId='img'+i,filename='crop'+i+'.png';
+ masters.push({...master[0],candidateId});
+ entries.push({record:{...a.entries[0].record,candidateId,imageId,filename},png:a.entries[0].png});
+ manifest.entries.push({...a.manifest.entries[0],candidateId,imageId,filename,batchId:'B'+Math.floor(i/9),slot:i%9+1});}
+ let writes=0;const write=a.adapter.write;a.adapter.write=async(...args)=>{writes++;return write(...args)};
+ const first=await importVerifiedCrops(entries,a.adapter,masters,manifest);
+ assert.equal(first.added,81);assert.deepEqual(first.errors,[]);assert.equal(writes,81);
+ a.state[0].rating='x';a.state[0].comment='保持';a.state[0].touched=true;
+ const again=await importVerifiedCrops(entries,a.adapter,masters,manifest);
+ assert.equal(again.existing,81);assert.equal(writes,81);assert.equal(a.state[0].rating,'x');assert.equal(a.state[0].comment,'保持');
+});

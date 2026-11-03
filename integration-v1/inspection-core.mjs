@@ -6,7 +6,7 @@ export async function automaticInspection(item,blob,decode,at=new Date().toISOSt
  if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error('実PNGを読み込めません。');
  const sha256=await pngHash(blob),qa=inspect(await decode(blob),item.crop?.crossing===true),identity=inspectionIdentity(item),previous=item.inspectionAudit;
  const same=previous?.sha256===sha256&&previous.identity===identity;
- return {schema:'animal-stickers-inspection/v1',imageId:item.imageId,identity,sha256,at,qa,checks:same?[...(previous.checks||[])]:Array(visualChecks.length).fill(false),decision:same&&(previous.decision==='fail'||qa.automatic==='pass')?previous.decision:'review',comment:same?previous.comment||'':'',size:blob.size};
+ return {schema:'animal-stickers-inspection/v1',imageId:item.imageId,identity,sha256,at,qa,checks:same?[...(previous.checks||[])]:Array(visualChecks.length).fill(false),decision:same&&(previous.decision==='fail'||qa.automatic==='pass')?previous.decision:'review',comment:same?previous.comment||'':'',...(same&&previous.reviewedAt?{reviewedAt:previous.reviewedAt}:{}),size:blob.size};
 }
 export function inspectionDecision(audit,decision,checks,comment='',at=new Date().toISOString()){
  if(!['pass','review','fail'].includes(decision))throw Error('検品結果が不正です。');

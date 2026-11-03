@@ -12,3 +12,12 @@ test('unchanged bytes preserve visual inspection; recrop, phrase, pose or candid
  for(const field of ['imageId','candidate','phrase','pose']){const changed=structuredClone(x);changed[field]+='new';assert.equal(await verifyInspection(changed,png),false);const next=await automaticInspection(changed,png,async()=>validPixels());assert.equal(next.decision,'review');assert.ok(next.checks.every(v=>!v));}
  const bytes=new Blob([new Uint8Array(41)],{type:'image/png'});assert.equal(await verifyInspection(x,bytes),false);assert.equal((await automaticInspection(x,bytes,async()=>validPixels())).decision,'review');
 });
+
+test('unchanged automatic reinspection retains reviewedAt and invalidation drops it',async()=>{
+ const x=item(),a=await automaticInspection(x,png,async()=>validPixels());
+ x.inspectionAudit=inspectionDecision(a,'pass',Array(visualChecks.length).fill(true),'確認済み','2026-11-04T00:00:00Z');
+ const same=await automaticInspection(x,png,async()=>validPixels());
+ assert.equal(same.reviewedAt,x.inspectionAudit.reviewedAt);assert.equal(same.decision,'pass');
+ x.pose+='変更';const changed=await automaticInspection(x,png,async()=>validPixels());
+ assert.equal(changed.reviewedAt,undefined);assert.equal(changed.decision,'review');
+});
