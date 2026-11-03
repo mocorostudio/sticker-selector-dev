@@ -1,3 +1,4 @@
+import {initBulkFormal} from './bulk-formal.mjs?v=20261104-bulk1';
 import {stageCandidateAssignments} from './inspection-core.mjs?v=20261104-report1';
 import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261104-report1';
 import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261104-report1';
@@ -22,6 +23,7 @@ export function initWorkflow(api){
  $('cropTab').onclick=()=>show('crop');$('selectionTab').onclick=()=>show('selection');
  window.addEventListener('workflow-edit',event=>{if(!api.items().some(x=>x.origin==='crop-local'&&x.imageId===event.detail?.imageId))return;show('crop');frame.contentWindow.postMessage({type:'crop-edit-v1',imageId:event.detail.imageId},location.origin);});
  const pending=initDrivePending(api,{onLoaded:r=>{show('selection',{preserve:true});$('driveStatus').textContent=r.character.name+'：'+r.count+'枚をDriveから読み込みました。'+(r.draft?'仮選抜です。技術検品は未確定で、申請用には進めません。':r.entries.some(e=>e.record.trialSelection)?'試用画像を含みます。申請用の技術合格ではありません。':'検品済みです。')+'◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
+ initBulkFormal(api,pending);
  $('loadPending').textContent='Driveから全候補を読み込む・再選抜';$('loadPending').onclick=pending.open;
  const driveExport=initDriveExport(api,{onSnapshot:()=>{if(new URLSearchParams(location.search).get('selectionMode')==='trial')show('submission');}});
  $('sync').hidden=true;$('mode').textContent='切り出し → 選抜 → Google Driveに保存';
@@ -34,9 +36,9 @@ export function initWorkflow(api){
   const reply=data=>frame.contentWindow.postMessage({type:'crop-handoff-result-v1',requestId,...data},location.origin);
   if(event.data.action==='master-options'){try{const characterId=event.data.characterId;if(!/^[A-Za-z0-9_-]{1,256}$/.test(characterId||''))throw Error('対象キャラIDが必要です');const current=await pending.masterForCharacter(characterId);reply({masterOptions:{master:current.master,modifiedTime:current.modifiedTime,masterReference:current.masterReference,masterSheet:current.masterSheet}});}catch(error){reply({error:error.message});}return;}
   if(importing||api.isBusy()){reply({error:'処理中です。完了後にもう一度押してください。'});return;}
-  importing=true;try{await api.ready;
+  importing=true;try{await api.ready;let liveMaster;
    if(['bind-candidates','audited-handoff'].includes(data.action)||data.verifiedHandoff===true){
-    const current=await pending.masterForCharacter(data.characterId);
+    const current=await pending.masterForCharacter(data.characterId);liveMaster=current;
     if(current.characterId!==data.characterId||!current.modifiedTime)throw Error('最新マスターを取得できません');
     if(data.action==='bind-candidates'){
      if(api.items().some(x=>data.assignments?.some(a=>a.imageId===x.imageId)&&x.characterId&&x.characterId!==data.characterId))throw Error('対象キャラが不一致');
@@ -50,7 +52,7 @@ export function initWorkflow(api){
     }
     data={...data,...await prepareAuditedFormalPayload({records:entries.map(e=>e.record),pngs:entries.map(e=>e.png),assignments:data.assignments,characterId:data.characterId,items:api.items(),master:current.master})};entries=data.entries;
    }
-   const verified=data.verifiedHandoff===true;let master,manifest=data.manifest;if(verified){const characterId=data.characterId||new URLSearchParams(location.search).get('character');if(!/^[A-Za-z0-9_-]{1,256}$/.test(characterId||''))throw Error('対象キャラのDriveフォルダIDが必要です');const prepared=await prepareNineCellHandoff({pending,characterId,entries,assignments:data.assignments});master=prepared.master;manifest=prepared.manifest;}else{master=await fetch('./crop-v9/master.json').then(r=>{if(!r.ok)throw Error('旧候補マスター読込失敗');return r.json();});}let result;
+   const verified=data.verifiedHandoff===true;let master,manifest=data.manifest;if(verified){const characterId=data.characterId||new URLSearchParams(location.search).get('character');if(!/^[A-Za-z0-9_-]{1,256}$/.test(characterId||''))throw Error('対象キャラのDriveフォルダIDが必要です');const prepared=await prepareNineCellHandoff({pending:liveMaster?{masterForCharacter:async()=>liveMaster}:pending,characterId,entries,assignments:data.assignments});master=prepared.master;manifest=prepared.manifest;}else{master=await fetch('./crop-v9/master.json').then(r=>{if(!r.ok)throw Error('旧候補マスター読込失敗');return r.json();});}let result;
    await api.withBusy(async()=>{result=await (data.verifiedHandoff===true?importVerifiedCrops:importCrops)(entries,{items:api.items,get:api.get,decode:api.decode,promote:async(item,record)=>{const before={...item};const history=[...(item.crop?.history||[])];for(const h of record.history||[])if(!history.some(x=>JSON.stringify(x)===JSON.stringify(h)))history.push(h);const unchanged=item.crop?.pngSha256===record.pngSha256&&item.technicalPassed===true;Object.assign(item,{formalRegistrationHistory:unchanged?item.formalRegistrationHistory:[...(item.formalRegistrationHistory||[]),{at:new Date().toISOString(),previousCrop:structuredClone(item.crop),manifest:structuredClone(manifest)}],characterId:data.characterId,crop:structuredClone({...item.crop,...record,history}),technicalPassed:true,technicalStatus:'pass',technicalScope:'actual-source',masterSource:manifest.masterReference,candidateManifest:structuredClone(manifest)});try{api.save();}catch(e){Object.keys(item).forEach(k=>delete item[k]);Object.assign(item,before);throw e;}},write:async(item,blob)=>{const characterId=data.characterId||api.characterId?.();if(characterId)item.characterId=characterId;await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},master,...(data.verifiedHandoff===true?[manifest]:[{forSelection:event.data.forSelection===true}]));if(result.ids.length){api.setView(result.ids,event.data.append===true);api.redraw();}});
    if(!result)throw Error('受け渡しを完了できませんでした');reply(result);if(result.ids.length){show('selection');$('driveStatus').textContent='切り出しから追加 '+result.added+'枚／取込済み '+result.existing+'枚／失敗 '+result.errors.length+'件。技術検品が未完了の画像は仮選別のみで、採用予定・保留へのPNG保存は停止します。';}
   }catch(e){reply({error:e.message});}finally{importing=false;}
