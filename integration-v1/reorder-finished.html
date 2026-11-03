@@ -40,13 +40,14 @@ async function restoreSaved(){const key=localStorage.getItem(RECENT_KEY);if(!key
 async function extract(blob){
  const bytes=new Uint8Array(await blob.arrayBuffer());if(bytes.length>60000000)throw Error('ZIPが60MBを超えます。');const v=new DataView(bytes.buffer),min=Math.max(0,bytes.length-65557);let end=-1;
  for(let p=bytes.length-22;p>=min;p--)if(u32(v,p)===0x06054b50){end=p;break;}if(end<0)throw Error('ZIPの終端を確認できません。');
- const count=u16(v,end+10),central=u32(v,end+16);if(count!==42)throw Error('40枚のスタンプとmain.png、tab.pngの合計42ファイルが必要です。');
+ const count=u16(v,end+10),central=u32(v,end+16);if(count<42||count>200)throw Error('ZIP内の項目数が不正です（必要なPNG42枚を確認してください）。');
  let pos=central;const result=new Map(),decoder=new TextDecoder();
  for(let n=0;n<count;n++){
   if(pos+46>bytes.length||u32(v,pos)!==0x02014b50)throw Error('ZIPの索引が壊れています。');
   const method=u16(v,pos+10),compressed=u32(v,pos+20),uncompressed=u32(v,pos+24),nameSize=u16(v,pos+28),extra=u16(v,pos+30),comment=u16(v,pos+32),offset=u32(v,pos+42),name=decoder.decode(bytes.slice(pos+46,pos+46+nameSize));
   pos+=46+nameSize+extra+comment;
-  if(!/^(?:0[1-9]|[1-3][0-9]|40|main|tab)\.png$/.test(name)||result.has(name)||uncompressed>15000000)throw Error('ZIPに不正なファイル名やサイズ、重複があります。');
+  if(name.endsWith('/')||name==='__MACOSX/'||name.startsWith('__MACOSX/')||name==='.DS_Store'||name.endsWith('/.DS_Store'))continue;
+  if(!/^(?:0[1-9]|[1-3][0-9]|40|main|tab)\.png$/.test(name)||result.has(name)||uncompressed>15000000)throw Error('ZIPに不正なファイル名やサイズ、重複があります：'+name);
   if(offset+30>bytes.length||u32(v,offset)!==0x04034b50)throw Error('ZIP内ファイルが壊れています。');
   const start=offset+30+u16(v,offset+26)+u16(v,offset+28);if(start+compressed>bytes.length)throw Error('ZIPデータが途中で切れています。');
   const data=bytes.slice(start,start+compressed);let raw;
@@ -55,6 +56,7 @@ async function extract(blob){
   if(raw.length!==uncompressed||raw[0]!==137||raw[1]!==80||raw[2]!==78||raw[3]!==71)throw Error(name+'のPNG内容が不正です。');
   result.set(name,new Blob([raw],{type:'image/png'}));
  }
+ if(result.size!==42)throw Error('必要なPNGは42枚ですが、確認できたのは'+result.size+'枚です。01〜40.png、main.png、tab.pngを確認してください。');
  return result;
 }
 async function verify(name,blob,width,height){
