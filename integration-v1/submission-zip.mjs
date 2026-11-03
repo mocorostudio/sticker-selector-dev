@@ -16,10 +16,10 @@ const encoder=new TextEncoder();
 const crcTable=Uint32Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=(n&1)?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
 function crc32(bytes){let n=0xffffffff;for(const b of bytes)n=crcTable[(n^b)&255]^(n>>>8);return (n^0xffffffff)>>>0;}
 // PNG is already compressed. A stored ZIP needs no network dependency and preserves exact bytes.
-export async function storedZip(entries,{includeArtwork=false}={}){
+export async function storedZip(entries,{includeArtwork=false,emoji=false}={}){
  if(!entries.length||entries.length>(includeArtwork?42:40))throw Error('ZIPの画像数が不正です。');
  const local=[],central=[],names=new Set();let offset=0,size=0;
- for(const e of entries){if(!(includeArtwork?/^(?:\d{2}|main|tab)\.png$/:/^\d{2}\.png$/).test(e.name)||names.has(e.name))throw Error('ZIPの画像名が不正です。');names.add(e.name);const data=new Uint8Array(await e.blob.arrayBuffer()),name=encoder.encode(e.name),crc=crc32(data);size+=data.length;if(size>150000000)throw Error('ZIPは150MB以下にしてください。');
+ for(const e of entries){if(!(emoji?/^(?:0(?:0[1-9]|[1-3][0-9]|40)|tab)\.png$/:includeArtwork?/^(?:\d{2}|main|tab)\.png$/:/^\d{2}\.png$/).test(e.name)||names.has(e.name))throw Error('ZIPの画像名が不正です。');names.add(e.name);const data=new Uint8Array(await e.blob.arrayBuffer()),name=encoder.encode(e.name),crc=crc32(data);size+=data.length;if(size>150000000)throw Error('ZIPは150MB以下にしてください。');
   const h=new Uint8Array(30+name.length),v=new DataView(h.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(12,33,true);v.setUint32(14,crc,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);h.set(name,30);local.push(h,data);
   const c=new Uint8Array(46+name.length),cv=new DataView(c.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(14,33,true);cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);c.set(name,46);central.push(c);offset+=h.length+data.length;
  }
