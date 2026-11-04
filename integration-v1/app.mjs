@@ -99,7 +99,7 @@ $('files').onchange=async e=>{
  });
  if(workflowLocal&&ids.length)$('selectionTab').click();
 };
-$('background').onchange=e=>{state.background=e.target.value;state.items.forEach(x=>delete x.background);save();redraw()};$('close').onclick=()=>$('zoom').close();
+$('background').onchange=e=>{const value=e.target.value;if(!['checker','white','black'].includes(value))return;state.background=value;visible().forEach(x=>{x.background=value});save();redraw()};$('close').onclick=()=>$('zoom').close();
 $('setAll').onclick=()=>{if(!confirm('表示中の画像をすべて◯で操作済みにしますか？'))return;visible().forEach(x=>{x.rating='o';x.touched=true;x.revision=crypto.randomUUID();x.evaluatedAt=new Date().toISOString()});save();redraw()};
 function download(name,content,type){const u=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),5000)}
 function exportRows(){return state.items.map(i=>({image_id:i.imageId||i.id,candidate_id:i.candidate||null,attempt_id:i.attemptId||null,drive_file_id:i.driveFileId||null,evaluated_at:i.evaluatedAt||null,revision:i.revision||null,technical_status:i.technicalStatus||null,technical_scope:i.technicalScope||null,save_state:i.saveState||null,crop:i.crop||null,inspection_audit:i.inspectionAudit||null,inspection_history:i.inspectionHistory||[],selection_history:i.selectionHistory||[],filename:i.name,rating:i.touched?i.rating:null,confirmed:i.origin==='crop-local'?isLocalConfirmed(i):!!i.touched,comment:i.comment||''}))}
