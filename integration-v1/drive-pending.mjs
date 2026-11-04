@@ -95,8 +95,12 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
      const parsed=readMasterRows(rows);if(parsed.length)candidates.push({name,rows:parsed});
     }catch(error){if(!/マスター|候補/i.test(name))continue;throw error;}
    }
-   if(candidates.length!==1)throw Error('候補ID・セリフ・ポーズを持つマスターシートを一意に特定できません。');
-   return {characterId,masterReference:'https://docs.google.com/spreadsheets/d/'+file.id+'/edit',masterSheet:candidates[0].name,modifiedTime:file.modifiedTime||null,master:candidates[0].rows};
+   // The current production candidate tab can coexist with retained historic tabs.
+   // Prefer only the exact active tab, never a similarly named archival snapshot.
+   const active=candidates.filter(c=>c.name==='制作81候補');
+   if(active.length>1||(!active.length&&candidates.length!==1))throw Error('候補ID・セリフ・ポーズを持つ現行マスターシートを一意に特定できません。');
+   const selected=active[0]||candidates[0];
+   return {characterId,masterReference:'https://docs.google.com/spreadsheets/d/'+file.id+'/edit',masterSheet:selected.name,modifiedTime:file.modifiedTime||null,master:selected.rows};
   },
   async characters({preferredId=null}={}){
    const out=[];
