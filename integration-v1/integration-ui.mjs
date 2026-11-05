@@ -2,11 +2,11 @@ import {initBulkFormal} from './bulk-formal.mjs?v=20261106-batch1';
 import {stageCandidateAssignments} from './inspection-core.mjs?v=20261104-report1';
 import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261104-report1';
 import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261104-report1';
-import {initInspection} from './inspection-ui.mjs?v=20261106-chat3';
+import {initInspection} from './inspection-ui.mjs?v=20261106-scrollqa1';
 import {initSubmission} from './submission-ui.mjs?v=20261104-report1';
 import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261104-report1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261106-chat3';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261106-scrollqa1';
 import {initDrivePending} from './drive-pending-ui.mjs?v=20261030-reviewlabels1';
 import {gate} from './crop-v9/core.mjs';
 export function initWorkflow(api){

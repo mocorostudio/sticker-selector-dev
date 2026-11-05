@@ -1,3 +1,4 @@
+import {classifyInspection} from './inspection-policy.mjs';
 import {inspect,visualChecks} from './crop-v9/core.mjs';
 export {visualChecks};
 export async function pngHash(blob){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(v=>v.toString(16).padStart(2,'0')).join('');}
@@ -12,6 +13,7 @@ export function inspectionDecision(audit,decision,checks,comment='',at=new Date(
  if(!['pass','review','fail'].includes(decision))throw Error('検品結果が不正です。');
  if(['review','fail'].includes(decision)&&!comment.trim())throw Error('×・△には具体的な理由を入力してください。');
  if(decision==='pass'&&(audit.qa?.automatic!=='pass'||checks.length!==visualChecks.length||!checks.every(x=>x===true)))throw Error('自動検査と目視確認をすべて完了してください。');
+ decision=classifyInspection(decision,comment);
  return {...structuredClone(audit),checks:checks.map(x=>x===true),decision,comment,reviewedAt:at};
 }
 export async function verifyInspection(item,blob){const a=item.inspectionAudit;return !!a&&a.identity===inspectionIdentity(item)&&a.sha256===await pngHash(blob);}

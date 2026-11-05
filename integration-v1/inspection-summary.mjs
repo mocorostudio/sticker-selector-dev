@@ -3,7 +3,7 @@ import {gate} from './crop-v9/core.mjs';
 
 const strings=value=>Array.isArray(value)?value.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()):[];
 const reasons=(...values)=>[...new Set(values.flatMap(v=>typeof v==='string'&&v.trim()?[v.trim()]:strings(v)))];
-const summary=(status,detail,source)=>({status,label:{fail:'× 明らかな不良',review:'△ 注意点あり',pass:'問題なし（検品済み）',unknown:'未検品・未確認'}[status],reasons:detail,source});
+const summary=(status,detail,source)=>({status,label:{fail:'× 不合格',review:'△ 要確認',pass:'合格',unknown:'未検品'}[status],reasons:detail,source});
 // Display only: never changes votes, technical approval, or submission eligibility.
 export async function inspectionSummary(item,blob){
  if(!blob)return summary('unknown',['画像を取得できないため検品記録を照合できません。'],'unverified');
@@ -28,7 +28,9 @@ export async function inspectionSummary(item,blob){
 
 export function renderInspectionSummary(host,value){
  host.replaceChildren();host.dataset.inspectionStatus=value.status;
- const title=document.createElement('strong');title.textContent='ルイの検品：'+value.label;host.append(title);
- if(value.reasons.length){const list=document.createElement('ul');for(const reason of value.reasons){const line=document.createElement('li');line.textContent=reason;list.append(line);}host.append(list);}
+ const title=document.createElement('strong');title.textContent='技術判定：'+value.label;host.append(title);
+ if(value.reasons.length){const list=document.createElement('ul');for(const reason of value.reasons){const line=document.createElement('li');line.textContent=reasonCategory(reason)+'：'+reason;list.append(line);}if(value.reasons.join('').length>80){const preview=document.createElement('p');preview.textContent=value.reasons[0].slice(0,65)+'…';const details=document.createElement('details'),toggle=document.createElement('summary');toggle.textContent='理由の詳細';details.append(toggle,list);host.append(preview,details);}else host.append(list);}
  const note=document.createElement('small');note.textContent='下の◯△×は、あなたの採用希望です。検品結果とは別に保存します。';host.append(note);
 }
+
+export function reasonCategory(reason){for(const [pattern,label] of [[/文字|セリフ|濁点|誤字|脱字/,'文字'],[/混入|切り出|欠け|切れて/,'切り出し'],[/透過|アルファ|透明|ノイズ/,'透過'],[/小物|カバン/,'小物'],[/ポーズ|表情/,'ポーズ'],[/ひれ|手足|増殖|形状|構造/,'形状'],[/画風/,'画風'],[/余白|サイズ|寸法/,'余白・寸法']])if(pattern.test(reason))return label;return '検品記録';}
