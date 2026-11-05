@@ -1,9 +1,9 @@
 import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261030-reviewlabels1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261104-bulk1';
-import {initWorkflow} from './integration-ui.mjs?v=20261104-bulk1';
+import {initWorkflow} from './integration-ui.mjs?v=20261106-batch1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261104-bulk1';
-import {reviewedBundle} from './reviewed-bundle.mjs?v=20261023-bear1';
+import {reviewedBundleFromDrive} from './reviewed-bundle.mjs?v=20261106-batch1';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261023-merge1';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
@@ -23,6 +23,7 @@ const $=id=>document.getElementById(id);
 $('syncBar').append($('sync'),$('driveStatus'));
 const reserveSyncBar=()=>{document.body.style.paddingBottom=($('syncBar').getBoundingClientRect().height+16)+'px'};
 new ResizeObserver(reserveSyncBar).observe($('syncBar'));
+let workflow;
 let state;try{state=JSON.parse(localStorage.getItem(STORE))}catch(e){}
 if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
@@ -78,9 +79,9 @@ async function loadZip(file,ids){
  }
  const zip=await JSZip.loadAsync(file);
  if(workflowLocal&&zip.file('technical-review.json')){
-  const master=await fetch('./crop-v9/master.json').then(r=>r.json());
-  const entries=await reviewedBundle(zip,master,{decode:decodeCropPNG});
-  const result=await importCrops(entries,{items:()=>state.items,get,decode:decodeCropPNG,write:async(item,blob)=>{await put(item.id,blob);state.items.push(item);try{save();}catch(e){state.items=state.items.filter(x=>x!==item);throw e;}}},master);
+  const {entries,current}=await reviewedBundleFromDrive(zip,{characterId:activeCharacter,masterForCharacter:workflow?.masterForCharacter,decode:decodeCropPNG});
+  const master=current.master;
+  const result=await importCrops(entries,{items:()=>state.items,get,decode:decodeCropPNG,write:async(item,blob)=>{item.characterId=current.characterId;await put(item.id,blob);state.items.push(item);try{save();}catch(e){state.items=state.items.filter(x=>x!==item);throw e;}}},master);
   ids.push(...result.ids);importErrors.push(...result.errors.map(e=>e.message));return;
  }
  for(const entry of Object.values(zip.files)){
@@ -152,4 +153,4 @@ if(adapter)$('mode').textContent=adapter.mode==='drive-test'?'実Driveテスト�
 if(auth){$('loadPending').textContent='テスト画像を読み込む';$('disconnect').hidden=false;$('disconnect').onclick=()=>{auth.disconnect();driveMessage('Google接続を端末内で解除しました。画像と評価は保持しています。')};auth.ready.then(()=>driveMessage('Google認証の準備ができました。「テスト画像を読み込む」を押してください。')).catch(e=>driveMessage(errorText(e)));}
 
 async function decodeCropPNG(blob){await validatePNG(blob);const url=URL.createObjectURL(blob);try{const im=new Image();im.src=url;await im.decode();if(im.width!==370||im.height!==320)throw Error('切り出しPNGの寸法が不正');const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);return c.getContext('2d').getImageData(0,0,c.width,c.height);}finally{URL.revokeObjectURL(url);}}
-if(workflowLocal)initWorkflow({ready:dbReady,characterId:()=>activeCharacter,items:()=>state.items,replaceItems:items=>{state.items=items},visible,put,get,save,setView,setCharacter,redraw,withBusy,isBusy:()=>busy,decode:decodeCropPNG});
+if(workflowLocal)workflow=initWorkflow({ready:dbReady,characterId:()=>activeCharacter,items:()=>state.items,replaceItems:items=>{state.items=items},visible,put,get,save,setView,setCharacter,redraw,withBusy,isBusy:()=>busy,decode:decodeCropPNG});

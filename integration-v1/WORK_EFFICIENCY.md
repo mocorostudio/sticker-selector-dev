@@ -1,5 +1,20 @@
 # Work-efficient crop workflow
 
+## 2026-11-06: recover approved cells without restarting a sheet
+
+Confirmed code blockers (not proof of the historical chat execution path):
+- Bulk formal registration required every cell in every mapped batch to pass. A single review/fail/unknown cell aborted the entire job, including good cells.
+- The reviewed ZIP reader still capped input at 64 images, below the standard 81 candidates. Its app entry read the bundled static master, rather than the selected character's live master.
+- The Drive export UI included revoked formal records solely because they retained a candidateManifest, so retained bad cells could block good-cell registration again.
+
+The operator UI now defaults bulk jobs to `registrationMode:"approved-only"` (the callable API retains strict `all` behavior when omitted for compatibility). Supply all nine explicit cell mappings per batch, as before; only exact-byte individually completed pass audits are emitted. Review/fail/unknown records stay in local state with decisions, source PNGs and user votes preserved. A claimed pass with bad/missing evidence still aborts the atomic commit. No automatic visual pass is created. Later inspection of a held cell promotes only that cell, without adding registration history for its unchanged neighbors. Formal Drive save only includes currently approved formal items, and still revalidates live master, audit, PNG and pixels before writes.
+
+Reviewed ZIPs accept up to 130 records and obtain the selected character's connected live master once. Different master references and changed phrases/poses fail closed. Imported images retain that character ID. This legacy reviewed-bundle path does not by itself provide the audited formal registration evidence required for 00 registration; use the audited bulk job for that step. A ZIP containing only PNG/CSV files is also not an audited formal job. Do not rename CSV columns or infer approvals to bypass the required report.
+
+Operator sequence: verify the live master and usable application Google connection first; reuse existing PNGs and completed per-image evidence; inspect only unresolved images; import one combined mapping/report job; register good cells together; run the existing grouped Drive save/readback. Do not treat intermediate ZIPs as separate user milestones or ask for another continuation between these authorized stages. Actual artwork inspection cannot be replaced by the synthetic tests below.
+
+Verification: mixed 81-image synthetic Node fixture recovers 78 passes, keeps three blocked records and all votes/comments/history; retry is unchanged, and later approval adds one image only. Negative tests cover stale hashes, incomplete visual checks, invalid pixels, duplicate/missing mapping, save failure and concurrent edits. ZIP tests cover 81 inputs, the 130-image limit and live-master mismatch. `tests/bulk-formal-mixed.html` is an isolated actual-browser PNG decoding test with synthetic squares only. No production PNGs, votes, masters or Google files were changed. Real Google Drive and real artwork end-to-end remain separate verification requirements.
+
 Use the existing crop-v9 batch processor for automatic cropping and pixel checks. Preserve its per-item persistence for recovery. Do not repeat full regression suites for each image batch unless code or environment changes. Keep visual inspection, candidate-master matching, and formal handoff gates separate from draft selection. Never report draft transfer as technical approval or verified Drive saving.
 
 This document does not change runtime behavior or existing data.

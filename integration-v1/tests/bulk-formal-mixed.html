@@ -1,0 +1,28 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>一括登録・隔離テスト</title>
+<h1>81候補の一括登録テスト</h1><p>合成した四角形だけを使用。実画像・Google接続・ユーザー選抜は操作しません。</p>
+<button id="run">隔離テストを実行</button><pre id="result" role="status">未実施</pre>
+<script type="module">
+import {registerBulkFormal} from '../bulk-formal.mjs';
+import {automaticInspection,inspectionDecision,inspectionIdentity} from '../inspection-core.mjs';
+const out=document.querySelector('#result'),button=document.querySelector('#run');
+button.onclick=async()=>{button.disabled=true;try{
+ const canvas=document.createElement('canvas');canvas.width=370;canvas.height=320;const g=canvas.getContext('2d');g.fillStyle='#92584a';g.fillRect(60,50,250,220);
+ const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+ const decode=async b=>{const image=await createImageBitmap(b),c=document.createElement('canvas');c.width=image.width;c.height=image.height;const g=c.getContext('2d');g.drawImage(image,0,0);image.close();return g.getImageData(0,0,c.width,c.height)};
+ let items=Array.from({length:81},(_,i)=>({id:'crop:fixture'+i,imageId:'fixture'+i,origin:'crop-local',name:'fixture'+i+'.png',candidate:'C'+i,phrase:'合成図形'+i,pose:'四角形',crop:{imageId:'fixture'+i,filename:'fixture'+i+'.png',crossing:false},rating:i%2?'h':'o',touched:true,comment:'保持するコメント',selectionHistory:[{revision:'keep'}]}));
+ for(const item of items)item.inspectionAudit=inspectionDecision(await automaticInspection(item,blob,decode),'pass',Array(9).fill(true),'合成図形の隔離テスト');
+ items[0].inspectionAudit.decision='fail';items[0].inspectionAudit.comment='合成不合格';items[9].inspectionAudit.decision='review';items[9].inspectionAudit.comment='合成保留';delete items[80].inspectionAudit;
+ const master=items.map(x=>({candidateId:x.candidate,phrase:x.phrase,pose:x.pose})),pending={masterForCharacter:async()=>({characterId:'fixture',modifiedTime:'2026-11-05',masterSheet:'候補',masterReference:'https://docs.google.com/spreadsheets/d/fixture/edit',master})};
+ const votes=JSON.stringify(items.map(x=>[x.rating,x.comment,x.touched,x.selectionHistory]));let saves=0;
+ const api={items:()=>items,replaceItems:x=>items=x,get:async()=>blob,decode,save:()=>{saves++}};
+ const job={schema:'animal-stickers-bulk-formal/v1',registrationMode:'approved-only',characterId:'fixture',assignments:items.map((x,i)=>({imageId:x.imageId,candidateId:x.candidate,batchId:'B'+Math.floor(i/9),slot:i%9+1}))};
+ const check=(value,label)=>{if(!value)throw Error(label)};
+ const first=await registerBulkFormal(api,pending,job);check(first.registered===78&&first.excluded.length===3&&saves===1,'合格分だけの登録');
+ check(JSON.stringify(items.map(x=>[x.rating,x.comment,x.touched,x.selectionHistory]))===votes,'選抜保持');
+ const second=await registerBulkFormal(api,pending,job);check(second.updated===0&&saves===1,'再実行の重複回避');
+ check([0,9,80].every(i=>!items[i].technicalPassed&&!items[i].candidateManifest),'未検品の昇格防止');
+ const item=items[80];item.inspectionAudit=inspectionDecision(await automaticInspection(item,blob,decode),'pass',Array(9).fill(true),'追加の合成検品');
+ const third=await registerBulkFormal(api,pending,job);check(third.updated===1&&third.registered===79,'不足分だけ追加');
+ out.textContent='PASS\n81候補：合格78・不合格1・保留1・未確認1\n合格分のみ登録\n選抜・コメント・履歴保持\n再実行で追加保存なし\n後日の検品完了分だけ1枚追加\n実ブラウザーでPNGをデコードして再検査\n実Google Drive・実画像は未検証';
+ }catch(e){out.textContent='FAIL: '+e.message;}finally{button.disabled=false;}};
+</script></html>

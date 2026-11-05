@@ -49,6 +49,7 @@ test('candidate assignment is atomic, preserves votes and never creates approval
 import {createExportDrive} from '../integration-v1/drive-export.mjs';
 import {createPendingDrive} from '../integration-v1/drive-pending.mjs';
 import {SourceFixture} from './source-save-fixture.mjs';
+import {registerBulkFormal} from '../integration-v1/bulk-formal.mjs';
 async function registrationSetup(){
  const b=await setup(),payload=await prepareAuditedFormalPayload(b);
  const current={characterId:'char',master:b.master,modifiedTime:'2026-11-03',masterSheet:'候補',masterReference:'https://docs.google.com/spreadsheets/d/master/edit'};
@@ -74,4 +75,17 @@ test('pending registration fails closed on mismatched readback and retries witho
  const {b,fixture,drive,options}=await registrationSetup();fixture.badReadback=true;
  await assert.rejects(drive.registerPending(b.items,options),/照合/);assert.equal(fixture.posts,1);fixture.badReadback=false;
  const result=await drive.registerPending(b.items,options);assert.equal(result.entries.length,9);assert.equal(fixture.posts,10);
+});
+test('mixed batch registration saves and reloads only its eight approved cells through the existing Drive transport',async()=>{
+ const {b,fixture,drive,fetchImpl,options}=await registrationSetup();
+ b.items[8].inspectionAudit.decision='fail';b.items[8].inspectionAudit.comment='synthetic defect';
+ const api={items:()=>b.items,replaceItems:items=>b.items=items,get:options.get,decode:options.decode,save:()=>{}};
+ const current={characterId:'char',master:b.master,modifiedTime:'2026-11-03',masterSheet:'候補',masterReference:'https://docs.google.com/spreadsheets/d/master/edit'};
+ const result=await registerBulkFormal(api,{masterForCharacter:async()=>current},{schema:'animal-stickers-bulk-formal/v1',registrationMode:'approved-only',characterId:'char',assignments:b.assignments});
+ assert.equal(result.registered,8);assert.equal(b.items[8].technicalPassed,false);assert.equal(b.items[8].rating,'h');
+ const good=b.items.filter(x=>x.candidateManifest&&x.technicalPassed===true);
+ const saved=await drive.registerPending(good,options);assert.equal(saved.entries.length,8);assert.equal(fixture.posts,9);
+ await drive.registerPending(good,options);assert.equal(fixture.posts,9);
+ const loaded=await createPendingDrive({getToken:()=> 'fixture',fetchImpl}).load('char',{decode:options.decode});
+ assert.equal(loaded.entries.length,8);assert.ok(loaded.entries.every(e=>e.record.imageId!=='img8'));
 });
