@@ -24,7 +24,7 @@ export async function importInspectionReport(items,report,{get,decode,save}){
  for(const s of staged){if(!items.includes(s.item)||inspectionIdentity(s.item)!==s.identity||JSON.stringify([s.item.inspectionAudit,s.item.inspectionHistory,s.item.technicalPassed,s.item.technicalStatus])!==s.before||await pngHash(await get(s.item.id))!==s.audit.sha256)throw Error('検品中に対象が変更されました');}
  const snapshots=staged.map(({item})=>({item,fields:Object.fromEntries(['inspectionAudit','inspectionHistory','technicalPassed','technicalStatus'].map(k=>[k,{present:Object.hasOwn(item,k),value:item[k]}]))}));
  try{
-  for(const {item,audit} of staged){item.inspectionAudit=audit;item.inspectionHistory=[...(item.inspectionHistory||[]),structuredClone(audit)];if(item.candidateManifest&&(audit.decision!=='pass'||audit.qa.automatic!=='pass')){item.technicalPassed=false;item.technicalStatus='review';}}
+  for(const {item,audit} of staged){item.inspectionAudit=audit;item.inspectionHistory=[...(item.inspectionHistory||[]),structuredClone(audit)];if((item.candidateManifest||item.crop?.importedReview)&&(audit.decision!=='pass'||audit.qa.automatic!=='pass')){item.technicalPassed=false;item.technicalStatus='review';}}
   if(staged.length)await save();
  }catch(error){for(const {item,fields} of snapshots)for(const [key,old] of Object.entries(fields)){if(old.present)item[key]=old.value;else delete item[key];}throw error;}
  return {updated:staged.length,existing};

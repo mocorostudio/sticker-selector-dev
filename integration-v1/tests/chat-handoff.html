@@ -4,11 +4,11 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script type="module">
 import {prepareChatHandoff} from '../chat-handoff.mjs';
-import {reviewedBundleFromDrive,importReviewedCrops} from '../reviewed-bundle.mjs?v=20261106-chat1';
+import {reviewedBundleFromDrive,importReviewedCrops} from '../reviewed-bundle.mjs?v=20261106-chat3';
 import {importCrops,confirmLocal} from '../crop-handoff.mjs';
 import {pngHash} from '../inspection-core.mjs';
-import {inspectionSummary} from '../inspection-summary.mjs?v=20261106-chat1';
-import {prepareExport,groupCharacters} from '../drive-export.mjs?v=20261106-chat1';
+import {inspectionSummary} from '../inspection-summary.mjs?v=20261106-chat3';
+import {prepareExport,groupCharacters} from '../drive-export.mjs?v=20261106-chat3';
 const out=document.querySelector('#result'),button=document.querySelector('#run');
 button.onclick=async()=>{button.disabled=true;try{
  const check=(value,label)=>{if(!value)throw Error(label)},c=document.createElement('canvas');c.width=370;c.height=320;const g=c.getContext('2d');g.fillStyle='#906046';g.fillRect(60,50,250,220);

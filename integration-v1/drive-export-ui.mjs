@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261024-auth1';
-import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261106-chat1';
+import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261106-chat3';
 export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=createExportDrive,onSnapshot=()=>{}}={}){
  const params=new URLSearchParams(location.search),trial=params.get('selectionMode')==='trial';
  const tray=document.createElement('aside');tray.id='driveExport';tray.hidden=true;tray.setAttribute('aria-label','Google Driveの保存状況');
@@ -25,7 +25,7 @@ export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=cre
  async function encode(im){const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.data),im.width,im.height),0,0);return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(Error('透過仕上げのPNGを作れません。')),'image/png'));}
  async function save(tokenPromise){lock(true);reveal();links.replaceChildren();destinations.replaceChildren();progress.hidden=true;try{
   record('pending');status.textContent='Googleに接続中…';const token=await tokenPromise,drive=driveFactory({getToken:()=>token,...journal});
-  const formal=api.visible().filter(x=>x.candidateManifest&&x.technicalPassed===true);
+  const formal=api.visible().filter(x=>(x.candidateManifest||x.crop?.importedReview)&&x.technicalPassed===true);
   if(formal.length){
    const account=await drive.account(),groups=new Map();for(const item of formal){if(!item.characterId)throw Error('正式登録するキャラが不明です');if(!groups.has(item.characterId))groups.set(item.characterId,[]);groups.get(item.characterId).push(item);}
    for(const [characterId,items] of groups){status.textContent='検品済み画像を00_選抜待ちへ保存・照合中…';const result=await drive.registerPending(structuredClone(items),{accountId:account.permissionId,characterId,get:api.get,decode:api.decode});

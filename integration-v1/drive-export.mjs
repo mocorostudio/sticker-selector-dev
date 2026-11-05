@@ -1,4 +1,4 @@
-import {auditedCandidateBinding} from './inspection-core.mjs?v=20261103-audited2';
+import {auditedCandidateBinding,reviewedCandidateBinding} from './inspection-core.mjs?v=20261106-chat3';
 import {completeSelection} from './selection-completion.mjs?v=20261024-save1';
 import {createPendingDrive,PENDING_SCHEMA,trialEligible} from './drive-pending.mjs?v=20261024-progress1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261103-audited2';
@@ -23,6 +23,7 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
   const row={imageId:item.imageId,number:item.sequenceLabel||'',candidateId:item.candidate||null,phrase:item.phrase||'',rating:confirmed?item.rating:null,comment:item.comment||'',revision:item.revision||null,confirmed,selectionHistory:structuredClone(item.selectionHistory||[]),technicalStatus:approved?'pass':'review'};
   if(confirmed&&item.rating==='x'&&!item.crop?.draftSelection){const original=await get(item.id);if(!original||original.type!=='image/png')throw Error('不採用画像の保存記録を照合できません。');row.sha256=await digest(original);}
   if(item.inspectionAudit){row.inspectionAudit=structuredClone(item.inspectionAudit);row.inspectionHistory=structuredClone(item.inspectionHistory||[]);}
+  if(item.crop?.importedReview)row.sourceProof={characterId:item.characterId,sha256:item.crop.importedReview.sha256,source:'reviewed-bundle'};
   if(item.crop?.trialSelection){row.purpose='selection-test-only';row.technicalStatus='review';row.qualityException=structuredClone(item.crop.trialSelection);}
   if(item.crop?.draftSelection===true){
    const proof=item.crop.pendingDrive,blob=await get(item.id);
@@ -78,9 +79,9 @@ export function createExportDrive({getToken,fetchImpl=globalThis.fetch,readJourn
    const staged=[];
    // Validate every image before the first write. Keep the exact inspected PNG bytes.
    for(const item of items){
-    if(item.characterId!==characterId||!item.technicalPassed||!item.candidateManifest||gate(item.crop)!=='pass')throw Error('正式照合と技術検品が必要です');
-    const blob=await get(item.id),binding=await auditedCandidateBinding(item,blob,current.master,{imageId:item.imageId,candidateId:item.candidate,phrase:item.phrase,pose:item.pose});
-    const qa=inspect(await decode(blob),item.crop.crossing),entry=item.candidateManifest.entries.find(e=>e.imageId===item.imageId);
+    if(item.characterId!==characterId||!item.technicalPassed||!item.candidateManifest&&!item.crop?.importedReview||gate(item.crop)!=='pass')throw Error('正式照合と技術検品が必要です');
+    const blob=await get(item.id),binding=item.candidateManifest?await auditedCandidateBinding(item,blob,current.master,{imageId:item.imageId,candidateId:item.candidate,phrase:item.phrase,pose:item.pose}):await reviewedCandidateBinding(item,blob,current.master);
+    const qa=inspect(await decode(blob),item.crop.crossing),entry=item.candidateManifest?item.candidateManifest.entries.find(e=>e.imageId===item.imageId):{...item.crop};
     if(qa.automatic!=='pass'||!entry||entry.pngSha256!==binding.sha256||entry.candidateId!==item.candidate||entry.phrase!==item.phrase||entry.pose!==item.pose||item.crop.candidateId!==item.candidate||item.crop.phrase!==item.phrase||item.crop.pose!==item.pose||item.crop.pngSha256!==binding.sha256||!/^[-\w]+\.png$/.test(item.crop.filename))throw Error('正式記録と実PNGが不一致');
     staged.push({item,blob,sha:binding.sha256});
    }

@@ -2,12 +2,13 @@ import {initBulkFormal} from './bulk-formal.mjs?v=20261106-batch1';
 import {stageCandidateAssignments} from './inspection-core.mjs?v=20261104-report1';
 import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261104-report1';
 import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261104-report1';
-import {initInspection} from './inspection-ui.mjs?v=20261104-report1';
+import {initInspection} from './inspection-ui.mjs?v=20261106-chat3';
 import {initSubmission} from './submission-ui.mjs?v=20261104-report1';
 import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261104-report1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261106-chat1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261106-chat3';
 import {initDrivePending} from './drive-pending-ui.mjs?v=20261030-reviewlabels1';
+import {gate} from './crop-v9/core.mjs';
 export function initWorkflow(api){
  initInspection(api);
  const $=id=>document.getElementById(id),frame=$('cropFrame'),submission=initSubmission(api);let importing=false;
@@ -15,7 +16,7 @@ export function initWorkflow(api){
  const guideText=document.createElement('span'),guideAction=document.createElement('button');guideAction.style.cssText='margin-left:10px;min-height:40px;border:2px solid #175e40;border-radius:8px;background:#fff;color:#175e40;font-weight:bold';guide.append(guideText,guideAction);document.querySelector('.workflow-tabs').after(guide);
  function nextGuide(screen){
   if(screen==='crop'){guideText.textContent='次：切り出した画像を技術検品へ。';guideAction.textContent='選抜・検品へ';guideAction.onclick=()=>show('selection');}
-  else if(screen==='selection'){const images=api.visible().filter(x=>x.origin==='crop-local');const pending=images.filter(x=>x.inspectionAudit?.decision!=='pass'||x.inspectionAudit?.imageId!==x.imageId).length;guideText.textContent=pending?'次：技術検品（未合格・未確認 '+pending+'枚）。選抜より先に確認します。':'次：選抜結果を保存して申請用40枚を確定。';guideAction.textContent=pending?'技術検品を開く':'申請用へ';guideAction.onclick=()=>pending?$('inspectImages')?.click():show('submission');}
+  else if(screen==='selection'){const images=api.visible().filter(x=>x.origin==='crop-local');if(!images.length){guideText.textContent='次：Driveの候補か、チャットで作った検品済みZIPを読み込みます。';guideAction.textContent='候補を読み込む';guideAction.onclick=()=>pending.open();return;}const remaining=images.filter(x=>!(x.technicalPassed===true&&gate(x.crop||{})==='pass')&&(x.inspectionAudit?.decision!=='pass'||x.inspectionAudit?.imageId!==x.imageId)).length;guideText.textContent=remaining?'次：技術検品（未合格・未確認 '+remaining+'枚）。選抜より先に確認します。':'次：好みの画像を選び、選抜結果を保存して申請用40枚を確定。';guideAction.textContent=remaining?'技術検品を開く':'申請用へ';guideAction.onclick=()=>remaining?$('inspectImages')?.click():show('submission');}
   else{guideText.textContent='次：40枚確定後は並べ替え・メイン／タブ確認・新しい申請用ZIP保存。';guideAction.textContent='修正済みZIPを並べ替え';guideAction.onclick=()=>location.assign('reorder-finished.html');}
  }
  function show(screen,{preserve=false}={}){const crop=screen==='crop',selection=screen==='selection';frame.hidden=!crop;$('selectionScreen').hidden=!selection;submission.host.hidden=screen!=='submission';for(const [id,name] of [['cropTab','crop'],['selectionTab','selection'],['submissionTab','submission']])$(id).setAttribute('aria-selected',String(screen===name));if(selection&&!preserve)api.redraw();if(screen==='submission')submission.open();nextGuide(screen);window.dispatchEvent(new Event('resize'));}
@@ -25,6 +26,7 @@ export function initWorkflow(api){
  const pending=initDrivePending(api,{onLoaded:r=>{show('selection',{preserve:true});$('driveStatus').textContent=r.character.name+'：'+r.count+'枚をDriveから読み込みました。'+(r.draft?'仮選抜です。技術検品は未確定で、申請用には進めません。':r.entries.some(e=>e.record.trialSelection)?'試用画像を含みます。申請用の技術合格ではありません。':'検品済みです。')+'◯・△・✕を選んでください。'+(r.skipped?' 検品記録のない画像 '+r.skipped+'枚は読み込んでいません。':'');}});
  initBulkFormal(api,pending);
  $('loadPending').textContent='Driveから全候補を読み込む・再選抜';$('loadPending').onclick=pending.open;
+ const reviewedZip=document.createElement('button');reviewedZip.id='loadReviewedZip';reviewedZip.textContent='検品済みZIPを読み込む';reviewedZip.title='先にGoogle接続と対象キャラを確認してください。PNGと検品記録を再照合します。';reviewedZip.onclick=()=>{if(!api.isBusy())$('files').click();};document.querySelector('#selectionScreen .actions').append(reviewedZip);
  const driveExport=initDriveExport(api,{onSnapshot:()=>{if(new URLSearchParams(location.search).get('selectionMode')==='trial')show('submission');}});
  $('sync').hidden=true;$('mode').textContent='切り出し → 選抜 → Google Driveに保存';
  $('driveStatus').textContent=new URLSearchParams(location.search).has('character')?'このキャラの画像だけを表示します。画像がなければ「Driveの選抜待ちを読み込む」を押してください。':'◯・△・✕を選び、「Google Driveに保存」を押してください。';

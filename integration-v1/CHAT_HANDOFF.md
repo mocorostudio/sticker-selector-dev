@@ -49,8 +49,8 @@ limitation clearly stated. Never put private PNGs in this public repository.
 ## Final user import
 
 In the existing workflow, connect Google and select the target character first.
-In ②選抜, expand the existing import panel and choose the reviewed ZIP with
-`PNG・ZIPを読み込む`. The reader fetches the character's live native master and
+In ②選抜, choose the reviewed ZIP with `検品済みZIPを読み込む` (the existing
+`PNG・ZIPを読み込む` input also remains available). The reader fetches the character's live native master and
 verifies the reference, exact text/pose, every PNG hash and pixel QA. It preserves
 existing image IDs, votes, comments and history when the same ZIP is reimported.
 The imported technical record is shown as inspected only while its hash and
@@ -63,7 +63,12 @@ that the user's browser is already signed in. No browser tokens are embedded.
 Selected imported PNGs can use the existing grouped Drive save and downstream
 submission workflow; their verified character ID resolves the destination even
 when their source is a local reviewed ZIP. Exact bytes are rechecked before
-export. Candidate preferences remain independent of technical approval.
+export. The normal user-side Drive save registers the reviewed candidates in
+00 and writes the native selection manifest before saving the user's selected
+01/02 copies. This reuses the existing resumable upload/readback transport, so
+later Drive loading does not depend on the original chat browser. A newer
+explicit review/failure revokes eligibility; an old ZIP cannot erase it.
+Candidate preferences remain independent of technical approval.
 
 ## Completion labels
 

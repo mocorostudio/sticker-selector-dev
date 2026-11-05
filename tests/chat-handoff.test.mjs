@@ -4,7 +4,10 @@ import {prepareChatHandoff} from '../integration-v1/chat-handoff.mjs';
 import {reviewedBundle,reviewedBundleFromDrive,importReviewedCrops} from '../integration-v1/reviewed-bundle.mjs';
 import {importCrops,confirmLocal} from '../integration-v1/crop-handoff.mjs';
 import {inspectionSummary} from '../integration-v1/inspection-summary.mjs';
-import {prepareExport,groupCharacters} from '../integration-v1/drive-export.mjs';
+import {prepareExport,groupCharacters,createExportDrive} from '../integration-v1/drive-export.mjs';
+import {createPendingDrive} from '../integration-v1/drive-pending.mjs';
+import {CandidateExportFixture} from './candidate-export-fixture.mjs';
+import {savedEvaluation} from '../integration-v1/reselection.mjs';
 import {pngHash} from '../integration-v1/inspection-core.mjs';
 import {setup,blob,pixels} from './bulk-formal-fixture.mjs';
 async function fixture(n=81){
@@ -54,4 +57,15 @@ test('reviewed upgrade restores existing state when persistence fails',async()=>
  const f=await fixture(9),built=await prepareChatHandoff(f.input,f),zip=new JSZip();zip.file('technical-review.json',JSON.stringify(built.manifest));for(const e of built.accepted)zip.file(e.record.filename,e.png);
  const entries=await reviewedBundle(zip,f.input.master,{decode:f.decode});let items=[];const adapter={items:()=>items,get:f.get,decode:f.decode,write:async x=>items.push(x),persist:async()=>{throw Error('quota')}};
  await importCrops(entries,adapter,f.input.master);items[0].technicalPassed=false;const before=structuredClone(items);await assert.rejects(importReviewedCrops(entries,adapter,f.input.master,'char'),/quota/);assert.deepEqual(items,before);
+});
+test('reviewed ZIP goes through pending Drive save, retry, reader reload and selection-result matching without fabricated browser audits',async()=>{
+ const f=await fixture(9),built=await prepareChatHandoff(f.input,f),zip=new JSZip();zip.file('technical-review.json',JSON.stringify(built.manifest));for(const e of built.accepted)zip.file(e.record.filename,e.png);
+ const entries=await reviewedBundle(zip,f.input.master,{decode:f.decode});let items=[];const adapter={items:()=>items,get:f.get,decode:f.decode,persist:()=>{},write:async x=>{x.characterId='char';items.push(x)}};await importReviewedCrops(entries,adapter,f.input.master,'char');
+ const remote=new CandidateExportFixture();remote.files.set('pending',{id:'pending',name:'00_選抜待ち',mimeType:'application/vnd.google-apps.folder',parents:['char']});remote.files.set('master',{id:'master',name:'Synthetic_Master',mimeType:'application/vnd.google-apps.spreadsheet',parents:['char'],modifiedTime:f.input.masterModifiedTime});
+ const fetchImpl=async(url,options={})=>{if(url.startsWith('https://sheets.googleapis.com'))return Response.json(url.includes('/values/')?{values:[['ID','分類','セリフ（厳密）','文字なしテーマ','基本ポーズ','優先度','メモ'],...f.input.master.map(m=>[m.candidateId,'',m.phrase,'',m.pose,'',''])]}:{sheets:[{properties:{title:'候補81',gridProperties:{rowCount:82,columnCount:7}}}]});return remote.fetch(url,options);};
+ const journal=new Map(),drive=createExportDrive({getToken:()=> 'fixture',fetchImpl,readJournal:k=>journal.get(k),writeJournal:(k,v)=>journal.set(k,v)}),options={characterId:'char',accountId:'account',get:f.get,decode:f.decode};
+ assert.ok(items.every(x=>!x.inspectionAudit&&!x.candidateManifest));const saved=await drive.registerPending(items,options);assert.equal(saved.entries.length,9);const posts=remote.posts;await drive.registerPending(items,options);assert.equal(remote.posts,posts);
+ const reloaded=await createPendingDrive({getToken:()=> 'fixture',fetchImpl}).load('char',{decode:f.decode});assert.equal(reloaded.entries.length,9);
+ items[0].touched=true;items[0].rating='o';items[0].revision='vote';confirmLocal(items);const plan=await prepareExport(items,{get:f.get,decode:f.decode});const doc=JSON.parse(await plan.manifest.blob.text());assert.equal(savedEvaluation(doc,reloaded.entries[0].record,'char').rating,'o');
+ items[0].inspectionAudit={decision:'fail',reviewedAt:'2026-11-06T00:00:00Z',comment:'new defect'};await assert.rejects(drive.registerPending(items,options),/新しい検品結果/);assert.equal(remote.posts,posts);
 });

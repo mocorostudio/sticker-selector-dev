@@ -16,6 +16,17 @@ export function inspectionDecision(audit,decision,checks,comment='',at=new Date(
 }
 export async function verifyInspection(item,blob){const a=item.inspectionAudit;return !!a&&a.identity===inspectionIdentity(item)&&a.sha256===await pngHash(blob);}
 
+// Existing reviewed-ZIP evidence is already an explicit per-image visual
+// decision. Rebind those unchanged bytes to the fresh master without inventing
+// a new visual audit or requiring the operator's browser to have created it.
+export async function reviewedCandidateBinding(item,blob,master){
+ const r=item?.crop,m=master?.find(x=>x.candidateId===item?.candidate),proof=r?.importedReview;
+ if(!m||m.phrase!==item.phrase||m.pose!==item.pose||r?.imageId!==item.imageId||r.candidateId!==item.candidate||r.phrase!==item.phrase||r.pose!==item.pose)throw Error('検品済みZIPと最新マスターが不一致');
+ if(proof?.source!=='reviewed-bundle'||!blob||blob.type!=='image/png'||proof.sha256!==await pngHash(blob)||r.pngSha256!==proof.sha256||r.decision!=='pass'||r.qa?.automatic!=='pass'||r.crossing!==false||r.review?.length!==visualChecks.length||!r.review.every(x=>x===true)||r.inspection?.scope!=='actual-source'||!Number.isFinite(Date.parse(r.inspection?.at)))throw Error('検品済みZIPの実画像・検品証拠が不一致');
+ const a=item.inspectionAudit;if(a?.reviewedAt&&(!await verifyInspection(item,blob)||a.decision!=='pass'||a.qa?.automatic!=='pass'||a.checks?.length!==visualChecks.length||!a.checks.every(x=>x===true)))throw Error('新しい検品結果は技術合格ではありません');
+ return {imageId:item.imageId,candidateId:item.candidate,phrase:item.phrase,pose:item.pose,sha256:proof.sha256};
+}
+
 // Derive candidate binding only from the inspected image's unchanged audit.
 export async function auditedCandidateBinding(item,blob,master,assignment){
  const m=master?.find(x=>x.candidateId===assignment?.candidateId),a=item?.inspectionAudit;
