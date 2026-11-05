@@ -1,5 +1,5 @@
 import {googleTestAuth} from './google-auth.mjs?v=20261024-auth1';
-import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261103-audited2';
+import {prepareExport,confirmForExport,createExportDrive,groupCharacters,exportSummary} from './drive-export.mjs?v=20261106-chat1';
 export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=createExportDrive,onSnapshot=()=>{}}={}){
  const params=new URLSearchParams(location.search),trial=params.get('selectionMode')==='trial';
  const tray=document.createElement('aside');tray.id='driveExport';tray.hidden=true;tray.setAttribute('aria-label','Google Driveの保存状況');
@@ -38,7 +38,7 @@ export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=cre
   onSnapshot();status.textContent='選択は端末に保存済み。Driveの保存先を確認中…';const account=await drive.account();
   let manual;if(fallback.value.trim()){const u=new URL(fallback.value.trim());if(u.origin!=='https://drive.google.com'||!/^\/drive\/folders\/[-\w]+\/?$/.test(u.pathname))throw Error('Google DriveのキャラフォルダURLを入力してください。');manual=await drive.characterFolder(u.pathname.split('/')[3]);}
   if(!manual&&formal.length){const chars=[...new Set(formal.map(x=>x.characterId))];if(chars.length===1)manual=await drive.characterFolder(chars[0]);}
-  const groups=await groupCharacters(snapshot,{resolve:drive.character,fallback:manual});
+  const groups=await groupCharacters(snapshot,{resolve:drive.character,fallback:manual,resolveCharacter:drive.characterFolder});
   // Validate all characters before remote writes; do not promote technical review images.
   for(const g of groups){g.plan=await prepareExport(g.items,{get:api.get,decode:api.decode,encode,preparedCache,onProgress:p=>{status.textContent='保存する画像を確認中 '+p.done+'／'+p.total+'枚。申請候補を選べます。';}});const li=document.createElement('li');li.textContent=g.character.name+' ／ '+exportSummary([g.plan]);destinations.append(li);}
   const total=groups.reduce((n,g)=>n+g.plan.images.length,0);let finished=0;progress.hidden=false;progress.max=Math.max(total,1);progress.value=0;

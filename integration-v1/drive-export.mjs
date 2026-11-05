@@ -34,6 +34,7 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
   if(confirmed&&['o','h'].includes(item.rating)){
    if(!approved&&!trial)throw Error((row.number||item.name)+'は技術検品・試用許可を照合できません。');
    id(item.imageId);let blob=await get(item.id);if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error((row.number||item.name)+'のPNGを読み込めません。');
+   if(item.crop?.importedReview&&await digest(blob)!==item.crop.importedReview.sha256)throw Error('検品済みZIPのPNGが変更されています。再検品してください。');
 if(item.candidateManifest)await auditedCandidateBinding(item,blob,[{candidateId:item.candidate,phrase:item.phrase,pose:item.pose}],{imageId:item.imageId,candidateId:item.candidate,phrase:item.phrase,pose:item.pose});   total+=blob.size;if(total>150000000)throw Error('一度の保存は150MB以下にしてください。');
    const cacheKey=preparedCache?await digest(blob)+':'+!!item.crop?.crossing+':'+row.technicalStatus:null;let prepared=preparedCache?.get(cacheKey);
    if(!prepared){const decoded=await decode(blob),cleaned=trial?decoded:cleanTransparency(decoded);
@@ -136,9 +137,9 @@ if(matches.length===1&&matches[0].appProperties?.submissionSet){const file=match
 }
 
 export function sourceFileId(item){return item.crop?.pendingDrive?.archiveFileId||item.crop?.pendingDrive?.manifestFileId||item.crop?.driveSource?.fileId||[...(item.crop?.history||[])].reverse().find(h=>h.action==='read-drive-source'&&h.fileId)?.fileId||null;}
-export async function groupCharacters(items,{resolve,fallback}){
+export async function groupCharacters(items,{resolve,fallback,resolveCharacter}){
  const groups=new Map(),cache=new Map();
- for(const item of items.filter(x=>x.origin==='crop-local')){const source=sourceFileId(item);let character;if(source){if(!cache.has(source))cache.set(source,await resolve(source));character=cache.get(source);}else character=fallback;if(!character?.id)throw Error('元画像の場所が不明です。キャラフォルダを指定してください。');if(!groups.has(character.id))groups.set(character.id,{character,items:[]});groups.get(character.id).items.push(item);}
+ for(const item of items.filter(x=>x.origin==='crop-local')){const source=sourceFileId(item);let character;if(item.crop?.importedReview&&item.characterId&&resolveCharacter){const key='character:'+item.characterId;if(!cache.has(key))cache.set(key,await resolveCharacter(item.characterId));character=cache.get(key);if(character?.id!==item.characterId)throw Error('検品済みZIPのキャラ保存先が一致しません');}else if(source){if(!cache.has(source))cache.set(source,await resolve(source));character=cache.get(source);}else character=fallback;if(!character?.id)throw Error('元画像の場所が不明です。キャラフォルダを指定してください。');if(!groups.has(character.id))groups.set(character.id,{character,items:[]});groups.get(character.id).items.push(item);}
  if(!groups.size)throw Error('先に切り出した画像を選抜へ送ってください。');return [...groups.values()];
 }
 

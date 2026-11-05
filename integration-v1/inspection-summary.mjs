@@ -17,7 +17,7 @@ export async function inspectionSummary(item,blob){
   return summary('unknown',detail.length?detail:['検品記録が完了していません。'],'inspection');
  }
  const r=item.crop,proof=r?.pendingDrive;
- if(r&&r.imageId===item.imageId&&r.candidateId===item.candidate&&r.phrase===item.phrase&&r.pose===item.pose&&proof?.sha256===sha&&r.inspection?.scope==='actual-source'){
+ if(r&&r.imageId===item.imageId&&r.candidateId===item.candidate&&r.phrase===item.phrase&&r.pose===item.pose&&(proof?.sha256===sha||r.importedReview?.source==='reviewed-bundle'&&r.importedReview.sha256===sha)&&r.inspection?.scope==='actual-source'){
   const detail=reasons(r.inspection?.unresolved,r.inspection?.reasons,r.reviewReason,r.inspection?.comment,r.qa?.issues);
   if(r.decision==='fail')return summary('fail',detail.length?detail:['理由未記録。検品画面で確認してください。'],'source');
   if(gate(r)==='pass')return summary('pass',detail,'source');

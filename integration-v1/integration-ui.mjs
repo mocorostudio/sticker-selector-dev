@@ -6,7 +6,7 @@ import {initInspection} from './inspection-ui.mjs?v=20261104-report1';
 import {initSubmission} from './submission-ui.mjs?v=20261104-report1';
 import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261104-report1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261106-batch1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261106-chat1';
 import {initDrivePending} from './drive-pending-ui.mjs?v=20261030-reviewlabels1';
 export function initWorkflow(api){
  initInspection(api);

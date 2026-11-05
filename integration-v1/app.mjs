@@ -1,9 +1,9 @@
-import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261030-reviewlabels1';
+import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261106-chat1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261104-bulk1';
-import {initWorkflow} from './integration-ui.mjs?v=20261106-batch1';
+import {initWorkflow} from './integration-ui.mjs?v=20261106-chat1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261104-bulk1';
-import {reviewedBundleFromDrive} from './reviewed-bundle.mjs?v=20261106-batch1';
+import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-chat1';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261023-merge1';
 import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
@@ -81,7 +81,7 @@ async function loadZip(file,ids){
  if(workflowLocal&&zip.file('technical-review.json')){
   const {entries,current}=await reviewedBundleFromDrive(zip,{characterId:activeCharacter,masterForCharacter:workflow?.masterForCharacter,decode:decodeCropPNG});
   const master=current.master;
-  const result=await importCrops(entries,{items:()=>state.items,get,decode:decodeCropPNG,write:async(item,blob)=>{item.characterId=current.characterId;await put(item.id,blob);state.items.push(item);try{save();}catch(e){state.items=state.items.filter(x=>x!==item);throw e;}}},master);
+  const result=await importReviewedCrops(entries,{items:()=>state.items,get,decode:decodeCropPNG,persist:save,write:async(item,blob)=>{item.characterId=current.characterId;await put(item.id,blob);state.items.push(item);try{save();}catch(e){state.items=state.items.filter(x=>x!==item);throw e;}}},master,current.characterId);
   ids.push(...result.ids);importErrors.push(...result.errors.map(e=>e.message));return;
  }
  for(const entry of Object.values(zip.files)){

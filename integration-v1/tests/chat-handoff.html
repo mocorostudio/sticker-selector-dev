@@ -1,0 +1,36 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>チャット引き渡し・隔離テスト</title>
+<h1>チャット生成ZIPから選抜への引き渡し</h1><p>81枚の合成四角形を使用。実画像・Google認証・本番選抜は操作しません。</p>
+<button id="run">隔離テストを実行</button><pre id="result" role="status">未実施</pre>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script type="module">
+import {prepareChatHandoff} from '../chat-handoff.mjs';
+import {reviewedBundleFromDrive,importReviewedCrops} from '../reviewed-bundle.mjs?v=20261106-chat1';
+import {importCrops,confirmLocal} from '../crop-handoff.mjs';
+import {pngHash} from '../inspection-core.mjs';
+import {inspectionSummary} from '../inspection-summary.mjs?v=20261106-chat1';
+import {prepareExport,groupCharacters} from '../drive-export.mjs?v=20261106-chat1';
+const out=document.querySelector('#result'),button=document.querySelector('#run');
+button.onclick=async()=>{button.disabled=true;try{
+ const check=(value,label)=>{if(!value)throw Error(label)},c=document.createElement('canvas');c.width=370;c.height=320;const g=c.getContext('2d');g.fillStyle='#906046';g.fillRect(60,50,250,220);
+ const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png')),sha256=await pngHash(blob);
+ const decode=async b=>{const im=await createImageBitmap(b),c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);im.close();return g.getImageData(0,0,c.width,c.height)};
+ const master=Array.from({length:81},(_,i)=>({candidateId:'C'+i,phrase:'合成図形'+i,pose:'四角形'}));
+ const entries=master.map((m,i)=>({record:{...m,imageId:'chatFixture'+i,filename:'chatFixture'+i+'.png',sourceId:'source'+Math.floor(i/9),attemptId:'test'+i,crossing:false,decision:'pass',qa:{automatic:'pass',issues:[]},review:Array(9).fill(true),inspection:{scope:'actual-source',at:'2026-11-05T00:00:00Z',method:'合成四角形テスト'}},sha256}));
+ for(const [i,status] of [[0,'fail'],[1,'review'],[2,'unknown']]){entries[i].record.decision=status;entries[i].reason='合成の未合格理由';}
+ const input={schema:'animal-stickers-chat-handoff/v1',characterId:'fixture',masterReference:'https://docs.google.com/spreadsheets/d/fixture/edit',masterSheet:'候補',masterModifiedTime:'2026-11-05T00:00:00Z',master,entries};
+ const built=await prepareChatHandoff(input,{get:async()=>blob,decode});check(built.accepted.length===78&&built.excluded.length===3,'個別合否の分離');
+ const zip=new JSZip();zip.file('technical-review.json',JSON.stringify(built.manifest));for(const e of built.accepted)zip.file(e.record.filename,e.png);
+ const packed=await zip.generateAsync({type:'uint8array'}),opened=await JSZip.loadAsync(packed,{checkCRC32:true});
+ const current={characterId:'fixture',masterReference:input.masterReference,masterSheet:input.masterSheet,modifiedTime:input.masterModifiedTime,master};
+ const read=await reviewedBundleFromDrive(opened,{characterId:'fixture',masterForCharacter:async()=>current,decode});
+ let items=[];const images=new Map(),adapter={items:()=>items,get:async id=>images.get(id),decode,persist:()=>{},write:async(item,b)=>{item.characterId='fixture';items.push(item);images.set(item.id,b)}};
+ const imported=await importCrops(read.entries,adapter,master);check(imported.added===78&&!imported.errors.length,'アプリの正式読込');check((await inspectionSummary(items[0],blob)).status==='pass','検品済み表示');
+ items[0].technicalPassed=false;items[0].inspectionAudit={decision:'review',reviewedAt:'2026-11-04T00:00:00Z',comment:'old draft'};await importReviewedCrops(read.entries,adapter,master,'fixture');check(items[0].technicalPassed===true&&items[0].reviewedImportHistory.length===1,'既存下書きの更新');
+ items[0].touched=true;items[0].rating='o';items[0].revision='user-choice';items[0].comment='保持するコメント';confirmLocal(items);
+ const exported=await prepareExport(items,{get:adapter.get,decode});check(exported.images.length===1&&exported.images[0].technicalStatus==='pass','選抜後の保存計画');
+ const again=await importReviewedCrops(read.entries,adapter,master,'fixture');check(again.existing===78&&items[0].comment==='保持するコメント'&&items[0].touched,'再読込の選抜保持');
+ const groups=await groupCharacters(items,{resolveCharacter:async id=>({id,name:'fixture'})});check(groups.length===1,'保存先対応');
+ const changed=new Blob(['changed'],{type:'image/png'});check((await inspectionSummary(items[0],changed)).status==='unknown','変更画像の未確認化');
+ out.textContent='PASS\nチャット側の共通処理で81候補を検証\n合格78枚だけの検品済みZIPを作成\nアプリと同じ読込処理でPNG・マスターを照合\n検品済み表示・選抜後の保存計画に成功\n再読込で◯・コメント・履歴を保持\n変更された画像を未確認に戻す\n実Google保存・実画像・iPhoneは未検証';
+ }catch(e){out.textContent='FAIL: '+e.message;}finally{button.disabled=false;}};
+</script></html>
