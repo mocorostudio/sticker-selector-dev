@@ -37,3 +37,24 @@ export function defaultAllSelected(draft,files,{preserveExisting=false}={}){
  for(const f of files)if(!seen.has(f.id)){if(!next.assignments[f.id])next.assignments[f.id]=next.sets[0].id;seen.add(f.id);}
  next.seenCandidateIds=[...seen];return next;
 }
+
+/** Keep historical duplicate selections recoverable without counting them as current candidates.
+ * Only reconcile when the replacement is the same character/candidate in a reviewed cohort.
+ * Any image in use as main/tab remains an explicit conflict, never silently reassigned.
+ */
+export function isolateLegacyTrialAssignments(draft,files,items){
+ const result=structuredClone(draft),valid=new Set(files.map(f=>f.id));
+ const currentByCandidate=new Map();
+ for(const f of files){if(f.candidateId){if(currentByCandidate.has(f.candidateId))return result;currentByCandidate.set(f.candidateId,f.id);}}
+ if(!currentByCandidate.size)return result;
+ const past=new Map(items.map(i=>[i.imageId,i])),artworkIds=new Set(Object.values(result.artwork||{}).flatMap(a=>[a.mainId,a.tabId]).filter(Boolean));
+ for(const [id,setId] of Object.entries(result.assignments||{})){
+  if(valid.has(id)||artworkIds.has(id))continue;
+  const source=past.get(id),replacement=source?.candidate&&currentByCandidate.get(source.candidate);
+  if(!replacement||replacement===id)continue;
+  result.legacyDuplicateAssignments??={};
+  if(!result.legacyDuplicateAssignments[id])result.legacyDuplicateAssignments[id]={setId,candidateId:source.candidate,replacementImageId:replacement};
+  delete result.assignments[id];
+ }
+ return result;
+}
