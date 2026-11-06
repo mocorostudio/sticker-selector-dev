@@ -52,7 +52,7 @@ export function isolateLegacyTrialAssignments(draft,files,items,{completeReviewe
  // A full reviewed cohort has unique candidate IDs, all in one character, and
  // enough records to rule out an incremental first-page import.
  const review=completeReviewedCohort.filter(x=>x.crop?.reviewDisplay===true);
- const complete=review.length>=81&&review.length===completeReviewedCohort.length&&review.every(x=>x.imageId&&x.candidate&&x.touched===true)&&new Set(review.map(x=>x.candidate)).size===review.length&&new Set(review.map(x=>x.imageId)).size===review.length;
+ const complete=review.length>=81&&review.length===completeReviewedCohort.length&&review.every(x=>x.imageId&&x.candidate&&/^GDA\d{3}$/.test(x.candidate))&&new Set(review.map(x=>x.candidate)).size===review.length&&new Set(review.map(x=>x.imageId)).size===review.length;
  const cohortIds=new Set(review.map(x=>x.imageId));
  const cohortCandidates=new Set(review.map(x=>x.candidate));
  for(const [id,setId] of Object.entries(result.assignments||{})){
@@ -63,7 +63,7 @@ export function isolateLegacyTrialAssignments(draft,files,items,{completeReviewe
   // retaining an excluded or otherwise missing image in the set count.
   if(!complete&&!replacement)continue;
   if(complete&&cohortIds.has(id))continue; // Guard against missing current files.
-  if(complete&&source?.candidate&&!cohortCandidates.has(source.candidate))continue;
+  if(complete&&source?.candidate&&!cohortCandidates.has(source.candidate))continue; // Candidate from another cohort: do not alter.
   if(replacement===id)continue;
   result.legacyDuplicateAssignments??={};
   if(!result.legacyDuplicateAssignments[id])result.legacyDuplicateAssignments[id]={
