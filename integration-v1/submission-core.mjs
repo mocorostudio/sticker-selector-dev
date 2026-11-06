@@ -52,7 +52,7 @@ export function isolateLegacyTrialAssignments(draft,files,items,{completeReviewe
  // A full reviewed cohort has unique candidate IDs, all in one character, and
  // enough records to rule out an incremental first-page import.
  const review=completeReviewedCohort.filter(x=>x.crop?.reviewDisplay===true);
- const complete=review.length>=81&&review.length===completeReviewedCohort.length&&review.every(x=>x.imageId&&x.candidate&&/^GDA\d{3}$/.test(x.candidate))&&new Set(review.map(x=>x.candidate)).size===review.length&&new Set(review.map(x=>x.imageId)).size===review.length;
+ const complete=review.length>=81&&review.length===completeReviewedCohort.length&&review.every(x=>x.imageId&&x.candidate&&/^[-\w]{2,100}$/.test(x.candidate))&&new Set(review.map(x=>x.candidate)).size===review.length&&new Set(review.map(x=>x.imageId)).size===review.length;
  const cohortIds=new Set(review.map(x=>x.imageId));
  const cohortCandidates=new Set(review.map(x=>x.candidate));
  for(const [id,setId] of Object.entries(result.assignments||{})){
