@@ -34,7 +34,7 @@ export function prepareTrialSubmission(draft,files,{characterId,id,at=new Date()
 export function defaultAllSelected(draft,files,{preserveExisting=false}={}){
  const next=structuredClone(draft);if(!next.sets.length)return next;
  const seen=new Set(next.seenCandidateIds||(preserveExisting?files.map(f=>f.id):[]));
- for(const f of files)if(!seen.has(f.id)){if(!next.assignments[f.id])next.assignments[f.id]=next.sets[0].id;seen.add(f.id);}
+ for(const f of files)if(!seen.has(f.id)){if(next.sets.length===1&&!next.assignments[f.id])next.assignments[f.id]=next.sets[0].id;seen.add(f.id);}
  next.seenCandidateIds=[...seen];return next;
 }
 
