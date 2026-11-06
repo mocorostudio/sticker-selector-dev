@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {startServer} from './server.mjs';
 const server=await startServer();let browser;
 try{
- browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});const page=await browser.newPage();await page.goto(server.url+'/integration-v1/');
+ browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});const page=await browser.newPage();await page.goto(server.url+'/integration-v1/workflow.html');
  const result=await page.evaluate(async()=>{
   const {finalizeTransparency}=await import('/integration-v1/final-transparency.mjs');
   const decode=async blob=>{const bm=await createImageBitmap(blob),c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const g=c.getContext('2d');g.drawImage(bm,0,0);bm.close();return g.getImageData(0,0,c.width,c.height);};
