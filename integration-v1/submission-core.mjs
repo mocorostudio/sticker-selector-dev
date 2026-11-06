@@ -42,18 +42,34 @@ export function defaultAllSelected(draft,files,{preserveExisting=false}={}){
  * Only reconcile when the replacement is the same character/candidate in a reviewed cohort.
  * Any image in use as main/tab remains an explicit conflict, never silently reassigned.
  */
-export function isolateLegacyTrialAssignments(draft,files,items){
+export function isolateLegacyTrialAssignments(draft,files,items,{completeReviewedCohort=[]}={}){
  const result=structuredClone(draft),valid=new Set(files.map(f=>f.id));
  const currentByCandidate=new Map();
  for(const f of files){if(f.candidateId){if(currentByCandidate.has(f.candidateId))return result;currentByCandidate.set(f.candidateId,f.id);}}
  if(!currentByCandidate.size)return result;
  const past=new Map(items.map(i=>[i.imageId,i])),artworkIds=new Set(Object.values(result.artwork||{}).flatMap(a=>[a.mainId,a.tabId]).filter(Boolean));
+ // Incomplete streaming loads must never purge an earlier user's set.
+ // A full reviewed cohort has unique candidate IDs, all in one character, and
+ // enough records to rule out an incremental first-page import.
+ const review=completeReviewedCohort.filter(x=>x.crop?.reviewDisplay===true);
+ const complete=review.length>=81&&review.length===completeReviewedCohort.length&&review.every(x=>x.imageId&&x.candidate&&x.touched===true)&&new Set(review.map(x=>x.candidate)).size===review.length&&new Set(review.map(x=>x.imageId)).size===review.length;
+ const cohortIds=new Set(review.map(x=>x.imageId));
+ const cohortCandidates=new Set(review.map(x=>x.candidate));
  for(const [id,setId] of Object.entries(result.assignments||{})){
   if(valid.has(id)||artworkIds.has(id))continue;
   const source=past.get(id),replacement=source?.candidate&&currentByCandidate.get(source.candidate);
-  if(!replacement||replacement===id)continue;
+  // Preserve unmatched history when no full authoritative cohort is loaded.
+  // With a verified complete review, all older IDs are archived instead of
+  // retaining an excluded or otherwise missing image in the set count.
+  if(!complete&&!replacement)continue;
+  if(complete&&cohortIds.has(id))continue; // Guard against missing current files.
+  if(complete&&source?.candidate&&!cohortCandidates.has(source.candidate))continue;
+  if(replacement===id)continue;
   result.legacyDuplicateAssignments??={};
-  if(!result.legacyDuplicateAssignments[id])result.legacyDuplicateAssignments[id]={setId,candidateId:source.candidate,replacementImageId:replacement};
+  if(!result.legacyDuplicateAssignments[id])result.legacyDuplicateAssignments[id]={
+   setId,candidateId:source?.candidate||null,replacementImageId:replacement||null,
+   reason:complete?'superseded-by-complete-review':'superseded-by-current-reviewed-candidate'
+  };
   delete result.assignments[id];
  }
  return result;
