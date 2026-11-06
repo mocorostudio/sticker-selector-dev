@@ -19,7 +19,7 @@ export function validateSubmission(operation){
 }
 
 // Trial planning never asserts technical approval and cannot be sent to move().
-export function trialCandidates(items,{includeHeld=false}={}){return items.filter(x=>x.origin==='crop-local'&&x.touched===true&&(x.rating==='o'||includeHeld&&x.rating==='h')&&validId(x.imageId)).map(x=>({id:x.imageId,phrase:x.phrase||'',name:x.sequenceLabel?(x.sequenceLabel+' '+(x.phrase||'')):x.name,mimeType:'image/png',localItemId:x.id,trial:true,sourceRating:x.rating,fromHold:x.rating==='h',technicalStatus:x.technicalPassed===true?'pass':'review'}));}
+export function trialCandidates(items,{includeHeld=false}={}){return items.filter(x=>x.origin==='crop-local'&&x.touched===true&&(x.rating==='o'||includeHeld&&x.rating==='h')&&validId(x.imageId)).map(x=>({id:x.imageId,candidateId:x.candidate||null,phrase:x.phrase||'',name:x.sequenceLabel?(x.sequenceLabel+' '+(x.phrase||'')):x.name,mimeType:'image/png',localItemId:x.id,trial:true,sourceRating:x.rating,fromHold:x.rating==='h',technicalStatus:x.technicalPassed===true?'pass':'review'}));}
 export function prepareTrialSubmission(draft,files,{characterId,id,at=new Date().toISOString()}){
  if(!validId(characterId)||!validId(id)||!Array.isArray(draft.sets)||!draft.sets.length||draft.sets.length>20)throw Error('セットを作成してください。');
  const counts=setCounts(draft),setIds=new Set(counts.map(s=>s.id));if(setIds.size!==counts.length||counts.some(s=>!validId(s.id)||!SET_COUNTS.includes(s.target)||!s.name?.trim()||s.name.length>60))throw Error('セット名・目標枚数を確認してください。');
