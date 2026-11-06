@@ -1,11 +1,12 @@
-# Chat-operated handoff, user-operated final import
+# Chat-operated review and existing Drive handoff
 
-The standard producer does not require an authenticated browser. The operator
-fetches the production rules, procedure, current character master and actual PNGs
-through the connected tools, processes the PNGs in Python, and records the
-individual visual decisions. The final user imports the reviewed ZIP in the
-existing app. Existing native `selection-manifest_*.json` plus individual Drive
-PNGs remain supported; their format and original records are unchanged.
+Work and chat now use the same crop/transparency command described in
+[CROP_WORK_CHAT.md](CROP_WORK_CHAT.md). Run that command before individual visual
+review; it does not grant technical approval. The default delivery route is the
+existing direct Drive loader described in procedure 21, including all-candidate
+review display with separate technical reasons. Users do not download/unzip a
+handoff ZIP. The reviewed-ZIP command below remains a compatibility tool for
+already inspected pass PNGs; it is not the crop/transparency implementation.
 
 ## Produce a reviewed ZIP
 
@@ -48,13 +49,14 @@ limitation clearly stated. Never put private PNGs in this public repository.
 
 ## Final user import
 
-In the existing workflow, connect Google and select the target character first.
-In ②選抜, choose the reviewed ZIP with `検品済みZIPを読み込む` (the existing
-`PNG・ZIPを読み込む` input also remains available). The reader fetches the character's live native master and
-verifies the reference, exact text/pose, every PNG hash and pixel QA. It preserves
-existing image IDs, votes, comments and history when the same ZIP is reimported.
-The imported technical record is shown as inspected only while its hash and
-candidate binding still match. A plain PNG ZIP has no such status.
+In the existing workflow, use **Driveから読み込む** → Google connection → character.
+All-candidate display uses `selection-review_*.json` and the unchanged archived
+PNGs, preserving pass/hold/fail reasons separately from user preferences. Only
+actually reviewed pass PNGs may use formal `selection-manifest_*.json` registration.
+Local PNG/ZIP import is a closed auxiliary-menu fallback, not the standard route.
+The producer must verify the live master, exact text/pose, hashes and appropriate
+reader contract before calling the handoff ready. Existing choices and edits must
+not be replaced automatically.
 
 The user's existing Google account must be able to read the native master.
 Neither a Drive connector login in chat nor a completed data package implies

@@ -1,3 +1,4 @@
+import {prepareTransparency} from './transparency.mjs';
 import {validateImage,cleanTransparency,components,cropPixels} from './core.mjs';
 
 // Grid positions only assign whole connected shapes to candidates. They never
@@ -35,4 +36,11 @@ export function isolateComponents(image,rows=3,cols=3){
   const bounds={x0,y0,x1,y1};
   return {pixels:cropPixels({width:w,height:h,data:pixels},bounds),bounds,parts:g.parts,crossing:g.unresolved,sourceTouchesEdge:x0===0||y0===0||x1===w||y1===h,cleanup:{alphaThreshold:8,seedAlpha:128,minimumSeedArea:16,removed:im.removed}};
  });
+}
+
+// Run before component ownership grows: low-alpha haze must not join neighboring cells.
+export function prepareCropBatch(image,rows=3,cols=3){
+ const prepared=prepareTransparency(image);
+ try{return {cells:isolateComponents(prepared,rows,cols),transparencyCleanup:prepared.report};}
+ catch(e){throw Error((prepared.report.issues.length?'透過前処理で未解決：'+prepared.report.issues.join(' ／ ')+'。':'')+e.message);}
 }

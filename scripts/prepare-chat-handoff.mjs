@@ -2,13 +2,14 @@
 // Pillow decodes pixels; the application's existing JS inspector decides QA.
 import fs from 'node:fs/promises';import path from 'node:path';import {execFileSync} from 'node:child_process';
 import JSZip from 'jszip';
+import {fileURLToPath} from 'node:url';
 import {prepareChatHandoff} from '../integration-v1/chat-handoff.mjs';
 import {reviewedBundle} from '../integration-v1/reviewed-bundle.mjs';
 const [inputPath,outputPath]=process.argv.slice(2);if(!inputPath||!outputPath)throw Error('INPUT.json NEW_OUTPUT_DIR が必要です');
 const root=path.dirname(path.resolve(inputPath)),input=JSON.parse(await fs.readFile(inputPath,'utf8'));
 const decode=async blob=>{
  const python=process.env.CODEX_PRIMARY_RUNTIME_PYTHON||'python3';
- const bytes=execFileSync(python,['-c',"import sys,io,struct\nfrom PIL import Image\nim=Image.open(io.BytesIO(sys.stdin.buffer.read()))\nif im.format!='PNG' or im.mode!='RGBA' or im.size!=(370,320) or getattr(im,'n_frames',1)!=1: raise ValueError('370x320 RGBAの静止PNGが必要です')\nsys.stdout.buffer.write(struct.pack('>II',*im.size)+im.tobytes())"],{input:Buffer.from(await blob.arrayBuffer()),maxBuffer:2000000});
+ const bytes=execFileSync(python,[fileURLToPath(new URL('./crop-pixels.py',import.meta.url)),'strict-decode'],{input:Buffer.from(await blob.arrayBuffer()),maxBuffer:2000000});
  return {width:bytes.readUInt32BE(0),height:bytes.readUInt32BE(4),data:new Uint8ClampedArray(bytes.subarray(8))};
 };
 const result=await prepareChatHandoff(input,{get:async entry=>{const file=path.resolve(root,entry.path||'');if(!file.startsWith(root+path.sep))throw Error('PNGは入力JSONと同じフォルダ内に置いてください');return new Blob([await fs.readFile(file)],{type:'image/png'});},decode});
