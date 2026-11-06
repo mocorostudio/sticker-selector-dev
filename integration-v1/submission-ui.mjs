@@ -53,7 +53,16 @@ export function initSubmission(api,{authFactory=googleTestAuth,driveFactory=crea
  }
  $('submissionActive').onchange=()=>{active=$('submissionActive').value;orderUI?.update();artworkUI?.update();refreshReadiness();};$('submissionBackground').onchange=render;$('submissionPrev').onclick=()=>{page--;render();};$('submissionNext').onclick=()=>{page++;render();};
  function heldIds(char){return readSubmission(localStorage,submissionKey(location.pathname,char,trialMode))?.draft?.heldCandidateIds||[];}
- function characterItems(char){return char==='local-trial'?selectionView(api.items().filter(x=>!x.characterId&&!x.crop?.pendingDrive?.characterId),{workflowLocal:true}):selectionView(api.items(),{workflowLocal:true,characterId:char});}
+ function characterItems(char){
+  // Submission must use the same *visible selection cohort* as step ②.
+  // The device can contain older crops for this character with different image IDs;
+  // reading all stored items silently reintroduces previously selected duplicates.
+  const belongs=x=>char==='local-trial'?(!x.characterId&&!x.crop?.pendingDrive?.characterId):(x.characterId||x.crop?.pendingDrive?.characterId)===char;
+  const current=api.visible().filter(belongs);
+  if(current.length)return current;
+  // Historical sessions with no active view still need to be recoverable.
+  return char==='local-trial'?selectionView(api.items().filter(belongs),{workflowLocal:true}):selectionView(api.items(),{workflowLocal:true,characterId:char});
+ }
  function localHeld(char){return trialCandidates(characterItems(char).filter(x=>x.rating==='h'),{includeHeld:true});}
  $('submissionHeld').onclick=()=>run(async()=>{if(!context)throw Error('先に採用候補を読み込んでください。');const held=context.trial?localHeld(context.character.id):await drive.loadHeld(context.character.id),existing=new Set(context.files.map(f=>f.id)),added=held.filter(f=>!existing.has(f.id));if(!added.length){status.textContent='追加できる保留画像はありません（追加済みの画像は重複しません）。';return;}const before=structuredClone(draft),previous=context.files;try{draft.heldCandidateIds=[...new Set([...(draft.heldCandidateIds||[]),...added.map(f=>f.id)])];draft.seenCandidateIds=[...new Set([...(draft.seenCandidateIds||[]),...added.map(f=>f.id)])];context.files=[...context.files,...added];persist();page=Math.floor((context.files.length-added.length)/12);render();status.textContent='保留から'+added.length+'枚を追加しました。必要な画像をタップして選んでください。元の△評価は変わりません。';}catch(e){draft=before;context.files=previous;throw e;}});
  let planned;
