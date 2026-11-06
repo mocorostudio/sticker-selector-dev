@@ -2,7 +2,7 @@
 const frame=document.getElementById('cropFrame');
 const selection=document.getElementById('selectionScreen');
 const advanced=selection?.querySelector('details');
-if(advanced){const text=advanced.querySelector('summary');if(text)text.textContent='詳細設定・バックアップ（通常は不要）';}
+if(advanced){const text=advanced.querySelector('summary');if(text)text.textContent=advanced.id==='selectionTools'?'補助メニュー（端末取込・バックアップ）':'詳細設定・バックアップ（通常は不要）';}
 function simplifyCrop(){
  const doc=frame.contentDocument;if(!doc)return;
  const main=doc.querySelector('main');if(!main)return;

@@ -21,6 +21,12 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
  for(const item of rows){
   const confirmed=isLocalConfirmed(item),trial=trialEligible(item.crop),approved=item.technicalPassed===true&&gate(item.crop||{})==='pass';
   const row={imageId:item.imageId,number:item.sequenceLabel||'',candidateId:item.candidate||null,phrase:item.phrase||'',rating:confirmed?item.rating:null,comment:item.comment||'',revision:item.revision||null,confirmed,selectionHistory:structuredClone(item.selectionHistory||[]),technicalStatus:approved?'pass':'review'};
+  if(item.crop?.reviewDisplay===true){
+   const proof=item.crop.pendingDrive,review=item.crop.displayReview,blob=await get(item.id);
+   if(!proof?.archiveFileId||!proof?.manifestFileId||proof.characterId!==item.characterId||!blob||blob.type!=='image/png'||await digest(blob)!==proof.sha256||review?.sha256!==proof.sha256||review.imageId!==item.imageId||review.candidateId!==item.candidate||review.phrase!==item.phrase||review.pose!==item.pose||!['pass','hold','fail','unknown'].includes(review.status)||!review.reason?.trim())throw Error('全候補の検品理由と選抜画像の対応が一致しません。');
+   Object.assign(row,{purpose:'review-display-preferences',technicalStatus:review.status==='fail'?'fail':'review',technicalReview:structuredClone(review),formalApproval:false,sourceProof:structuredClone(proof),sha256:proof.sha256});
+   results.push(row);onProgress({done:results.length,total:rows.length});continue;
+  }
   if(confirmed&&item.rating==='x'&&!item.crop?.draftSelection){const original=await get(item.id);if(!original||original.type!=='image/png')throw Error('不採用画像の保存記録を照合できません。');row.sha256=await digest(original);}
   if(item.inspectionAudit){row.inspectionAudit=structuredClone(item.inspectionAudit);row.inspectionHistory=structuredClone(item.inspectionHistory||[]);}
   if(item.crop?.importedReview)row.sourceProof={characterId:item.characterId,sha256:item.crop.importedReview.sha256,source:'reviewed-bundle'};

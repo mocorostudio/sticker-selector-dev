@@ -4,13 +4,13 @@ import {createPendingDrive} from './drive-pending.mjs?v=20261106-review81';
 import {importCrops} from './crop-handoff.mjs?v=20261026-inspected1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
- const title=document.createElement('h2');title.id='drivePendingTitle';title.textContent='Driveの画像を選抜する';
- const description=document.createElement('p');description.textContent='キャラを選んで画像を読み込みます。採用・保留・不採用を含む全候補を再表示します。技術判定の×・△も理由付きで表示します。採用の好みとは別に保持します。';
+ const title=document.createElement('h2');title.id='drivePendingTitle';title.textContent='Driveから読み込む';
+ const description=document.createElement('p');description.textContent='① Googleに接続 → ② キャラを選択 → ③ 読み込み。画像と検品理由をDriveから直接表示します。ZIPのダウンロードは不要です。技術判定と採用の好みは別に保持します。';
  const status=document.createElement('p');status.id='drivePendingStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- const connect=document.createElement('button');connect.id='pendingConnect';connect.textContent='Googleに接続して読み込む';connect.disabled=true;
- const label=document.createElement('label');label.textContent='選ぶキャラ';label.hidden=true;
+ const connect=document.createElement('button');connect.id='pendingConnect';connect.textContent='① Googleに接続';connect.disabled=true;
+ const label=document.createElement('label');label.textContent='② キャラを選ぶ';label.hidden=true;
  const select=document.createElement('select');select.id='pendingCharacter';label.append(select);
- const load=document.createElement('button');load.id='pendingLoad';load.textContent='このキャラの画像を読み込む';load.hidden=true;
+ const load=document.createElement('button');load.id='pendingLoad';load.textContent='③ 選んだキャラを読み込む';load.hidden=true;
  const close=document.createElement('button');close.textContent='閉じる';close.onclick=()=>dialog.close();
  dialog.append(title,description,status,connect,label,load,close);document.body.append(dialog);
  const params=new URLSearchParams(location.search),target=params.get('character'),includeTrials=params.get('selectionMode')==='trial';
@@ -60,12 +60,12 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
   if(!characters.length){status.textContent='「00_選抜待ち」のあるキャラが見つかりません。画像を保存したGoogleアカウントで接続してください。';return;}
   if(target&&characters.some(c=>c.id===target))select.value=target;
   if(characters.length===1||target&&select.value===target){await read(select.value);return;}
-  status.textContent='選ぶキャラを選んで、読み込みを押してください。';
+  status.textContent='接続できました。②キャラを選び、③読み込みを押してください。';
  });
  load.onclick=()=>run(()=>read(select.value));
  function open(){
   if(dialog.open)return;status.textContent=ready?'Googleに接続すると画像を読み込みます。':'Google接続を準備中…';dialog.showModal();controls();
-  if(!auth){auth=googleTestAuth({readOnly:true});auth.ready.then(()=>{ready=true;controls();if(dialog.open)status.textContent='「Googleに接続して読み込む」を押してください。';}).catch(e=>status.textContent=e.message);}
+  if(!auth){auth=googleTestAuth({readOnly:true});auth.ready.then(()=>{ready=true;controls();if(dialog.open)status.textContent='①Googleに接続し、画像を保存したアカウントを選んでください。';}).catch(e=>status.textContent=e.message);}
  }
  return {open,masterForCharacter:async characterId=>{if(!drive)throw Error('Google Driveへ読み取り専用で接続し、対象キャラを選択してください。');return drive.masterForCharacter(characterId);}};
 }

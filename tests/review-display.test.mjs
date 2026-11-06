@@ -7,6 +7,10 @@ import {REVIEW_DISPLAY_SCHEMA} from '../integration-v1/review-display.mjs';
 import {importCrops} from '../integration-v1/crop-handoff.mjs';
 import {inspectionSummary} from '../integration-v1/inspection-summary.mjs';
 import {gate} from '../integration-v1/crop-v9/core.mjs';
+import {prepareExport} from '../integration-v1/drive-export.mjs';
+import {confirmLocal} from '../integration-v1/crop-handoff.mjs';
+import {savedEvaluation,restoreEvaluation} from '../integration-v1/reselection.mjs';
+import {prepareSelectionZip} from '../integration-v1/submission-zip.mjs';
 import {validPixels} from './candidate-export-fixture.mjs';
 globalThis.JSZip=JSZip;
 const png=new Uint8Array([137,80,78,71,13,10,26,10,...Array(30).fill(0)]);
@@ -30,6 +34,20 @@ test('all 81 review images supersede the view of old approved entries without mu
  assert.equal((await inspectionSummary(items[62],blobs.get(items[62].id))).status,'review');
  const stale=structuredClone(items[1]);stale.phrase='changed';assert.equal((await inspectionSummary(stale,blobs.get(stale.id))).status,'unknown');
  assert.ok(f.calls.every(c=>c.method==='GET'));
+});
+test('review preferences save and restore all reasons without PNG promotion; failed display images cannot enter a submission ZIP',async()=>{
+ const f=await fixture(),r=await read(f),items=[],blobs=new Map();
+ await importCrops(r.entries,{items:()=>items,decode,get:async id=>blobs.get(id),write:async(i,b)=>{i.characterId='char';items.push(i);blobs.set(i.id,b);}},r.master,{forSelection:true});
+ for(const [i,item] of items.entries()){item.touched=true;item.rating=i%3===0?'o':i%3===1?'h':'x';item.revision='vote'+i;item.comment='好み'+i;}
+ confirmLocal(items);
+ const plan=await prepareExport(items,{get:async id=>blobs.get(id),decode});const document=JSON.parse(await plan.manifest.blob.text());
+ assert.equal(plan.images.length,0);assert.equal(document.results.length,81);assert.ok(document.results.every(x=>x.formalApproval===false&&x.technicalReview.reason));
+ const fresh=structuredClone(items[62]);fresh.touched=false;fresh.rating='o';fresh.comment='';restoreEvaluation(fresh,savedEvaluation(document,r.entries[62].record,'char'));
+ assert.equal(fresh.rating,items[62].rating);assert.equal(fresh.comment,items[62].comment);assert.equal((await inspectionSummary(fresh,blobs.get(fresh.id))).status,'review');
+ const changed=structuredClone(items);changed[0].crop.displayReview.sha256='0'.repeat(64);await assert.rejects(prepareExport(changed,{get:async id=>blobs.get(id),decode}),/対応が一致/);
+ const failed=items.slice(63,71);for(const item of failed){item.rating='o';item.touched=true;}
+ const zipPlan={schema:'animal-stickers-submission-trial/v1',technicalApproval:false,purpose:'selection-test-only',characterId:'char',sets:[{id:'set',target:8,name:'test'}],entries:failed.map(i=>({setId:'set',fileId:i.imageId,imageId:i.imageId,localItemId:i.id}))};
+ await assert.rejects(prepareSelectionZip(zipPlan,{items,get:async id=>blobs.get(id),decode}),/技術検品・試用許可/);
 });
 for(const [name,mutate] of [
  ['count mismatch',f=>f.review.candidateCount=80],['missing reason',f=>f.review.entries[62].technicalReview.reason=''],
