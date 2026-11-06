@@ -17,6 +17,15 @@ export async function inspectionSummary(item,blob){
   return summary('unknown',detail.length?detail:['検品記録が完了していません。'],'inspection');
  }
  const r=item.crop,proof=r?.pendingDrive;
+ const review=r?.displayReview;
+ if(r?.reviewDisplay&&review?.source==='drive-review-display'){
+  if(review.imageId!==item.imageId||review.candidateId!==item.candidate||review.phrase!==item.phrase||review.pose!==item.pose||review.sha256!==sha||proof?.sha256!==sha)return summary('unknown',['画像または候補が変わり、再検品記録と一致しません。'],'stale');
+  const status={pass:'pass',hold:'review',fail:'fail',unknown:'unknown'}[review.status]||'unknown';
+  const value=summary(status,[review.reason,...(r.qa?.issues||[]).map(x=>'読込時の機械検査：'+x)],'drive-review-display');
+  if(status==='pass'){value.label='合格（再検品記録）';value.reasons.push('再検品記録の表示です。正式登録・申請の検証状態は別に保持しています。');}
+  return value;
+ }
+
  if(r&&r.imageId===item.imageId&&r.candidateId===item.candidate&&r.phrase===item.phrase&&r.pose===item.pose&&(proof?.sha256===sha||r.importedReview?.source==='reviewed-bundle'&&r.importedReview.sha256===sha)&&r.inspection?.scope==='actual-source'){
   const detail=reasons(r.inspection?.unresolved,r.inspection?.reasons,r.reviewReason,r.inspection?.comment,r.qa?.issues);
   if(r.decision==='fail')return summary('fail',detail.length?detail:['理由未記録。検品画面で確認してください。'],'source');

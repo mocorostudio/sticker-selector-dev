@@ -1,3 +1,4 @@
+import {validateReviewDisplay,assertReviewMaster,reviewDisplayRecord} from './review-display.mjs?v=20261106-review81';
 import {savedEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
 import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-direct2';
 import {gate,inspect} from './crop-v9/core.mjs?v=20261026-inspected1';
@@ -126,6 +127,26 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    let images=[];for(const folderId of allowedFolders)images.push(...(await list('trashed = false and '+quote(folderId)+' in parents')).filter(f=>f.mimeType==='image/png'&&inFolder(f,folderId)));
    let evaluationDocument=null;
    if(allCandidates){const evaluations=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-results_'" )).filter(f=>inFolder(f,history.id)&&f.name.startsWith('selection-results_')).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')||b.name.localeCompare(a.name));if(evaluations.length)evaluationDocument=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(evaluations[0],3000000))));}
+   if(allCandidates){
+    const reviews=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-review_'" )).filter(f=>inFolder(f,history.id)&&f.name.startsWith('selection-review_')).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')||b.name.localeCompare(a.name));
+    if(reviews.length){
+     if(reviews.length>1&&reviews[0].modifiedTime===reviews[1].modifiedTime)throw Error('最新の全候補検品記録を特定できません。');
+     const file=reviews[0],value=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(file,3000000))));
+     const spreadsheetId=validateReviewDisplay(value,{characterId,pendingFolderId:pending.id,historyId:history.id,masters});
+     onProgress({stage:'master',character:character.name});const master=await readMaster(spreadsheetId,value.masterSheet);assertReviewMaster(value,master);
+     const archive=await meta(value.archive.fileId);if(!inFolder(archive,history.id)||archive.mimeType!=='application/zip')throw Error('全候補画像の保存先が一致しません。');
+     const archiveBytes=await retry(()=>bytes(archive,30000000));if(await pngHash(archiveBytes)!==value.archive.sha256)throw Error('全候補画像のZIPが変更されています。');
+     const files=await unpack(archiveBytes,value.entries),entries=[];
+     for(const e of value.entries){
+      const png=files.get(e.filename);if(!png||await pngHash(png)!==e.sha256)throw Error('全候補PNGのハッシュが一致しません。');
+      const decoded=await decode(new Blob([png],{type:'image/png'})),qa=inspect(decoded,false);if(decoded.width!==370||decoded.height!==320||qa.issues.includes('空画像'))throw Error('全候補PNGのサイズ・描画を確認できません。');
+      const record=reviewDisplayRecord(e,{qa,characterId,historyId:history.id,archiveId:archive.id,manifestId:file.id,masterReference:value.masterReference});
+      const entry={record,png,savedEvaluation:evaluationDocument?savedEvaluation(evaluationDocument,record,characterId):null};
+      await onEntry({entry,character,master,done:entries.length+1,total:value.entries.length});entries.push(entry);onProgress({stage:'images',done:entries.length,total:value.entries.length,character:character.name});
+     }
+     return {character,entries,master,skipped:0,reviewDisplay:true};
+    }
+   }
    if(!images.length||allCandidates){
     const drafts=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-draft_'"));
     if(!drafts.length&&!includeTrials&&!images.length)return {character,entries:[],master:[],skipped:0};

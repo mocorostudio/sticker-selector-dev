@@ -1,7 +1,7 @@
 import {preserveCardPosition} from './selection-position.mjs';
-import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261106-scrollqa1';
+import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261106-review81';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261104-bulk1';
-import {initWorkflow} from './integration-ui.mjs?v=20261106-scrollqa1';
+import {initWorkflow} from './integration-ui.mjs?v=20261106-review81';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261104-bulk1';
 import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-scrollqa1';
@@ -29,13 +29,13 @@ let state;try{state=JSON.parse(localStorage.getItem(STORE))}catch(e){}
 if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
 let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds=Array.isArray(saved)?saved:null}catch(e){shownIds=null}
-const CHARACTER_KEY=VIEW_KEY+'-character';
+const CHARACTER_KEY=VIEW_KEY+'-character',VIEW_SCOPE_KEY=VIEW_KEY+'-scope';
 let activeCharacter=workflowLocal?(params.get('character')||localStorage.getItem(CHARACTER_KEY)||null):null;
-if(activeCharacter){localStorage.setItem(CHARACTER_KEY,activeCharacter);shownIds=null;}
+if(activeCharacter){localStorage.setItem(CHARACTER_KEY,activeCharacter);if(localStorage.getItem(VIEW_SCOPE_KEY)!==activeCharacter)shownIds=null;}
 const visible=()=>selectionView(state.items,{workflowLocal,shownIds,characterId:activeCharacter});
 function setCharacter(id){if(!workflowLocal)return;activeCharacter=id;localStorage.setItem(CHARACTER_KEY,id);shownIds=null;redraw();}
 if(activeCharacter)$('showAll').textContent='このキャラの保存済み画像を表示';
-function setView(ids,append=false,{forceReplace=false}={}){const unique=[...new Set(ids)];shownIds=forceReplace||!append&&$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds))}
+function setView(ids,append=false,{forceReplace=false}={}){const unique=[...new Set(ids)];shownIds=forceReplace||!append&&$('importMode').value==='replace'?unique:[...new Set([...visible().map(x=>x.id),...unique])];localStorage.setItem(VIEW_KEY,JSON.stringify(shownIds));if(activeCharacter)localStorage.setItem(VIEW_SCOPE_KEY,activeCharacter)}
 $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw()};
 const selectionTotals=document.createElement('strong');selectionTotals.id='selectionTotals';selectionTotals.setAttribute('role','status');selectionTotals.setAttribute('aria-live','polite');$('syncBar').prepend(selectionTotals);
 const requestedTarget=Number(params.get('target')),selectionTarget=[8,16,24,32,40].includes(requestedTarget)?requestedTarget:40;
