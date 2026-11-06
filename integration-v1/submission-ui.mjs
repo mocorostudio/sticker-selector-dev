@@ -1,4 +1,4 @@
-import {archiveSaveProgress} from './submission-save-progress.mjs?v=20261106-progress1';
+import {archiveSaveProgress} from './submission-save-progress.mjs?v=20261107-ziponly1';
 import {appendApplicationHandoff} from './line-handoff.mjs?v=20261027-1';
 import {submissionKey,readSubmission,writeSubmission,availableRecovery,selectAllAdopted,legacySubmission,reconcileSelectionRatings} from './submission-store.mjs?v=20261103-audited2';
 import {selectionView} from './selection-view.mjs?v=20261024-ready1';
@@ -8,7 +8,7 @@ import {initSubmissionOrder} from './submission-order-ui.mjs?v=20261024-ready1';
 import {prepareSelectionZip} from './submission-zip.mjs?v=20261106-confirm1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
 import {createBusyScreen} from './busy-screen.mjs?v=20261026-compact1';
-import {createExportDrive,sourceFileId} from './drive-export.mjs?v=20261106-progress1';
+import {createExportDrive,sourceFileId} from './drive-export.mjs?v=20261107-ziponly1';
 import {createSubmissionDrive} from './submission-drive.mjs?v=20261024-ready1';
 import {SET_COUNTS,setCounts,assignImage,prepareSubmission,trialCandidates,prepareTrialSubmission,defaultAllSelected,isolateLegacyTrialAssignments} from './submission-core.mjs?v=20261106-missingfix3';
 export function initSubmission(api,{authFactory=googleTestAuth,driveFactory=createSubmissionDrive,lookupFactory=createExportDrive}={}){
