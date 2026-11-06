@@ -15,6 +15,7 @@ export async function importCrops(entries,adapter,master,{forSelection=false}={}
   const bytes=new Uint8Array(entry.png);if(!equal(bytes.subarray(0,8),signature))throw Error('PNG形式不正');
   const blob=new Blob([bytes],{type:'image/png'}),decoded=await adapter.decode(blob);
   const actualQA=inspect(decoded,r.crossing);
+  if(r.transparencyCleanup?.status==='hold'){actualQA.issues=[...new Set([...actualQA.issues,...r.transparencyCleanup.issues])];actualQA.automatic='fail';}
   if(forSelection){if(decoded.width!==370||decoded.height!==320||actualQA.issues.includes('空画像'))throw Error('空画像・サイズ不正は切り出し直してください');}
   else if(gate({...r,qa:actualQA})!=='pass')throw Error('PNG画素の再検査に失敗');
   const id='crop:'+r.imageId,items=adapter.items(),old=items.find(x=>x.id===id||x.imageId===r.imageId);

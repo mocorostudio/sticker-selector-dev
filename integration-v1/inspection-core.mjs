@@ -6,6 +6,7 @@ export function inspectionIdentity(item){return JSON.stringify([item.imageId,ite
 export async function automaticInspection(item,blob,decode,at=new Date().toISOString()){
  if(!blob||blob.type!=='image/png'||blob.size<24||blob.size>15000000)throw Error('実PNGを読み込めません。');
  const sha256=await pngHash(blob),qa=inspect(await decode(blob),item.crop?.crossing===true),identity=inspectionIdentity(item),previous=item.inspectionAudit;
+ if(item.crop?.transparencyCleanup?.status==='hold'){qa.issues=[...new Set([...qa.issues,...item.crop.transparencyCleanup.issues])];qa.automatic='fail';}
  const same=previous?.sha256===sha256&&previous.identity===identity;
  return {schema:'animal-stickers-inspection/v1',imageId:item.imageId,identity,sha256,at,qa,checks:same?[...(previous.checks||[])]:Array(visualChecks.length).fill(false),decision:same&&(previous.decision==='fail'||qa.automatic==='pass')?previous.decision:'review',comment:same?previous.comment||'':'',...(same&&previous.reviewedAt?{reviewedAt:previous.reviewedAt}:{}),size:blob.size};
 }
