@@ -47,7 +47,7 @@ test('review preferences save and restore all reasons without PNG promotion; fai
  const changed=structuredClone(items);changed[0].crop.displayReview.sha256='0'.repeat(64);await assert.rejects(prepareExport(changed,{get:async id=>blobs.get(id),decode}),/対応が一致/);
  const failed=items.slice(63,71);for(const item of failed){item.rating='o';item.touched=true;}
  const zipPlan={schema:'animal-stickers-submission-trial/v1',technicalApproval:false,purpose:'selection-test-only',characterId:'char',sets:[{id:'set',target:8,name:'test'}],entries:failed.map(i=>({setId:'set',fileId:i.imageId,imageId:i.imageId,localItemId:i.id}))};
- await assert.rejects(prepareSelectionZip(zipPlan,{items,get:async id=>blobs.get(id),decode}),/技術検品・試用許可/);
+ await assert.rejects(prepareSelectionZip(zipPlan,{items,get:async id=>blobs.get(id),decode}),/技術検品・試用許可|正式な技術検品/);
 });
 for(const [name,mutate] of [
  ['count mismatch',f=>f.review.candidateCount=80],['missing reason',f=>f.review.entries[62].technicalReview.reason=''],

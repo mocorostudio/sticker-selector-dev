@@ -20,9 +20,10 @@ jobs:
       - run: node --test tests/review-display.test.mjs
       - run: npx playwright install chromium
       - run: node tests/review-display-browser.mjs
+      - run: node tests/confirmation-kit-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: review-display-phone
-          path: test-results/review81-phone.png
+          path: test-results/*phone.png
           if-no-files-found: ignore
