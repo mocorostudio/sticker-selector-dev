@@ -20,7 +20,7 @@ try{
   }return route.abort();
  });
  await page.goto(server.url+'/integration-v1/workflow.html?character=char');const crop=page.frameLocator('#cropFrame');await crop.locator('#handoff').waitFor({state:'attached'});
- await page.locator('#loadPending').click();await page.locator('#pendingConnect').click();await page.locator('#pendingCharacter').waitFor();await page.locator('#drivePending').getByRole('button',{name:'閉じる',exact:true}).click();
+ await page.locator('#loadPending').click();await page.locator('#pendingConnect').click();await page.locator('#pendingCharacter').waitFor();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);if(await page.locator('#drivePending').evaluate(d=>d.open))await page.locator('#drivePending').getByRole('button',{name:'閉じる',exact:true}).click();
  await page.locator('#cropTab').click();
  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=600;const g=c.getContext('2d');g.fillStyle='#dd6699';for(const y of [100,300,500])for(const x of [100,300,500])g.fillRect(x-35,y-35,70,70);return c.toDataURL().split(',')[1];});
  await crop.locator('#files').setInputFiles({name:'real-rgba-nine.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await crop.locator('#run').click();
@@ -50,7 +50,7 @@ try{
  await page.reload();await crop.locator('#handoff').waitFor({state:'attached'});saved=await snapshot();assert.ok(saved.every(i=>i.inspectionAudit.decision==='pass'&&i.technicalPassed));
  // Tampering with the persisted visual audit must stop a repeated formal handoff.
  await page.evaluate(key=>{const v=JSON.parse(localStorage.getItem(key));v.items[0].inspectionAudit.checks[0]=false;localStorage.setItem(key,JSON.stringify(v));},keys.store);
- await page.reload();await crop.locator('#handoff').waitFor({state:'attached'});await page.locator('#loadPending').click();await page.locator('#pendingConnect').click();await page.locator('#pendingCharacter').waitFor();await page.locator('#drivePending').getByRole('button',{name:'閉じる',exact:true}).click();
+ await page.reload();await crop.locator('#handoff').waitFor({state:'attached'});await page.locator('#loadPending').click();await page.locator('#pendingConnect').click();await page.locator('#pendingCharacter').waitFor();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);if(await page.locator('#drivePending').evaluate(d=>d.open))await page.locator('#drivePending').getByRole('button',{name:'閉じる',exact:true}).click();
  await choose();await crop.locator('#status').filter({hasText:'正式引き渡し停止'}).waitFor();assert.equal((await snapshot()).length,9);
  assert.deepEqual(errors,[]);assert.ok(fixture.calls.every(c=>c.method==='GET'));assert.ok(writer.posts>=10);
  console.log('PASS audited formal browser: actual RGBA 3x3, nine UI assignments, uninspected stop, visual evidence, formal promotion, duplicate resend, IndexedDB reload, vote preservation, tampered audit rejection; mock Drive pending save/readback plus selection export');
