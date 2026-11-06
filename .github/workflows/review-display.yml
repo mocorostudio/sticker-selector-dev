@@ -2,7 +2,7 @@ name: All-candidate review display
 on:
   push:
     branches: [development]
-    paths: ['integration-v1/**', 'tests/review-display*', '.github/workflows/review-display.yml']
+    paths: ['integration-v1/**', 'tests/review-display*', 'tests/confirmation-kit-browser.mjs', '.github/workflows/review-display.yml']
   workflow_dispatch:
 permissions:
   contents: read

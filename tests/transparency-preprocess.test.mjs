@@ -24,3 +24,9 @@ test('an unresolved opaque background stays blocked by the inspection stage afte
  const audit=await automaticInspection(item,new Blob([new Uint8Array(30)],{type:'image/png'}),async()=>validPixels());
  assert.equal(audit.qa.automatic,'fail');assert.ok(audit.qa.issues.some(x=>x.includes('不透明な背景')));assert.notEqual(audit.decision,'pass');
 });
+
+test('tightly isolated opaque artwork uses the transparent original source for background detection',()=>{
+ const component={width:10,height:10,data:new Uint8ClampedArray(10*10*4).fill(255)};
+ const r=prepareTransparency(component,{backgroundReference:image()});assert.equal(r.report.status,'checked');assert.deepEqual(r.data,component.data);
+ assert.equal(prepareTransparency(component,{backgroundReference:image(255)}).report.status,'hold');
+});
