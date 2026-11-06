@@ -29,6 +29,7 @@ try{
  f.files.set(master,{id:master,name:'Master',mimeType:'application/vnd.google-apps.spreadsheet',parents:[char]});
  f.put(value.archive.fileId,'review81.zip',history,'application/zip',archiveBytes);f.put('reviewManifest','selection-review_fixture.json',history,'application/json',new TextEncoder().encode(JSON.stringify(value)));
  const writer=new SourceFixture();writer.files=f.files;writer.blobs=f.media;
+ let pauseComponent=false,releaseComponent;const writeFetch=writer.fetch.bind(writer);writer.fetch=async(url,options)=>{if(pauseComponent&&new URL(url).pathname.startsWith('/upload/')){pauseComponent=false;await new Promise(resolve=>releaseComponent=resolve);}return writeFetch(url,options);};
  const originalFetch=f.fetch.bind(f);f.fetch=async(url,options)=>{const u=new URL(url);if(u.origin==='https://sheets.googleapis.com'&&!u.pathname.includes('/values/'))return Response.json({spreadsheetId:master,sheets:[{properties:{title:value.masterSheet,gridProperties:{rowCount:200,columnCount:26}}}]});return originalFetch(url,options);};
  const jszip=await fs.readFile(new URL('../node_modules/jszip/dist/jszip.min.js',import.meta.url),'utf8');
  await page.route('**/*',async route=>{
@@ -79,7 +80,7 @@ try{
  await page.waitForFunction(()=>!document.querySelector('#submissionKit').disabled);
  assert.match(await page.locator('#submissionReadiness').innerText(),/技術承認・LINE申請可能を意味しません/);
  const before=await page.evaluate(({store,key})=>({votes:localStorage.getItem(store),draft:JSON.parse(localStorage.getItem(key)).draft}),{store:keys.store,key});
- writer.lose=true;await page.locator('#submissionKit').click();await page.locator('#submissionZipRetry:visible').waitFor();await page.locator('#submissionZipRetry').click();
+ writer.lose=true;await page.locator('#submissionKit').click();await page.locator('#submissionZipRetry:visible').waitFor();pauseComponent=true;await page.locator('#submissionZipRetry').click();await new Promise((resolve,reject)=>{const start=Date.now(),poll=()=>releaseComponent?resolve():Date.now()-start>15000?reject(Error('PNG upload was not paused')):setTimeout(poll,20);poll();});await page.locator('#submissionZipActivityText').filter({hasText:'PNGの保存・照合：1／42枚完了'}).waitFor();assert.match(await page.locator('#submissionStatus').innerText(),/PNGの保存・照合：1／42枚完了/);assert.equal(await page.locator('#submissionZipActivity progress').getAttribute('value'),'1');assert.equal(await page.locator('#submissionZipActivity progress').getAttribute('max'),'42');releaseComponent();
  await page.locator('#submissionZipActivityText').filter({hasText:'確認用一式の保存・照合が完了'}).waitFor();
  const components=[...f.files.values()].filter(x=>x.name?.startsWith('CONFIRM_'));assert.equal(components.length,42);assert.ok(components.every(x=>x.parents[0]==='application'&&x.appProperties.technicalStatus==='review'));
  const manifest=[...f.files.values()].find(x=>x.name?.startsWith('application-kit_')),record=JSON.parse(await f.media.get(manifest.id).text());assert.equal(record.confirmationOnly,true);assert.equal(record.technicalApproval,false);assert.equal(record.selectionRecords.filter(x=>x.crop?.reviewDisplay).length,81);assert.deepEqual(record.selectionSnapshot,before.draft);assert.deepEqual(record.archives[0].mapping.map(x=>x.imageId),order);assert.ok(record.archives[0].mapping.some(x=>x.technicalStatus==='fail'&&x.technicalReview.reason));
