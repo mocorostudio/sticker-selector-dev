@@ -6,7 +6,7 @@
 <p id="status" role="status">スタンプ40枚＋メイン・タブ、または絵文字40枚＋タブのZIPを選んでください。</p>
 <section id="editor" hidden><h2>メイン・タブ（変更しません）</h2><div class="artwork"><figure><figcaption>メイン 240×240</figcaption><img id="main" alt="メイン画像"></figure><figure><figcaption>タブ 96×74（2倍プレビュー）</figcaption><img class="tab" id="tab" alt="タブ画像"></figure></div><h2>スタンプの並び順</h2><p id="orderSummary" role="status">40枚の並び順を確認してください。</p><p class="notice">最終チェック：① 画像40枚とメイン・タブの見切れ・大きさ ② 並び順 ③ 保存先。画像の見た目の検品は自動では完了扱いにしません。</p><p>① 動かしたい画像をタップ → ② 入れたい位置の画像をタップ。その画像の直前に入ります。</p><div id="reorderTools" class="reorder-tools"><p id="moveStatus" role="status">移動する画像を選んでください。</p><button id="moveFirst" hidden>先頭へ</button><button id="moveLast" hidden>最後へ</button><button id="moveCancel" hidden>選択をやめる</button><button id="undoMove" disabled>1つ戻す</button></div><p id="draftStatus" role="status" aria-live="polite"></p><div id="items"></div><label for="folder">保存先のDrive URL（キャラフォルダ／04_申請用のどちらでも可）</label><input id="folder" type="url" placeholder="https://drive.google.com/drive/folders/..." style="box-sizing:border-box;width:100%;min-height:44px;font-size:16px" autocomplete="off"><p id="saveProgress" role="status" aria-live="polite" hidden></p><button id="save">この順番で04_申請用に保存</button><p id="saveResult" role="status"></p></section>
 <script type="module">
-import {storedZip} from './submission-zip.mjs?v=20261103-emoji1';
+import {storedZip} from './submission-zip.mjs?v=20261107-alpha1';
 import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
 import {googleTestAuth} from './google-auth.mjs';
 import {digest} from './drive-export.mjs';

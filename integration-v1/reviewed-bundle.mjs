@@ -1,4 +1,4 @@
-import {gate,inspect} from './crop-v9/core.mjs?v=20261023-bear1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261107-alpha1';
 import {importCrops} from './crop-handoff.mjs';
 
 // Upgrade an existing draft only from a fully validated reviewed bundle. Keep

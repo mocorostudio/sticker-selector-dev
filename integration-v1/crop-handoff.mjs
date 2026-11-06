@@ -1,4 +1,4 @@
-import {gate,inspect} from './crop-v9/core.mjs?v=20261026-inspected1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261107-alpha1';
 import {validateCandidateManifest} from './candidate-manifest.mjs';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);

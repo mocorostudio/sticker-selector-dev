@@ -1,7 +1,7 @@
 import {validateReviewDisplay,assertReviewMaster,reviewDisplayRecord} from './review-display.mjs?v=20261106-review81';
 import {savedEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
 import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-direct2';
-import {gate,inspect} from './crop-v9/core.mjs?v=20261026-inspected1';
+import {gate,inspect} from './crop-v9/core.mjs?v=20261107-alpha1';
 const FILES='https://www.googleapis.com/drive/v3/files',SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const FOLDER='application/vnd.google-apps.folder',SHEET='application/vnd.google-apps.spreadsheet';
 const FIELDS='id,name,mimeType,parents,size,version,modifiedTime,sha256Checksum,trashed,capabilities(canDownload)';

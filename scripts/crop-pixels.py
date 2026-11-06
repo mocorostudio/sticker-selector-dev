@@ -11,6 +11,12 @@ if mode in ('decode', 'strict-decode'):
         raise ValueError('370x320 RGBAの静止PNGが必要です')
     im = im.convert('RGBA')
     sys.stdout.buffer.write(struct.pack('>II', *im.size) + im.tobytes())
+elif mode == 'encode':
+    w, h = map(int, sys.argv[2:])
+    im = Image.frombytes('RGBA', (w, h), raw)
+    buf = io.BytesIO()
+    im.save(buf, format='PNG', optimize=False)
+    sys.stdout.buffer.write(buf.getvalue())
 elif mode == 'normalize':
     w, h, dw, dh, x, y = map(int, sys.argv[2:])
     im = Image.frombytes('RGBA', (w, h), raw)

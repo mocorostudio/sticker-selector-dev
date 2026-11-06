@@ -1,4 +1,4 @@
-import {inspectionIdentity,pngHash} from './inspection-core.mjs?v=20261030-reviewlabels1';
+import {inspectionIdentity,pngHash} from './inspection-core.mjs?v=20261107-alpha1';
 import {gate} from './crop-v9/core.mjs';
 
 const strings=value=>Array.isArray(value)?value.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()):[];

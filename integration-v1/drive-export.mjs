@@ -1,8 +1,8 @@
-import {auditedCandidateBinding,reviewedCandidateBinding} from './inspection-core.mjs?v=20261106-chat3';
+import {auditedCandidateBinding,reviewedCandidateBinding} from './inspection-core.mjs?v=20261107-alpha1';
 import {completeSelection} from './selection-completion.mjs?v=20261024-save1';
 import {createPendingDrive,PENDING_SCHEMA,trialEligible} from './drive-pending.mjs?v=20261024-progress1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261103-audited2';
-import {gate,inspect,cleanTransparency} from './crop-v9/core.mjs?v=20261023-merge1';
+import {gate,inspect,cleanTransparency} from './crop-v9/core.mjs?v=20261107-alpha1';
 const API='https://www.googleapis.com/drive/v3/files',FOLDER='application/vnd.google-apps.folder';
 const FIELDS='id,name,mimeType,parents,size,sha256Checksum,appProperties,trashed,webViewLink';
 export const EXPORT_APP='animal-stickers-selection-v1';
