@@ -21,6 +21,8 @@ jobs:
       - run: npx playwright install chromium
       - run: node tests/review-display-browser.mjs
       - run: node tests/confirmation-kit-browser.mjs
+      - name: Preserve missing selections and edits in Chromium
+        run: TEST_BROWSER=chromium node tests/candidate-save-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
