@@ -55,6 +55,9 @@ export function isolateLegacyTrialAssignments(draft,files,items,{completeReviewe
  const complete=review.length>=81&&review.length===completeReviewedCohort.length&&review.every(x=>x.imageId&&x.candidate&&/^[-\w]{2,100}$/.test(x.candidate))&&new Set(review.map(x=>x.candidate)).size===review.length&&new Set(review.map(x=>x.imageId)).size===review.length;
  const cohortIds=new Set(review.map(x=>x.imageId));
  const cohortCandidates=new Set(review.map(x=>x.candidate));
+ // Only a complete verified cohort can supersede prior allocations.
+ // Partial streaming imports must not alter existing selections.
+ if(!complete)return result;
  for(const [id,setId] of Object.entries(result.assignments||{})){
   if(valid.has(id)||artworkIds.has(id))continue;
   const source=past.get(id),replacement=source?.candidate&&currentByCandidate.get(source.candidate);
