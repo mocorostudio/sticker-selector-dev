@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {startServer} from './server.mjs';
 const server=await startServer();let browser;
 try{
- browser=await chromium.launch({headless:true,args:['--no-sandbox']});const page=await browser.newPage();await page.goto(server.url+'/integration-v1/');
+ browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});const page=await browser.newPage();await page.goto(server.url+'/integration-v1/');
  const result=await page.evaluate(async()=>{
   const {finalizeTransparency}=await import('/integration-v1/final-transparency.mjs');
   const decode=async blob=>{const bm=await createImageBitmap(blob),c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const g=c.getContext('2d');g.drawImage(bm,0,0);bm.close();return g.getImageData(0,0,c.width,c.height);};
@@ -14,4 +14,4 @@ try{
    checks.push({w:after.width,h:after.height,removed:out.report.removed,weak:after.data.some((v,i)=>i%4===3&&v>0&&v<=8),protected:before.data[p+3]===after.data[p+3],sourceUnchanged:(await decode(source)).data[(6*w+6)*4+3]>0});
   }return checks;
  });for(const r of result){assert.ok(r.removed>0);assert.equal(r.weak,false);assert.equal(r.protected,true);assert.equal(r.sourceUnchanged,true);}console.log('PASS: real PNG final cleanup, sticker/main/tab, source preservation',result);
-}finally{await browser?.close();await server.close();}
+}finally{await browser?.close();await new Promise(resolve=>server.server.close(resolve));}
