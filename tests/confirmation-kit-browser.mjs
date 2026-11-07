@@ -55,7 +55,7 @@ try{
  await load();await page.waitForFunction(()=>document.querySelectorAll('.card').length===81&&[...document.querySelectorAll('.stage img')].every(x=>x.naturalWidth===370));
  const badges=page.locator('.inspection-summary');await page.waitForFunction(()=>document.querySelectorAll('[data-inspection-status="pass"]').length===60&&document.querySelectorAll('[data-inspection-status="review"]').length===3&&document.querySelectorAll('[data-inspection-status="fail"]').length===18);
  const state=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),keys.store);
- for(let i=0;i<81;i++)assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));
+ for(let i=0;i<81;i++){if(value.entries[i].technicalReview.status==='pass')assert.equal(await badges.nth(i).innerText(),'合格');else assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));}
  assert.deepEqual((await state()).items.find(i=>i.id===old.id),old);assert.equal((await state()).items.length,82);
  const card=page.locator('.card').nth(19);await card.locator('.choices label').nth(1).click();await card.locator('.comment').fill('この選択と理由を保持');
  const choice=(await state()).items.find(i=>i.imageId===value.entries[19].imageId);
