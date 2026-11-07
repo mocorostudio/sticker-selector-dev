@@ -1,5 +1,5 @@
 import {preserveCardPosition} from './selection-position.mjs';
-import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261106-review81';
+import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261108-compactpass1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261106-alpha1';
 import {initWorkflow} from './integration-ui.mjs?v=20261107-products1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';

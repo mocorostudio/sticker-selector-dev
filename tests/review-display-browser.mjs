@@ -54,7 +54,8 @@ try{
  await load();await page.waitForFunction(()=>document.querySelectorAll('.card').length===81&&[...document.querySelectorAll('.stage img')].every(x=>x.naturalWidth===370));
  const badges=page.locator('.inspection-summary');await page.waitForFunction(()=>document.querySelectorAll('[data-inspection-status="pass"]').length===60&&document.querySelectorAll('[data-inspection-status="review"]').length===3&&document.querySelectorAll('[data-inspection-status="fail"]').length===18);
  const state=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),keys.store);
- for(let i=0;i<81;i++)assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));
+ for(let i=0;i<81;i++){if(value.entries[i].technicalReview.status==='pass'){assert.equal(await badges.nth(i).innerText(),'合格');assert.ok((await badges.nth(i).boundingBox()).height<55);}else assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));}
+
  assert.deepEqual((await state()).items.find(i=>i.id===old.id),old);assert.equal((await state()).items.length,82);
  const card=page.locator('.card').nth(19);await card.locator('.choices label').nth(1).click();await card.locator('.comment').fill('この選択と理由を保持');
  const choice=(await state()).items.find(i=>i.imageId===value.entries[19].imageId);
@@ -70,6 +71,6 @@ try{
  await page.evaluate(({key,old})=>localStorage.setItem(key,JSON.stringify({items:[old],background:'checker'})),{key:keys.store,old});await page.reload();await load();
  await page.locator('.card').nth(19).locator('.choices label.chosen').waitFor();assert.equal(await page.locator('.card').nth(19).locator('.comment').inputValue(),'この選択と理由を保持');
  await page.waitForFunction(()=>document.querySelectorAll('.inspection-summary[data-inspection-status=fail]').length===18);assert.equal(await page.locator('.inspection-summary[data-inspection-status=fail]').count(),18);assert.ok(f.calls.every(c=>c.method==='GET'));assert.deepEqual(errors,[]);
- await fs.mkdir('test-results',{recursive:true});await page.locator('.card').nth(19).scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/review81-phone.png'});
+ await fs.mkdir('test-results',{recursive:true});await page.locator('.card').first().scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/review81-phone.png'});
  console.log('PASS: actual loader -> 81 cards (60 pass, 3 hold, 18 fail), every reason, one Drive entry, preferences saved/read back in isolated Drive, old votes preserved; no image writes or formal promotion.');
 }finally{await browser?.close();await new Promise(r=>service.server.close(r));}

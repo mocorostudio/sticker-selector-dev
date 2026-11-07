@@ -37,6 +37,8 @@ export async function inspectionSummary(item,blob){
 
 export function renderInspectionSummary(host,value){
  host.replaceChildren();host.dataset.inspectionStatus=value.status;
+ // Keep pass cards short; the saved inspection retains the full record.
+ if(value.status==='pass'){const title=document.createElement('strong');title.textContent='合格';host.append(title);return;}
  const title=document.createElement('strong');title.textContent='技術判定：'+value.label;host.append(title);
  if(value.reasons.length){const list=document.createElement('ul');for(const reason of value.reasons){const line=document.createElement('li');line.textContent=reasonCategory(reason)+'：'+reason;list.append(line);}if(value.reasons.join('').length>80){const preview=document.createElement('p');preview.textContent=value.reasons[0].slice(0,65)+'…';const details=document.createElement('details'),toggle=document.createElement('summary');toggle.textContent='理由の詳細';details.append(toggle,list);host.append(preview,details);}else host.append(list);}
  const note=document.createElement('small');note.textContent='下の◯△×は、あなたの採用希望です。検品結果とは別に保存します。';host.append(note);
