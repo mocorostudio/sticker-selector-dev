@@ -1,3 +1,4 @@
+import {readSelectionState} from './selection-storage.mjs?v=20261108-quota1';
 import {GROUPS,SCHEMA,nextTask,localCounts,validateProgress} from './progress-core.mjs';
 import {progressDrive} from './progress-drive.mjs';
 import {googleTestAuth} from './google-auth.mjs';
@@ -9,7 +10,7 @@ try{cache=JSON.parse(localStorage.getItem(KEY));if(cache?.records){validateProgr
 const readAuth=googleTestAuth({readOnly:true});let writeAuth;
 function node(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
 function link(text,url){const a=node('a',text);a.href=url;a.target='sticker-workflow';a.rel='noopener';return a;}
-function items(){try{const path=location.pathname.replace(/progress\.html$/,'workflow.html');return JSON.parse(localStorage.getItem(storageKeys({workflowLocal:true,pathname:path}).store))?.items||[];}catch{return [];}}
+function items(){try{const path=location.pathname.replace(/progress\.html$/,'workflow.html');return readSelectionState(localStorage,storageKeys({workflowLocal:true,pathname:path}).store)?.items||[];}catch{return [];}}
 function card(r){const a=node('article',undefined,'card');if(r.stage!=='trash'){const label=node('label','まとめて選択 '),check=document.createElement('input');check.type='checkbox';check.style.cssText='display:inline;width:24px;height:24px';check.checked=selected.has(r.characterId);check.onchange=()=>{check.checked?selected.add(r.characterId):selected.delete(r.characterId);updateBulk();};label.prepend(check);a.append(label);}a.append(node('span',GROUPS[r.stage],'badge'),node('h3',r.name),node('p',r.next));
  a.append(node('small',(r.updatedAt?new Date(r.updatedAt).toLocaleString('ja-JP'):'更新日時未確認')+' · '+r.source));
  const c=localCounts(items(),r.characterId);if(c.total)a.append(node('small','この端末：操作済み '+c.rated+'／'+c.total+'枚（同期・検品の完了とは別）'));

@@ -1,3 +1,4 @@
+import {readSelectionState,saveSelectionState} from './selection-storage.mjs?v=20261108-quota1';
 import {preserveCardPosition} from './selection-position.mjs';
 import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261108-compactpass1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261106-alpha1';
@@ -25,7 +26,7 @@ $('syncBar').append($('sync'),$('driveStatus'));
 const reserveSyncBar=()=>{document.body.style.paddingBottom=($('syncBar').getBoundingClientRect().height+16)+'px'};
 new ResizeObserver(reserveSyncBar).observe($('syncBar'));
 let workflow;
-let state;try{state=JSON.parse(localStorage.getItem(STORE))}catch(e){}
+let state;try{state=readSelectionState(localStorage,STORE)}catch(e){}
 if(!state||!Array.isArray(state.items))state={items:[],background:'checker'};
 // Display selection is stored separately; original v9 state is not migrated, deleted or reordered.
 let shownIds;try{const saved=JSON.parse(localStorage.getItem(VIEW_KEY));shownIds=Array.isArray(saved)?saved:null}catch(e){shownIds=null}
@@ -40,7 +41,7 @@ $('showAll').onclick=()=>{shownIds=null;localStorage.removeItem(VIEW_KEY);redraw
 const selectionTotals=document.createElement('strong');selectionTotals.id='selectionTotals';selectionTotals.setAttribute('role','status');selectionTotals.setAttribute('aria-live','polite');$('syncBar').prepend(selectionTotals);
 const requestedTarget=Number(params.get('target')),selectionTarget=[8,16,24,32,40].includes(requestedTarget)?requestedTarget:40;
 function updateSyncCount(){const items=visible().filter(x=>x.touched&&x.imageId&&(!workflowLocal||x.origin==='crop-local'));const pending=workflowLocal?items.filter(x=>!isLocalConfirmed(x)).length:items.length;const adopted=items.filter(x=>x.rating==='o').length;selectionTotals.textContent='候補 ◯ '+adopted+'枚 ／ 申請予定 '+selectionTarget+'枚';$('syncCount').textContent=workflowLocal?'選択済み：'+items.length+'枚（操作は端末に自動保持）':'確定する画像：'+pending+'枚'}
-function save(){localStorage.setItem(STORE,JSON.stringify(state));updateSyncCount()}
+function save(){saveSelectionState(localStorage,STORE,state);updateSyncCount()}
 new MutationObserver(updateSyncCount).observe($('list'),{childList:true});
 updateSyncCount();
 let db;

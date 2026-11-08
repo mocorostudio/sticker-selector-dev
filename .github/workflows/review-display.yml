@@ -18,7 +18,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --test tests/review-display.test.mjs
-      - run: npx playwright install chromium
+      - run: npx playwright install --with-deps chromium webkit
+      - run: node --test tests/selection-storage.test.mjs
+      - run: node tests/selection-storage-browser.mjs
       - run: node tests/review-display-browser.mjs
       - run: node tests/final-transparency-browser.mjs
       - run: node tests/confirmation-kit-browser.mjs
