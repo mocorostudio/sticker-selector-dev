@@ -2,7 +2,7 @@ import {readSelectionState,saveSelectionState} from './selection-storage.mjs?v=2
 import {preserveCardPosition} from './selection-position.mjs';
 import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261108-compactpass1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261108-variants1';
-import {initWorkflow} from './integration-ui.mjs?v=20261108-issue9';
+import {initWorkflow} from './integration-ui.mjs?v=20261108-artworkquota1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261108-variants1';
 import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-scrollqa1';
@@ -158,4 +158,5 @@ if(auth){$('loadPending').textContent='テスト画像を読み込む';$('discon
 
 async function decodeCropPNG(blob){await validatePNG(blob);const url=URL.createObjectURL(blob);try{const im=new Image();im.src=url;await im.decode();if(im.width!==370||im.height!==320)throw Error('切り出しPNGの寸法が不正');const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);return c.getContext('2d').getImageData(0,0,c.width,c.height);}finally{URL.revokeObjectURL(url);}}
 if(workflowLocal)workflow=initWorkflow({ready:dbReady,characterId:()=>activeCharacter,items:()=>state.items,replaceItems:items=>{state.items=items},visible,put,get,save,setView,setCharacter,redraw,withBusy,isBusy:()=>busy,decode:decodeCropPNG});
+
 

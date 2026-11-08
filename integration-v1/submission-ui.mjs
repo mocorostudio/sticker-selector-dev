@@ -1,7 +1,7 @@
 import {productFiles,productDraft,additionalCircles,recordProductSave,retainedProductItems} from './product-selection.mjs?v=20261107-products1';
 import {archiveSaveProgress} from './submission-save-progress.mjs?v=20261108-issue9';
 import {appendApplicationHandoff} from './line-handoff.mjs?v=20261027-1';
-import {submissionKey,readSubmission,writeSubmission,availableRecovery,selectAllAdopted,legacySubmission,reconcileSelectionRatings} from './submission-store.mjs?v=20261103-audited2';
+import {submissionKey,readSubmission,writeSubmission,availableRecovery,selectAllAdopted,legacySubmission,reconcileSelectionRatings} from './submission-store.mjs?v=20261108-artworkquota1';
 import {selectionView} from './selection-view.mjs?v=20261024-ready1';
 import {initSubmissionArtwork} from './submission-artwork-ui.mjs?v=20261108-issue9';
 import {matchesPlanOrder} from './submission-order.mjs?v=20261024-order1';
@@ -105,3 +105,4 @@ export function initSubmission(api,{authFactory=googleTestAuth,driveFactory=crea
  auth=authFactory();auth.ready.then(()=>{zipAuthReady=true;zipRetry.disabled=false;$('submissionConnect').disabled=false;if(context)render();}).catch(e=>{authIssue=e.message;status.textContent=e.message;refreshReadiness();});
  return {host,tab,open(){if(trialMode&&!busy&&!zipBusy&&!artworkBusy)run(load);}};
 }
+
