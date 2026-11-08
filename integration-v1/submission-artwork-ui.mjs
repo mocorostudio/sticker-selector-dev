@@ -1,7 +1,7 @@
 import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
 import {orderedFiles} from './submission-order.mjs?v=20261024-order1';
 import {selectedArtwork,chooseArtwork,editArtwork,validateStroke,alphaBounds,fitArtwork,resizeArtwork} from './submission-artwork.mjs?v=20261030-crop1';
-import {digest} from './drive-export.mjs?v=20261108-variants1';
+import {digest} from './drive-export.mjs?v=20261108-issue9';
 export function eraseCanvas(ctx,stroke,width,height){validateStroke(stroke);ctx.save();ctx.globalCompositeOperation='destination-out';ctx.lineWidth=stroke.radius*2;ctx.lineCap='round';ctx.lineJoin='round';const [p,...rest]=stroke.points;ctx.beginPath();ctx.moveTo(p[0]*width,p[1]*height);for(const q of rest)ctx.lineTo(q[0]*width,q[1]*height);ctx.stroke();ctx.beginPath();ctx.arc(p[0]*width,p[1]*height,stroke.radius,0,Math.PI*2);ctx.fill();ctx.restore();}
 const png=c=>new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(Error('PNGを作れません。')),'image/png'));
 export function initSubmissionArtwork({getDraft,getFiles,getSetId,getCharacterId,commit,loadPreview,isLocked,isReady,onSave,onState=()=>{},button,container,selectionParts}){

@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';
+import {chromium,webkit} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import JSZip from 'jszip';
@@ -10,7 +10,7 @@ import {pngHash} from '../integration-v1/drive-pending.mjs';
 import {REVIEW_DISPLAY_SCHEMA} from '../integration-v1/review-display.mjs';
 const service=await startServer();let browser;
 try{
- browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});
+ browser=await (process.env.TEST_BROWSER==='webkit'?webkit:chromium).launch({headless:true,...(process.env.TEST_BROWSER==='webkit'?{}:{executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']})});
  const page=await browser.newPage({viewport:{width:390,height:844}});page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const raw=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=370;c.height=320;const g=c.getContext('2d');g.fillStyle='#935';g.fillRect(60,60,240,200);return c.toDataURL().split(',')[1];});
  const png=new Uint8Array(Buffer.from(raw,'base64')),f=new PendingFixture();let value,archiveBytes,generatedVariantSheets=null;

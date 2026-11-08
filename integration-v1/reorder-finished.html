@@ -6,10 +6,10 @@
 <p id="status" role="status">スタンプ40枚＋メイン・タブ、または絵文字40枚＋タブのZIPを選んでください。</p>
 <section id="editor" hidden><h2>メイン・タブ（変更しません）</h2><div class="artwork"><figure><figcaption>メイン 240×240</figcaption><img id="main" alt="メイン画像"></figure><figure><figcaption>タブ 96×74（2倍プレビュー）</figcaption><img class="tab" id="tab" alt="タブ画像"></figure></div><h2>スタンプの並び順</h2><p id="orderSummary" role="status">40枚の並び順を確認してください。</p><p class="notice">最終チェック：① 画像40枚とメイン・タブの見切れ・大きさ ② 並び順 ③ 保存先。画像の見た目の検品は自動では完了扱いにしません。</p><p>① 動かしたい画像をタップ → ② 入れたい位置の画像をタップ。その画像の直前に入ります。</p><div id="reorderTools" class="reorder-tools"><p id="moveStatus" role="status">移動する画像を選んでください。</p><button id="moveFirst" hidden>先頭へ</button><button id="moveLast" hidden>最後へ</button><button id="moveCancel" hidden>選択をやめる</button><button id="undoMove" disabled>1つ戻す</button></div><p id="draftStatus" role="status" aria-live="polite"></p><div id="items"></div><label for="folder">保存先のDrive URL（キャラフォルダ／04_申請用のどちらでも可）</label><input id="folder" type="url" placeholder="https://drive.google.com/drive/folders/..." style="box-sizing:border-box;width:100%;min-height:44px;font-size:16px" autocomplete="off"><p id="saveProgress" role="status" aria-live="polite" hidden></p><button id="save">この順番で04_申請用に保存</button><p id="saveResult" role="status"></p></section>
 <script type="module">
-import {storedZip} from './submission-zip.mjs?v=20261107-alpha1';
-import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
+import {storedZip} from './submission-zip.mjs?v=20261108-issue9';
+import {normalizeSubmissionPng,inspectSubmissionZip} from './submission-validation.mjs?v=20261108-issue9';
 import {googleTestAuth} from './google-auth.mjs';
-import {digest} from './drive-export.mjs';
+import {digest} from './drive-export.mjs?v=20261108-issue9';
 const auth=googleTestAuth();
 function progress(message){$('saveProgress').hidden=false;$('saveProgress').textContent=message;$('status').textContent=message;}
 function saveButton(active){$('save').disabled=active;$('save').setAttribute('aria-busy',String(active));$('save').textContent=active?'保存処理中…（画面を閉じないでください）':'この順番で04_申請用に保存';}
@@ -87,19 +87,20 @@ $('file').addEventListener('change',async()=>{const file=$('file').files?.[0];if
 function folderIdFromUrl(value){let u;try{u=new URL(value.trim());}catch{throw Error('キャラフォルダのDrive URLを入力してください。');}if(u.origin!=='https://drive.google.com'||u.pathname.split('/').length!==4||u.pathname.split('/')[1]!=='drive'||u.pathname.split('/')[2]!=='folders'||!u.pathname.split('/')[3]||!/^[a-zA-Z0-9_-]+$/.test(u.pathname.split('/')[3]))throw Error('キャラフォルダのDrive URLが不正です。');return u.pathname.split('/')[3];}
 async function driveRequest(url,token,options={}){const r=await fetch(url,{...options,headers:{...options.headers,Authorization:'Bearer '+token},signal:AbortSignal.timeout(120000)});if(!r.ok)throw Error('Drive通信エラー（'+r.status+'）。保存済みの可能性があるため同じ内容で照合してください。');return r;}
 async function inspectFolder(inputId,token){const api='https://www.googleapis.com/drive/v3/files',fields='id,name,mimeType,trashed,parents';const meta=await driveRequest(api+'/'+encodeURIComponent(inputId)+'?'+new URLSearchParams({fields}),token).then(r=>r.json());if(meta.trashed||meta.mimeType!=='application/vnd.google-apps.folder')throw Error('フォルダを確認できません。');
- if(meta.name==='04_申請用'||/^04_申請用_[^/]+$/.test(meta.name)){if(meta.parents?.length!==1)throw Error('04_申請用の親フォルダを確認できません。');const parent=await driveRequest(api+'/'+encodeURIComponent(meta.parents[0])+'?'+new URLSearchParams({fields}),token).then(r=>r.json());if(parent.trashed||parent.mimeType!=='application/vnd.google-apps.folder')throw Error('キャラフォルダを確認できません。');return {characterName:parent.name,id:meta.id};}
+ if(meta.name==='04_申請用'){if(meta.parents?.length!==1)throw Error('04_申請用の親フォルダを確認できません。');const parent=await driveRequest(api+'/'+encodeURIComponent(meta.parents[0])+'?'+new URLSearchParams({fields}),token).then(r=>r.json());if(parent.trashed||parent.mimeType!=='application/vnd.google-apps.folder')throw Error('キャラフォルダを確認できません。');return {characterName:parent.name,id:meta.id};}
  const q="'"+inputId+"' in parents and name = '04_申請用' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
  const found=await driveRequest(api+'?'+new URLSearchParams({q,fields:'files(id,name,parents,mimeType,trashed),nextPageToken',pageSize:'100'}),token).then(r=>r.json());if(found.files?.length!==1||found.files[0].parents?.[0]!==inputId)throw Error('04_申請用のフォルダが一意に確認できません。');return {characterName:meta.name,id:found.files[0].id};}
-async function saveToDrive(blob,name,sha,folder,token){const api='https://www.googleapis.com/drive/v3/files',q="'"+folder+"' in parents and name = '"+name+"' and trashed = false";
+async function saveToDrive(blob,name,sha,folder,token,expected){const api='https://www.googleapis.com/drive/v3/files',q="'"+folder+"' in parents and name = '"+name+"' and trashed = false";
  const existing=await driveRequest(api+'?'+new URLSearchParams({q,fields:'nextPageToken,files(id,name,size,appProperties,parents,md5Checksum,webViewLink)',pageSize:'100'}),token).then(r=>r.json());
  if(existing.nextPageToken)throw Error('同名ファイルが多すぎるため自動保存を中止しました。');
- if(existing.files?.length){const match=existing.files.find(x=>x.appProperties?.sha256===sha&&Number(x.size)===blob.size&&x.parents?.[0]===folder);if(match){const got=await driveRequest(api+'/'+match.id+'?alt=media',token).then(r=>r.blob());if(await digest(got)!==sha)throw Error('Driveの既存ZIP内容が一致しません。');return {file:match,reused:true};}throw Error('同じファイル名が別の内容で存在します。上書きしません。');}
+ if(existing.files?.length>1)throw Error('Driveに同名ZIPが重複しています。保存未確認です。');
+ if(existing.files?.length){const match=existing.files.find(x=>x.appProperties?.sha256===sha&&Number(x.size)===blob.size&&x.parents?.length===1&&x.parents[0]===folder);if(match){const got=await driveRequest(api+'/'+match.id+'?alt=media',token).then(r=>r.blob());if(await digest(got)!==sha)throw Error('Driveの既存ZIP内容が一致しません。');const verification=await inspectSubmissionZip(got,{expected,emoji:archiveMode==='emoji'});return {file:match,reused:true,verification};}throw Error('同じファイル名が別の内容で存在します。上書きしません。');}
  const boundary='stickerUpload'+crypto.randomUUID().replaceAll('-',''),json=JSON.stringify({name,mimeType:'application/zip',parents:[folder],appProperties:{sha256:sha,source:'reordered-application',imageCount:'40',hasMainTab:archiveMode==='emoji'?'false':'true'}});
  const crlf=String.fromCharCode(13,10);const payload=new Blob(['--'+boundary+crlf+'Content-Type: application/json; charset=UTF-8'+crlf+crlf+json+crlf+'--'+boundary+crlf+'Content-Type: application/zip'+crlf+crlf,blob,crlf+'--'+boundary+'--'+crlf],{type:'multipart/related; boundary='+boundary});
  const r=await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,size,parents,appProperties,webViewLink',token,{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body:payload});const created=await r.json();
  const checked=await driveRequest(api+'/'+created.id+'?fields=id,name,size,parents,appProperties,webViewLink,trashed',token).then(r=>r.json());
  if(checked.trashed||checked.name!==name||checked.parents?.length!==1||checked.parents[0]!==folder||Number(checked.size)!==blob.size||checked.appProperties?.sha256!==sha)throw Error('Driveへ送信しましたが、保存後の照合が未完了です。再送信せずフォルダを確認してください。');
- const downloaded=await driveRequest(api+'/'+created.id+'?alt=media',token).then(r=>r.blob());if(downloaded.size!==blob.size||await digest(downloaded)!==sha)throw Error('Drive保存後のZIPバイト照合に失敗しました。ファイルID：'+created.id);return {file:checked,reused:false};}
+ const downloaded=await driveRequest(api+'/'+created.id+'?alt=media',token).then(r=>r.blob());if(downloaded.size!==blob.size||await digest(downloaded)!==sha)throw Error('Drive保存後のZIPバイト照合に失敗しました。ファイルID：'+created.id);const verification=await inspectSubmissionZip(downloaded,{expected,emoji:archiveMode==='emoji'});const listed=await driveRequest(api+'?'+new URLSearchParams({q,fields:'files(id),nextPageToken',pageSize:'100'}),token).then(r=>r.json());if(listed.nextPageToken||listed.files?.length!==1||listed.files[0].id!==checked.id)throw Error('保存後のフォルダ一覧・重複照合が未完了です。');return {file:checked,reused:false,verification};}
 $('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{folder=folderIdFromUrl($('folder').value);}catch(e){$('saveResult').textContent='保存を開始できません：'+e.message;$('saveResult').scrollIntoView({block:'nearest'});return;}
  busy=true;saveButton(true);const snapshot=[...entries];progress('①／④ Google認証を確認中…');$('saveResult').textContent='';
  // Start OAuth synchronously from user click (popup blockers on iOS).
@@ -107,12 +108,15 @@ $('save').onclick=async()=>{if(busy||entries.length!==40)return;let folder;try{f
  try{const token=await tokenPromise;progress('②／④ 保存先フォルダを確認中…');const target=await inspectFolder(folder,token);
  progress('③／④ ZIP作成・40枚の順番と内容を照合中…');
  const list=snapshot.map((e,i)=>({name:imageName(i+1),blob:e.blob}));if(archiveMode!=='emoji')list.push({name:'main.png',blob:art['main.png']});list.push({name:'tab.png',blob:art['tab.png']});
- for(const entry of list){entry.blob=await withPngDpi(entry.blob);if(archiveMode==='emoji'&&entry.blob.size>1000000)throw Error(entry.name+'が1MBを超えます。');}
+ for(let i=0;i<40;i++)list[i].imageId='source:'+snapshot[i].originalIndex;
+ for(const entry of list){entry.blob=await normalizeSubmissionPng(entry.name,entry.blob,{emoji:archiveMode==='emoji'});if(archiveMode==='emoji'&&entry.blob.size>1000000)throw Error(entry.name+'が1MBを超えます。');}
  const zip=await storedZip(list,{includeArtwork:true,emoji:archiveMode==='emoji'});if(zip.size>(archiveMode==='emoji'?20000000:60000000))throw Error('ZIPが申請上限を超えています。');
  const actual=await extract(zip);for(const entry of list){const recovered=actual.get(entry.name);if(!recovered||await digest(recovered)!==await digest(entry.blob))throw Error(entry.name+'の保存時の順番・内容が一致しません。');}
+ const verification=await inspectSubmissionZip(zip,{expected:list,emoji:archiveMode==='emoji'});
  const sha=await digest(zip),filename='REORDERED_'+archiveMode+'_40_'+sha.slice(0,12)+'.zip';
  progress('④／④ '+target.characterName+'／04_申請用 に送信・保存確認中…');
- const saved=await saveToDrive(zip,filename,sha,target.id,token);
+ const saved=await saveToDrive(zip,filename,sha,target.id,token,list);
+ await dbPut('verification:'+saved.file.id,{fileId:saved.file.id,folderId:target.id,url:saved.file.webViewLink||'https://drive.google.com/file/d/'+saved.file.id+'/view',duplicateCount:0,verification:saved.verification,order:snapshot.map(e=>e.originalIndex)});
  progress('✓ Drive保存とZIPの再取得・一致確認が完了しました。'+(archiveMode==='emoji'?'絵文字40枚＋tab.png、全41枚':'スタンプ40枚＋main.png＋tab.png、全42枚')+'を照合済み（目視検品は別）。');
  const link=document.createElement('a');link.href=saved.file.webViewLink||'https://drive.google.com/file/d/'+saved.file.id+'/view';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Driveの新しい申請用ZIPを開く';
  $('saveResult').replaceChildren(document.createTextNode((saved.reused?'同じ内容の保存済みZIPを確認：':'新規保存：')+filename+' ／ 保存先：'+target.characterName+'／04_申請用 ／ ファイルID：'+saved.file.id+' '),link);

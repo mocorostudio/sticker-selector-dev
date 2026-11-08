@@ -1,3 +1,4 @@
+import {pngFixture} from './submission-png-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {draftArchivePixelsEligible,prepareSelectionZip} from '../integration-v1/submission-zip.mjs';
@@ -12,7 +13,7 @@ test('review ZIP margin uses final pixels, without clearing other inspection fai
  assert(!draftArchivePixelsEligible(p,{issues:['背景端が不透明']}));
 });
 test('draft ZIP keeps review status and warnings, preserving original choices',async()=>{
- const blob=new Blob([new Uint8Array(24)],{type:'image/png'}),sha=await digest(blob),p=pixels();
+ const blob=pngFixture(),sha=await digest(blob),p=pixels();
  const items=Array.from({length:8},(_,i)=>({id:'crop:'+i,imageId:'image'+i,characterId:'character',origin:'crop-local',touched:true,rating:'o',crop:{draftSelection:true,decision:'review',crossing:false,pendingDrive:{characterId:'character',archiveFileId:'archive',manifestFileId:'manifest',sha256:sha}}}));
  const plan={schema:'animal-stickers-submission-trial/v1',technicalApproval:false,purpose:'selection-test-only',characterId:'character',sets:[{id:'set',name:'test',target:8}],entries:items.map(x=>({fileId:x.imageId,imageId:x.imageId,localItemId:x.id,setId:'set'}))},before=JSON.stringify(items);
  const api={items,get:async()=>blob,decode:async()=>p},result=await prepareSelectionZip(plan,api);
