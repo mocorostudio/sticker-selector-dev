@@ -64,7 +64,7 @@ try{
  if(nativeSheets){assert.equal(await page.locator('.trial-identity').count(),cohortCount);for(const [i,e] of value.entries.entries()){assert.ok((await page.locator('.trial-identity').nth(i).innerText()).includes(e.trialId));}}
  const badges=page.locator('.inspection-summary');await page.waitForFunction(c=>['pass','review','fail'].every(k=>document.querySelectorAll('[data-inspection-status='+k+']').length===c[k]),counts);
  const state=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),keys.store);
- for(let i=0;i<cohortCount;i++){if(value.entries[i].technicalReview.status==='pass')assert.equal(await badges.nth(i).innerText(),'合格');else assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));}
+ for(let i=0;i<cohortCount;i++){if(value.entries[i].technicalReview.status==='pass')assert.equal((await badges.nth(i).innerText()).trim(),'合格');else assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));}
  assert.deepEqual((await state()).items.find(i=>i.id===old.id),old);assert.equal((await state()).items.length,cohortCount+1);
  const card=page.locator('.card').nth(19);await card.locator('.choices label').nth(1).click();await card.locator('.comment').fill('この選択と理由を保持');
  const choice=(await state()).items.find(i=>i.imageId===value.entries[19].imageId);
