@@ -1,7 +1,7 @@
 import {auditedCandidateBinding,reviewedCandidateBinding} from './inspection-core.mjs?v=20261107-alpha1';
 import {completeSelection} from './selection-completion.mjs?v=20261024-save1';
-import {createPendingDrive,PENDING_SCHEMA,trialEligible} from './drive-pending.mjs?v=20261024-progress1';
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261103-audited2';
+import {createPendingDrive,PENDING_SCHEMA,trialEligible} from './drive-pending.mjs?v=20261108-variants1';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261108-variants1';
 import {gate,inspect,cleanTransparency} from './crop-v9/core.mjs?v=20261107-alpha1';
 const API='https://www.googleapis.com/drive/v3/files',FOLDER='application/vnd.google-apps.folder';
 const FIELDS='id,name,mimeType,parents,size,sha256Checksum,appProperties,trashed,webViewLink';
@@ -24,7 +24,7 @@ export async function prepareExport(items,{get,decode,encode,onProgress=()=>{},p
   if(item.crop?.reviewDisplay===true){
    const proof=item.crop.pendingDrive,review=item.crop.displayReview,blob=await get(item.id);
    if(!proof?.archiveFileId||!proof?.manifestFileId||proof.characterId!==item.characterId||!blob||blob.type!=='image/png'||await digest(blob)!==proof.sha256||review?.sha256!==proof.sha256||review.imageId!==item.imageId||review.candidateId!==item.candidate||review.phrase!==item.phrase||review.pose!==item.pose||!['pass','hold','fail','unknown'].includes(review.status)||!review.reason?.trim())throw Error('全候補の検品理由と選抜画像の対応が一致しません。');
-   Object.assign(row,{purpose:'review-display-preferences',technicalStatus:review.status==='fail'?'fail':'review',technicalReview:structuredClone(review),formalApproval:false,sourceProof:structuredClone(proof),sha256:proof.sha256});
+   Object.assign(row,{purpose:'review-display-preferences',technicalStatus:review.status==='fail'?'fail':'review',technicalReview:structuredClone(review),formalApproval:false,...(item.crop.trialId?{trialId:item.crop.trialId,masterSheet:item.crop.masterSheet,previousCandidateId:item.crop.previousCandidateId,changeReason:item.crop.changeReason}:{}),sourceProof:structuredClone(proof),sha256:proof.sha256});
    results.push(row);onProgress({done:results.length,total:rows.length});continue;
   }
   if(confirmed&&item.rating==='x'&&!item.crop?.draftSelection){const original=await get(item.id);if(!original||original.type!=='image/png')throw Error('不採用画像の保存記録を照合できません。');row.sha256=await digest(original);}

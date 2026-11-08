@@ -7,7 +7,7 @@ export async function importCrops(entries,adapter,master,{forSelection=false}={}
  if(!Array.isArray(entries)||entries.length>130)throw Error('受け渡し件数が不正です');
  const result={ids:[],added:0,existing:0,errors:[]};
  for(const entry of entries){try{
-  const r=entry?.record,m=master.find(x=>x.candidateId===r?.candidateId);
+  const r=entry?.record,m=master.find(x=>x.candidateId===r?.candidateId&&(!r.reviewDisplay||x.phrase===r.phrase&&x.pose===r.pose&&(!r.masterSheet||x.masterSheet===r.masterSheet)));
   if(forSelection){if(!r||r.cropReview?.imageId!==r.imageId||r.cropReview?.confirmed!==true)throw Error('切り出し一覧を確認してください');if(r.candidateId&&(!m||m.phrase!==r.phrase||m.pose!==r.pose))throw Error('候補情報が不一致');}
   else if(!r||!m||m.phrase!==r.phrase||m.pose!==r.pose||gate(r)!=='pass')throw Error('候補・セリフ・検品の照合に失敗');
   if(typeof r.imageId!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(r.imageId)||typeof r.filename!=='string'||!/^[-A-Za-z0-9_]+\.png$/.test(r.filename))throw Error('画像ID・ファイル名が不正');

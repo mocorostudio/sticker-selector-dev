@@ -2,9 +2,9 @@ import {finalizeTransparency} from './final-transparency.mjs?v=20261107-alpha1';
 import {auditedCandidateBinding} from './inspection-core.mjs?v=20261107-alpha1';
 import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
 import {SET_COUNTS,validateSubmission} from './submission-core.mjs?v=20261107-alpha1';
-import {digest} from './drive-export.mjs?v=20261103-audited2';
+import {digest} from './drive-export.mjs?v=20261108-variants1';
 import {inspect,gate} from './crop-v9/core.mjs?v=20261107-alpha1';
-import {trialEligible} from './drive-pending.mjs?v=20261024-progress1';
+import {trialEligible} from './drive-pending.mjs?v=20261108-variants1';
 // Percentage padding is a generation target. Review archives use actual final pixels;
 // this never promotes a draft to technical approval.
 export function draftArchivePixelsEligible(pixels,qa,crossing=false){

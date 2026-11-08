@@ -1,4 +1,4 @@
-import {validateReviewDisplay,assertReviewMaster,reviewDisplayRecord} from './review-display.mjs?v=20261106-review81';
+import {validateReviewDisplay,assertReviewMaster,reviewDisplayRecord} from './review-display.mjs?v=20261108-variants1';
 import {savedEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
 import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-direct2';
 import {gate,inspect} from './crop-v9/core.mjs?v=20261107-alpha1';
@@ -15,11 +15,12 @@ export async function pngHash(bytes){return [...new Uint8Array(await crypto.subt
 export function masterId(reference){try{const u=new URL(reference);if(u.origin!=='https://docs.google.com')throw Error();const m=u.pathname.match(/^\/spreadsheets\/d\/([-\w]+)(?:\/edit)?\/?$/);if(!m)throw Error();return id(m[1]);}catch{throw Error('検品記録の参照マスターが不明です。');}}
 export function readMasterRows(rows){
  if(!Array.isArray(rows)||!rows.length)throw Error('セリフのマスターが空です。');
- const header=rows[0],a=header.includes('ID')?header.indexOf('ID'):header.indexOf('候補ID'),b=header.includes('セリフ（厳密）')?header.indexOf('セリフ（厳密）'):header.includes('セリフ（厳密・案）')?header.indexOf('セリフ（厳密・案）'):header.indexOf('正確なセリフ'),c=header.includes('基本ポーズ')?header.indexOf('基本ポーズ'):header.includes('構図・ポーズ・目線')?header.indexOf('構図・ポーズ・目線'):header.includes('親子の動作')?header.indexOf('親子の動作'):header.indexOf('ポーズ');
+ const header=rows[0],column=(...names)=>names.map(n=>header.indexOf(n)).find(i=>i>=0)??-1;
+ const a=column('ID','候補ID'),b=column('セリフ（厳密）','セリフ（厳密・案）','正確なセリフ','セリフ（完全一致）','セリフ'),c=column('基本ポーズ','構図・ポーズ・目線','親子の動作','ポーズ','構図・ポーズ・表情','変更後デザイン');
  if([a,b,c].some(x=>x<0))throw Error('マスターのID・セリフ・基本ポーズを確認できません。');
- const textlessColumn=header.indexOf('文字なしテーマ');
+ const textlessColumn=header.indexOf('文字なしテーマ'),trial=header.indexOf('再生成群'),previous=header.indexOf('旧候補ID'),source=header.indexOf('元画像ID');
  const seen=new Set(),out=[];
- for(const row of rows.slice(1)){if(!row[a])continue;if(typeof row[a]!=='string'||seen.has(row[a]))throw Error('マスターの候補IDが不正または重複しています。');seen.add(row[a]);out.push({candidateId:row[a],phrase:row[b]||'',pose:row[c]||'',...(!row[b]&&textlessColumn>=0&&row[textlessColumn]?{textless:true}:{})});}
+ for(const row of rows.slice(1)){if(!row[a])continue;if(typeof row[a]!=='string'||seen.has(row[a]))throw Error('マスターの候補IDが不正または重複しています。');seen.add(row[a]);out.push({candidateId:row[a],phrase:row[b]||'',pose:row[c]||'',...(trial>=0?{trialId:row[trial]||'',previousCandidateId:previous>=0?row[previous]||'':'',sourceId:source>=0?row[source]||'':''}:{}),...(!row[b]&&textlessColumn>=0&&row[textlessColumn]?{textless:true}:{})});}
  return out;
 }
 export function validatePendingManifest(value,{characterId,pendingFolderId,masters,includeTrials=false}){
@@ -71,7 +72,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
   const book=await json(SHEETS+'/'+id(spreadsheetId)+'?fields=spreadsheetId,sheets(properties)');
   const sheet=book.sheets?.find(s=>s.properties?.title===sheetName),grid=sheet?.properties?.gridProperties;
   if(!grid||grid.columnCount<7||grid.rowCount<2)throw Error('参照する候補マスターを確認できません。');
-  const range="'"+sheetName.replaceAll("'","''")+"'!A1:"+(sheetName==='116候補マスター'?'G':'Z')+Math.min(grid.rowCount,2000);
+  const range="'"+sheetName.replaceAll("'","''")+"'!A1:"+String.fromCharCode(64+Math.min(sheetName==='116候補マスター'?7:26,grid.columnCount))+Math.min(grid.rowCount,2000);
   return readMasterRows((await json(SHEETS+'/'+id(spreadsheetId)+'/values/'+encodeURIComponent(range))).values);
  }
  return {
@@ -133,7 +134,10 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
      if(reviews.length>1&&reviews[0].modifiedTime===reviews[1].modifiedTime)throw Error('最新の全候補検品記録を特定できません。');
      const file=reviews[0],value=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(file,3000000))));
      const spreadsheetId=validateReviewDisplay(value,{characterId,pendingFolderId:pending.id,historyId:history.id,masters});
-     onProgress({stage:'master',character:character.name});const master=await readMaster(spreadsheetId,value.masterSheet);assertReviewMaster(value,master);
+     onProgress({stage:'master',character:character.name});const primary=await readMaster(spreadsheetId,value.masterSheet),variantMasters=new Map();
+     for(const name of new Set(value.entries.map(e=>e.masterSheet||value.masterSheet)))if(name!==value.masterSheet)variantMasters.set(name,await readMaster(spreadsheetId,name));
+     assertReviewMaster(value,primary,variantMasters);
+     const master=[...new Map([[value.masterSheet,primary],...variantMasters])].flatMap(([masterSheet,rows])=>rows.map(r=>({...r,masterSheet})));
      const archive=await meta(value.archive.fileId);if(!inFolder(archive,history.id)||archive.mimeType!=='application/zip')throw Error('全候補画像の保存先が一致しません。');
      const archiveBytes=await retry(()=>bytes(archive,30000000));if(await pngHash(archiveBytes)!==value.archive.sha256)throw Error('全候補画像のZIPが変更されています。');
      const files=await unpack(archiveBytes,value.entries),entries=[];

@@ -2,7 +2,7 @@ import {stageCandidateAssignments} from './inspection-core.mjs?v=20261104-effici
 import {importInspectionReport} from './inspection-report.mjs?v=20261104-report1';
 import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261103-audited2';
 import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261103-audited2';
-import {importVerifiedCrops} from './crop-handoff.mjs?v=20261104-efficient1';
+import {importVerifiedCrops} from './crop-handoff.mjs?v=20261108-variants1';
 import {prepareApprovedBatch} from './approved-batch.mjs';
 
 // One live-master snapshot per operation. All changes are staged on clones;
