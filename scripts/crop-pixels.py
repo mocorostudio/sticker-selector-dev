@@ -11,6 +11,16 @@ if mode in ('decode', 'strict-decode'):
         raise ValueError('370x320 RGBAの静止PNGが必要です')
     im = im.convert('RGBA')
     sys.stdout.buffer.write(struct.pack('>II', *im.size) + im.tobytes())
+elif mode == 'preview':
+    w, h = map(int, sys.argv[2:])
+    im = Image.frombytes('RGBA', (w, h), raw)
+    out = Image.new('RGB', (w * 3, h))
+    for i, color in enumerate(((255, 255, 255, 255), (24, 32, 48, 255), (0, 0, 0, 255))):
+        bg = Image.new('RGBA', (w, h), color)
+        out.paste(Image.alpha_composite(bg, im).convert('RGB'), (i * w, 0))
+    buf = io.BytesIO()
+    out.save(buf, format='PNG')
+    sys.stdout.buffer.write(buf.getvalue())
 elif mode == 'encode':
     w, h = map(int, sys.argv[2:])
     im = Image.frombytes('RGBA', (w, h), raw)

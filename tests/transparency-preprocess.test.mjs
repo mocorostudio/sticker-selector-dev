@@ -30,3 +30,12 @@ test('tightly isolated opaque artwork uses the transparent original source for b
  const r=prepareTransparency(component,{backgroundReference:image()});assert.equal(r.report.status,'checked');assert.deepEqual(r.data,component.data);
  assert.equal(prepareTransparency(component,{backgroundReference:image(255)}).report.status,'hold');
 });
+
+test('weak watercolor edge is protected while distant weak noise is removed',()=>{
+ const im=image();im.data.set([240,120,40,4],(11*40+20)*4);im.data.set([240,120,40,4],(2*40+2)*4);
+ const r=prepareTransparency(im);assert.equal(r.data[(11*40+20)*4+3],4);assert.equal(r.data[(2*40+2)*4+3],0);
+});
+test('detached colored film and enclosed haze are retained and flagged with coordinates',()=>{
+ const im=image();for(let y=2;y<6;y++)for(let x=2;x<6;x++)im.data.set([120,40,80,60],(y*40+x)*4);
+ const r=prepareTransparency(im);assert.equal(r.report.status,'hold');assert.deepEqual(r.report.residualComponents[0].bounds,[2,2,6,6]);assert.equal(r.report.alphaHistogram[60],16);assert.equal(r.data[(2*40+2)*4+3],60);
+});

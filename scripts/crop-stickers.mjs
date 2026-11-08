@@ -35,11 +35,14 @@ try{
   const source=decode(bytes),prepared=prepareCropBatch(source,3,3);log.push({batchId:b.batchId,sourceSha256:b.sha256,transparencyCleanup:prepared.transparencyCleanup});
   for(const [index,cell] of prepared.cells.entries()){
    const m=candidates.get(b.candidateIds[index]),cleaned=prepareTransparency(cell.pixels,{backgroundReference:source}),content=trim(cleaned),p=placementPlan(content.width,content.height),resized=invoke('normalize',Buffer.from(content.data),[content.width,content.height,p.drawWidth,p.drawHeight,p.x,p.y]),final=prepareTransparency(decode(resized)),png=invoke('encode',Buffer.from(final.data),[final.width,final.height]),pixels=decode(png),qa=inspect(pixels,cell.crossing||cell.sourceTouchesEdge);
-   const issues=[...new Set([...prepared.transparencyCleanup.issues,...cleaned.report.issues,...qa.issues])];qa.issues=issues;if(issues.length){qa.automatic='fail';qa.status='fail';}
+   const issues=[...new Set([...prepared.transparencyCleanup.issues,...cleaned.report.issues,...final.report.issues,...qa.issues])];qa.issues=issues;if(issues.length){qa.automatic='fail';qa.status='fail';}
    const filename=m.candidateId+'_'+attemptId+'.png',imageId=m.candidateId+'_'+attemptId,sha256=hash(png);
    const record={imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,filename,sourceId:b.sourceFileId,sourceBatchId:b.batchId,sourceSha256:b.sha256,attemptId,decision:'review',review:[],crossing:cell.crossing||cell.sourceTouchesEdge,qa,transparencyCleanup:{source:prepared.transparencyCleanup,cell:cleaned.report,final:final.report},inspection:{scope:'numerical-only',visualReviewRequired:true},bounds:cell.bounds};
    await fs.writeFile(path.join(outputDir,filename),png,{flag:'wx'});
    const saved=await fs.readFile(path.join(outputDir,filename));if(hash(saved)!==sha256)throw Error('保存PNGのハッシュ不一致');
+   const previewFilename=imageId+'_background-review.png';
+   await fs.writeFile(path.join(outputDir,previewFilename),invoke('preview',Buffer.from(pixels.data),[pixels.width,pixels.height]),{flag:'wx'});
+   record.inspection.previewFilename=previewFilename;
    entries.push({record,path:filename,sha256,technicalStatus:'hold',reason:issues.join(' ／ ')||'切り出し・透過前処理済み。元画像との個別目視検品は未実施。'});
   }
  }
