@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
 import {prepareCropBatch} from '../integration-v1/crop-v9/component-crops.mjs';
 import {prepareTransparency} from '../integration-v1/crop-v9/transparency.mjs';
+import {inspectTransparencyCheckpoint} from '../integration-v1/transparency-checkpoint.mjs';
 import {trim,inspect} from '../integration-v1/crop-v9/core.mjs';
 import {placementPlan} from '../integration-v1/crop-v9/placement.mjs';
 const [inputFile,outputDir]=process.argv.slice(2);
@@ -40,13 +41,16 @@ try{
    const record={imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,filename,sourceId:b.sourceFileId,sourceBatchId:b.batchId,sourceSha256:b.sha256,attemptId,decision:'review',review:[],crossing:cell.crossing||cell.sourceTouchesEdge,qa,transparencyCleanup:{source:prepared.transparencyCleanup,cell:cleaned.report,final:final.report},inspection:{scope:'numerical-only',visualReviewRequired:true},bounds:cell.bounds};
    await fs.writeFile(path.join(outputDir,filename),png,{flag:'wx'});
    const saved=await fs.readFile(path.join(outputDir,filename));if(hash(saved)!==sha256)throw Error('保存PNGのハッシュ不一致');
+   const savedPixels=decode(saved),checkpoint=inspectTransparencyCheckpoint(savedPixels,{sha256,stage:'preselection'});record.transparencyCheckpoint=checkpoint;record.transparencyCleanup.saved=checkpoint;
+   if(checkpoint.status!=='verified'){issues.push(...checkpoint.issues);qa.issues=[...new Set(issues)];qa.automatic='fail';qa.status='fail';}
+   record.inspection.backgroundReadbackVerified=checkpoint.status==='verified';
    const previewFilename=imageId+'_background-review.png';
    await fs.writeFile(path.join(outputDir,previewFilename),invoke('preview',Buffer.from(pixels.data),[pixels.width,pixels.height]),{flag:'wx'});
    record.inspection.previewFilename=previewFilename;
    entries.push({record,path:filename,sha256,technicalStatus:'hold',reason:issues.join(' ／ ')||'切り出し・透過前処理済み。元画像との個別目視検品は未実施。'});
   }
  }
- const result={schema:'animal-stickers-crop-result/v1',characterId:input.characterId,attemptId,masterReference:input.masterReference,masterSheet:input.masterSheet,masterModifiedTime:input.masterModifiedTime,master:input.master,candidateCount:entries.length,formalApproval:false,summary:{pass:0,hold:entries.length,fail:0},entries,log,next:'チャットで元画像と1枚ずつ照合して技術判定。判定確定後に既存Drive引き渡し経路を使用。選抜中の画像は差し替えない。'};
+ const result={schema:'animal-stickers-crop-result/v1',characterId:input.characterId,attemptId,masterReference:input.masterReference,masterSheet:input.masterSheet,masterModifiedTime:input.masterModifiedTime,master:input.master,candidateCount:entries.length,formalApproval:false,summary:{pass:0,hold:entries.length,fail:0},entries,log,transparencySummary:{verified:entries.filter(e=>e.record.transparencyCheckpoint?.status==='verified').length,needsRepair:entries.filter(e=>e.record.transparencyCheckpoint?.status!=='verified').length},next:'背景残留は選抜登録前に追加除去・新試行保存・再検査を完了。チャットで元画像と1枚ずつ照合して技術判定。判定確定後に既存Drive引き渡し経路を使用。選抜中の画像は差し替えない。'};
  await fs.writeFile(path.join(outputDir,'crop-result.json'),JSON.stringify(result,null,2),{flag:'wx'});
  console.log(JSON.stringify({attemptId,count:entries.length,outputDir:path.resolve(outputDir),formalApproval:false}));
 }catch(e){await fs.writeFile(path.join(outputDir,'execution-failed.json'),JSON.stringify({attemptId,error:e.message,completedEntries:entries,log,formalApproval:false},null,2),{flag:'wx'});throw e;}

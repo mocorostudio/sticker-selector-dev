@@ -1,4 +1,4 @@
-import {prepareTransparency} from './transparency.mjs';
+import {prepareTransparency} from './transparency.mjs?v=20261108-fringe3';
 export const visualChecks=['背景に市松・白残り・半透明ノイズなし','隣の画像の混入なし','耳・手足・尻尾の欠損なし','手足の増殖なし・指は原則3本','セリフが表示マスターと完全一致','目の形・ハイライトが基準画像とキャラ固有設定に一致','カバンなし・小物最小限','画風統一','文字・イラストの白フチが対象キャラの指定と一致'];
 export function validateImage(im){if(!im||!Number.isInteger(im.width)||!Number.isInteger(im.height)||im.width<1||im.height<1||im.width*im.height>16000000||!im.data||im.data.length!==im.width*im.height*4)throw Error('画像が不正または1600万画素を超えています');}
 export function components(im,includeStart=false){validateImage(im);const {width:w,height:h,data:d}=im,seen=new Uint8Array(w*h),out=[];const queue=new Int32Array(w*h);for(let i=0;i<w*h;i++){if(seen[i]||!d[i*4+3])continue;let a=0,b=1;queue[0]=i;seen[i]=1;let x0=w,y0=h,x1=0,y1=0;while(a<b){const k=queue[a++],x=k%w,y=Math.floor(k/w);x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);for(const n of [x>0?k-1:-1,x<w-1?k+1:-1,y>0?k-w:-1,y<h-1?k+w:-1])if(n>=0&&!seen[n]&&d[n*4+3]){seen[n]=1;queue[b++]=n;}}out.push({x0,y0,x1:x1+1,y1:y1+1,area:b,...(includeStart?{startIndex:i}:{})});}return out;}

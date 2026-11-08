@@ -1,3 +1,4 @@
+import {verifySavedTransparency} from './transparency-checkpoint.mjs?v=20261108-early1';
 import {gate,inspect} from './crop-v9/core.mjs';
 import {pngHash} from './inspection-core.mjs';
 
@@ -22,7 +23,8 @@ export async function prepareChatHandoff(input,{get,decode,at=new Date().toISOSt
   total+=blob.size;if(total>150000000)throw Error('一括処理のPNG容量は150MB以下にしてください');
   const decoded=await decode(blob),qa=inspect(decoded,false);
   if(decoded.width!==370||decoded.height!==320||qa.automatic!=='pass')throw Error('PNG実画素の検査に失敗：'+r.imageId);
-  accepted.push({record:structuredClone({...r,qa,pngSha256:entry.sha256,masterReference:input.masterReference}),sha256:entry.sha256,png:await blob.arrayBuffer()});
+  const transparencyCheckpoint=await verifySavedTransparency(blob,async()=>decoded,{expectedSha:entry.sha256,stage:'preselection',label:r.candidateId});
+  accepted.push({record:structuredClone({...r,qa,transparencyCheckpoint,pngSha256:entry.sha256,masterReference:input.masterReference}),sha256:entry.sha256,png:await blob.arrayBuffer()});
  }
  const manifest={schema:'animal-stickers-reviewed-crops/v1',characterId:input.characterId,masterReference:input.masterReference,masterSheet:input.masterSheet,masterModifiedTime:input.masterModifiedTime,createdAt:at,entries:accepted.map(({record,sha256})=>({record,sha256}))};
  return {manifest,accepted,excluded,summary:{total:input.entries.length,passed:accepted.length,failed:excluded.filter(e=>e.status==='fail').length,review:excluded.filter(e=>e.status==='review').length,unknown:excluded.filter(e=>e.status==='unknown').length,driveSaved:false,userReadbackVerified:false}};

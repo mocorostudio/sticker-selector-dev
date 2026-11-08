@@ -1,4 +1,4 @@
-"""Work/chat launcher. All crop/transparency logic stays in the existing JS modules."""
+"""Work/chat launcher. Crop, transparency cleanup and saved-PNG readback checks share the existing JS modules."""
 import os, pathlib, shutil, sys
 node = os.environ.get('CODEX_PRIMARY_RUNTIME_NODE') or shutil.which('node')
 if not node:

@@ -69,3 +69,5 @@ test('reviewed ZIP goes through pending Drive save, retry, reader reload and sel
  items[0].touched=true;items[0].rating='o';items[0].revision='vote';confirmLocal(items);const plan=await prepareExport(items,{get:f.get,decode:f.decode});const doc=JSON.parse(await plan.manifest.blob.text());assert.equal(savedEvaluation(doc,reloaded.entries[0].record,'char').rating,'o');
  items[0].inspectionAudit={decision:'fail',reviewedAt:'2026-11-06T00:00:00Z',comment:'new defect'};await assert.rejects(drive.registerPending(items,options),/新しい検品結果/);assert.equal(remote.posts,posts);
 });
+
+test('a newly reviewed handoff refuses detached background residue before selection registration',async()=>{const f=await fixture(9),dirty={...pixels,data:pixels.data.slice()};dirty.data.set([120,50,40,60],(10*370+10)*4);f.decode=async()=>dirty;await assert.rejects(prepareChatHandoff(f.input,f),/背景残留|PNG実画素/);});
