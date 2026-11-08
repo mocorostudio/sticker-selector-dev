@@ -2,7 +2,7 @@ import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
 import {orderedFiles} from './submission-order.mjs?v=20261024-order1';
 import {validateWorkspace,validateDraft,workspaceKey,assignWorkspace,swapWorkspace,moveWorkspace,sha256,readWorkspaceImages} from './product-workspace.mjs?v=20261108-1';
 const $=id=>document.getElementById(id),API='https://www.googleapis.com/drive/v3/files',auth=googleTestAuth();
-const single=new URLSearchParams(location.search).get('mode')==='single';
+const params=new URLSearchParams(location.search),single=params.get('mode')==='single',cohort=/^G[1-3]$/.test(params.get('cohort')||'')?params.get('cohort'):'';
 if(single){document.querySelector('h1').textContent='40枚を選ぶ';$('save').textContent='選択をDriveに保存';}
 let workspace,draft,images=new Map(),urls=new Map(),page=0,swapFrom='',undo=[],busy=false,dirty=false;
 const quote=s=>"'"+s.replaceAll('\\','\\\\').replaceAll("'","\\'")+"'";
@@ -31,7 +31,7 @@ function render(){
  $('page').textContent=rows.length?`${page*12+1}〜${Math.min((page+1)*12,rows.length)}／${rows.length}枚`:'該当なし';$('prev').disabled=page===0;$('next').disabled=(page+1)*12>=rows.length;$('undo').disabled=!undo.length;$('cancelSwap').hidden=!swapFrom;$('hint').textContent=swapFrom?'交換する相手を選んでください。検索や演出の絞り込みも使えます。':single?'選択中の画像を押して不要な分を外し、40枚にしてください。外した画像は「予備だけ」から戻せます。':'移動先でセットを変更。「入れ替える」で2枚を選ぶと、枚数を保ったまま交換できます。';$('saveState').textContent=dirty?'端末に自動保存済み／Driveは未保存':'端末・Driveの保存内容で再開';
 }
 async function discover(){
- $('status').textContent='保存済みの組み直し案を探しています…';const found=[];let token='';do{const params=new URLSearchParams({q:"trashed=false and mimeType='application/json' and name contains 'product-workspace_'"+(single?" and name contains '_single_'":''),fields:'files(id,name,modifiedTime,parents),nextPageToken',pageSize:'100',orderBy:'modifiedTime desc',...(token?{pageToken:token}:{})});const list=await (await request(API+'?'+params)).json();found.push(...list.files);token=list.nextPageToken||'';if(found.length>1000)throw Error('候補が多いため検索を止めました。');}while(token);
+ $('status').textContent='保存済みの組み直し案を探しています…';const found=[];let token='';do{const params=new URLSearchParams({q:"trashed=false and mimeType='application/json' and name contains 'product-workspace_'"+(single?" and name contains '_single_'":'')+(single&&cohort?" and name contains '_"+cohort+"_'":''),fields:'files(id,name,modifiedTime,parents),nextPageToken',pageSize:'100',orderBy:'modifiedTime desc',...(token?{pageToken:token}:{})});const list=await (await request(API+'?'+params)).json();found.push(...list.files);token=list.nextPageToken||'';if(found.length>1000)throw Error('候補が多いため検索を止めました。');}while(token);
  if(!found.length)throw Error('保存済みの組み直し案が見つかりません。保存先とGoogleアカウントを確認してください。');$('versions').replaceChildren();for(const f of found)$('versions').add(new Option(f.name,f.id));$('chooser').hidden=false;$('load').hidden=false;await loadWorkspace(found[0].id);
 }
 async function loadWorkspace(fileId){
