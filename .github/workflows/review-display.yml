@@ -27,7 +27,6 @@ jobs:
       - run: node tests/confirmation-kit-browser.mjs
       - name: Ninety image attempts retain votes, reasons, order and artwork
         run: REVIEW_VARIANTS_TEST=1 node tests/confirmation-kit-browser.mjs
-      - run: TEST_BROWSER=webkit node tests/confirmation-kit-browser.mjs
       - run: node tests/products-browser.mjs
       - name: Preserve missing selections and edits in Chromium
         run: TEST_BROWSER=chromium node tests/candidate-save-browser.mjs

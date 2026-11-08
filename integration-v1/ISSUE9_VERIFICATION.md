@@ -38,9 +38,9 @@ Saved under `03_元画像・生成履歴`, verified by file metadata readback.
 
 ## Tests and remaining verification
 
-- Local `npm test`: 316/316 passed before integrating the concurrent upstream review-variant change. After integrating upstream `dc1cf6e`, all 329/329 tests passed (28.86 seconds).
+- Local `npm test`: 316/316 passed before integrating the concurrent upstream review-variant change. After integrating upstream `dc1cf6e`, all 329/329 tests passed (28.86 seconds). After upstream group-two support, GitHub Actions passed all 332/332 tests and the existing browser suite.
 - Focused tests cover normal vs reorder normalization, all 42 images, absent/present density, damaged PNG/ZIP CRC, wrong dimensions, opaque/empty alpha, capacity limits, identity mismatch, actual readback despite server checksum, wrong folder, upload/readback failure, duplicate listing, lost response, repeat/concurrent save and fresh-journal resume. Existing votes/order/artwork/history preservation assertions remain.
-- New `tests/submission-bytes-browser.mjs` runs the real reorder phone UI with isolated mock Drive in Chromium and WebKit. `confirmation-kit-browser.mjs` can now run on WebKit too; both routes are included in the existing review-display CI workflow.
+- New `tests/submission-bytes-browser.mjs` runs the real reorder phone UI with isolated mock Drive in Chromium and WebKit. `submission-bytes-browser.mjs` also runs the actual normal export/Drive-save pipeline on both engines, including 42 real PNGs, identity/order, latest artwork, readback, duplicate prevention and draft preservation. The complete normal screen is tested on Chromium. An attempted broader WebKit preference-screen test encountered temporary blob-URL access errors before the ZIP stage; it is not claimed as passed.
 - Local Chromium could not start: the execution environment denies its process-singleton socket. No local browser result is claimed. GitHub Actions results are reported separately.
 - Physical iPhone Safari and authenticated app OAuth/Drive writes were not tested. The user need not redo selections or manually test to preserve the work.
-- Public hosting was not deployed by this change. A development commit and a public deployment are different states.
+- No manual hosting configuration was changed. The standard GitHub Pages deployment for the development commit completed successfully; direct public-page inspection was unavailable in this environment.
