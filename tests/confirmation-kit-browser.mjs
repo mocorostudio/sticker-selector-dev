@@ -8,10 +8,10 @@ import {SourceFixture} from './source-save-fixture.mjs';
 import {storageKeys} from '../integration-v1/session-store.mjs';
 import {pngHash} from '../integration-v1/drive-pending.mjs';
 import {REVIEW_DISPLAY_SCHEMA} from '../integration-v1/review-display.mjs';
-const service=await startServer();let browser;
+const service=await startServer();let browser,page;
 try{
  browser=await (process.env.TEST_BROWSER==='webkit'?webkit:chromium).launch({headless:true,...(process.env.TEST_BROWSER==='webkit'?{}:{executablePath:process.env.CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']})});
- const page=await browser.newPage({viewport:{width:390,height:844}});page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ page=await browser.newPage({viewport:{width:390,height:844}});page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const raw=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=370;c.height=320;const g=c.getContext('2d');g.fillStyle='#935';g.fillRect(60,60,240,200);return c.toDataURL().split(',')[1];});
  const png=new Uint8Array(Buffer.from(raw,'base64')),f=new PendingFixture();let value,archiveBytes,generatedVariantSheets=null;
  if(process.env.REVIEW_DISPLAY_MANIFEST){
@@ -40,6 +40,17 @@ try{
  let pauseComponent=false,releaseComponent;const writeFetch=writer.fetch.bind(writer);writer.fetch=async(url,options)=>{if(pauseComponent&&new URL(url).pathname.startsWith('/upload/')){pauseComponent=false;await new Promise(resolve=>releaseComponent=resolve);}return writeFetch(url,options);};
  const originalFetch=f.fetch.bind(f);f.fetch=async(url,options)=>{const u=new URL(url);if(u.origin==='https://sheets.googleapis.com'){if(!u.pathname.includes('/values/'))return Response.json({spreadsheetId:master,sheets:(nativeSheets?Object.keys(nativeSheets):[value.masterSheet]).map(title=>({properties:{title,gridProperties:{rowCount:200,columnCount:26}}}))});if(nativeSheets){const range=decodeURIComponent(u.pathname.split('/values/')[1]),name=range.match(/^'((?:''|[^'])+)'!/)?.[1]?.replaceAll("''","'");return Response.json({values:nativeSheets[name]||[]});}}return originalFetch(url,options);};
  const jszip=await fs.readFile(new URL('../node_modules/jszip/dist/jszip.min.js',import.meta.url),'utf8');
+ // Bridge binary requests through the existing mock server instead of WebKit's
+ // route.postDataBuffer representation; application code still creates the real bytes.
+ await page.exposeBinding('confirmationDriveFetch',async(_,{url,method,headers,bytes})=>{
+  const opts={method,headers,body:new Blob([new Uint8Array(bytes)])},u=new URL(url);
+  const r=await (method!=='GET'||u.pathname.endsWith('/about')||u.pathname.endsWith('/generateIds')?writer.fetch(url,opts):f.fetch(url,opts));
+  return {status:r.status,headers:Object.fromEntries(r.headers),bytes:[...new Uint8Array(await r.arrayBuffer())]};
+ });
+ await page.addInitScript(()=>{const original=window.fetch.bind(window);window.fetch=async(url,options={})=>{
+  if(typeof url==='string'&&url.startsWith('https://www.googleapis.com/')){const body=options.body?options.body instanceof Blob?options.body:new Blob([options.body]):null,r=await window.confirmationDriveFetch({url,method:options.method||'GET',headers:options.headers||{},bytes:body?[...new Uint8Array(await body.arrayBuffer())]:[]});return new Response(new Uint8Array(r.bytes),{status:r.status,headers:r.headers});}
+  return original(url,options);
+ };});
  await page.route('**/*',async route=>{
   const req=route.request(),u=new URL(req.url());if(u.origin===service.url||u.protocol==='blob:')return route.continue();
   if(req.url()==='https://accounts.google.com/gsi/client')return route.fulfill({contentType:'text/javascript',body:"window.google={accounts:{oauth2:{initTokenClient:o=>({requestAccessToken:()=>o.callback({access_token:'isolated-test',expires_in:3600,scope:o.scope})})}}};"});
@@ -100,4 +111,4 @@ try{
  await page.reload();await page.locator('#submissionTab').click();await page.locator('#submissionWorkspace:not([hidden])').waitFor();const after=await page.evaluate(({store,key})=>({votes:localStorage.getItem(store),draft:JSON.parse(localStorage.getItem(key)).draft}),{store:keys.store,key});assert.deepEqual(after,before);assert.deepEqual(errors,[]);
  await fs.mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/confirmation40-phone.png'});
  console.log('PASS confirmation40: Drive import, reasons, full choices/comments, reverse order, edited main/tab, 42 exact PNGs + ZIP + metadata, interrupted upload retry, repeat save without duplicates, reload unchanged. Isolated mock Drive only.');
-}finally{await browser?.close();await new Promise(r=>service.server.close(r));}
+}catch(error){if(page)console.error('Browser failure state:',await page.evaluate(()=>({statuses:[...document.querySelectorAll('[role=status]')].map(e=>({id:e.id,text:e.textContent})).filter(e=>e.text)})).catch(()=>null));throw error;}finally{await browser?.close();await new Promise(r=>service.server.close(r));}
