@@ -1,4 +1,4 @@
-import {prepareTransparency} from './crop-v9/transparency.mjs';
+import {prepareTransparency} from './crop-v9/transparency.mjs?v=20261108-fringe3';
 async function browserEncode(pixels){
  const canvas=document.createElement('canvas');canvas.width=pixels.width;canvas.height=pixels.height;
  canvas.getContext('2d').putImageData(new ImageData(pixels.data,pixels.width,pixels.height),0,0);

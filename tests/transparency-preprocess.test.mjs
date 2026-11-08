@@ -39,3 +39,22 @@ test('detached colored film and enclosed haze are retained and flagged with coor
  const im=image();for(let y=2;y<6;y++)for(let x=2;x<6;x++)im.data.set([120,40,80,60],(y*40+x)*4);
  const r=prepareTransparency(im);assert.equal(r.report.status,'hold');assert.deepEqual(r.report.residualComponents[0].bounds,[2,2,6,6]);assert.equal(r.report.alphaHistogram[60],16);assert.equal(r.data[(2*40+2)*4+3],60);
 });
+
+test('a watercolor leaf connected through translucent pixels is not mislabelled as detached residue',()=>{
+ const im=image();for(let k=0;k<1600;k++)if(!im.data[k*4+3])im.data.fill(0,k*4,k*4+4);for(let x=5;x<13;x++)im.data.set([100,160,40,90],(20*40+x)*4);
+ for(let x=4;x<10;x++)im.data.set([100,160,40,90],((x+10)*40+x)*4);
+ const r=prepareTransparency(im);assert.deepEqual(r.data,im.data);assert.deepEqual(r.report.residualComponents,[]);assert.equal(r.report.status,'checked');assert.equal(r.report.visualReviewRequired,true);
+});
+test('tiny weak detached speckles are removed, with exact coordinates recorded and nearby rim protected',()=>{
+ const im=image();im.data.set([120,70,40,18],(4*40+4)*4);im.data.set([120,70,40,18],(11*40+20)*4);
+ const before=im.data.slice(),r=prepareTransparency(im);assert.equal(r.data[(4*40+4)*4+3],0);assert.equal(r.data[(11*40+20)*4+3],18);assert.equal(r.report.weakIslandRemoved,1);assert.deepEqual(r.report.removedIslands[0].bounds,[4,4,5,5]);assert.equal(r.report.alphaHistogram[18],1);assert.deepEqual(im.data,before);
+ assert.deepEqual(prepareTransparency(r).data,r.data);
+});
+test('a broad colored wash connected to the body remains blocked and intact',()=>{
+ const im=image();for(let y=0;y<12;y++)for(let x=0;x<40;x++)im.data.set([120,70,40,60],(y*40+x)*4);
+ const r=prepareTransparency(im);assert.ok(r.report.issues.some(x=>x.includes('広い半透明領域')));assert.equal(r.report.status,'hold');assert.equal(r.data[3],60);
+});
+test('larger detached faint patches remain blocked instead of being cleared by an alpha cutoff',()=>{
+ const im=image();for(let y=0;y<6;y++)for(let x=0;x<6;x++)im.data.set([120,70,40,18],(y*40+x)*4);
+ const r=prepareTransparency(im);assert.equal(r.report.status,'hold');assert.equal(r.report.weakIslandRemoved,0);assert.equal(r.data[3],18);
+});

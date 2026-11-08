@@ -2,7 +2,7 @@ import {readSelectionState,saveSelectionState} from './selection-storage.mjs?v=2
 import {preserveCardPosition} from './selection-position.mjs';
 import {inspectionSummary,renderInspectionSummary} from './inspection-summary.mjs?v=20261108-compactpass1';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261108-variants1';
-import {initWorkflow} from './integration-ui.mjs?v=20261108-artworkquota1';
+import {initWorkflow} from './integration-ui.mjs?v=20261108-fringe3';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261108-variants1';
 import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-scrollqa1';
