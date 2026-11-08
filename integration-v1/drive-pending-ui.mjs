@@ -1,6 +1,6 @@
 import {restoreEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261108-variants1';
+import {createPendingDrive} from './drive-pending.mjs?v=20261108-cohort1';
 import {importCrops} from './crop-handoff.mjs?v=20261108-variants1';
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
@@ -54,7 +54,7 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  async function run(action){if(busy)return;busy=true;controls();try{await action();}catch(e){if(!e.pendingReported)report(e.message||'読み込めませんでした。もう一度お試しください。');}finally{busy=false;controls();}}
  connect.onclick=()=>run(async()=>{
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
-  drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
+  drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,reviewCohort:/^G[1-3]$/.test(params.get('cohort')||'')?params.get('cohort'):null,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
   status.textContent='指定キャラと選抜待ちを確認しています…';const characters=await drive.characters({preferredId:target});
   select.replaceChildren(...characters.map(c=>new Option(c.name,c.id)));label.hidden=load.hidden=characters.length===0;
   if(!characters.length){status.textContent='「00_選抜待ち」のあるキャラが見つかりません。画像を保存したGoogleアカウントで接続してください。';return;}
@@ -69,3 +69,4 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  }
  return {open,masterForCharacter:async characterId=>{if(!drive)throw Error('Google Driveへ読み取り専用で接続し、対象キャラを選択してください。');return drive.masterForCharacter(characterId);}};
 }
+

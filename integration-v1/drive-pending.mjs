@@ -36,7 +36,8 @@ export function validatePendingManifest(value,{characterId,pendingFolderId,maste
  }
  return spreadsheetId;
 }
-export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false,unpack=unpackDraft,onRetry=()=>{},retryWait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
+export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauthorized=()=>{},includeTrials=false,reviewCohort=null,unpack=unpackDraft,onRetry=()=>{},retryWait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
+ if(reviewCohort!==null&&!/^G[1-3]$/.test(reviewCohort))throw Error('読み込む群の指定が不正です。');
  let calls=0;
  const transient=error=>error?.retryable===true||['AbortError','TimeoutError','TypeError'].includes(error?.name);
  async function retry(read){for(let attempt=0;;attempt++){try{return await read();}catch(error){if(!transient(error)||attempt>=3)throw error;onRetry({attempt:attempt+1,max:3});await retryWait(1000*2**attempt);}}}
@@ -129,7 +130,8 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    let evaluationDocument=null;
    if(allCandidates){const evaluations=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-results_'" )).filter(f=>inFolder(f,history.id)&&f.name.startsWith('selection-results_')).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')||b.name.localeCompare(a.name));if(evaluations.length)evaluationDocument=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(evaluations[0],3000000))));}
    if(allCandidates){
-    const reviews=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-review_'" )).filter(f=>inFolder(f,history.id)&&f.name.startsWith('selection-review_')).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')||b.name.localeCompare(a.name));
+    const reviews=(await list('trashed = false and '+quote(history.id)+" in parents and mimeType = 'application/json' and name contains 'selection-review_'" )).filter(f=>inFolder(f,history.id)&&f.name.startsWith('selection-review_')&&(!reviewCohort||f.name.includes('_'+reviewCohort+'_'))).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')||b.name.localeCompare(a.name));
+    if(reviewCohort&&!reviews.length)throw Error('指定した群の検品記録が見つかりません。他の群へ切り替えず停止しました。');
     if(reviews.length){
      if(reviews.length>1&&reviews[0].modifiedTime===reviews[1].modifiedTime)throw Error('最新の全候補検品記録を特定できません。');
      const file=reviews[0],value=JSON.parse(new TextDecoder().decode(await retry(()=>bytes(file,3000000))));
@@ -207,3 +209,4 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
   }
  };
 }
+
