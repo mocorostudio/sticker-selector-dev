@@ -11,6 +11,7 @@ import {googleTestAuth} from './google-auth.mjs';
 import {MockDriveAdapter} from './drive-adapter.mjs';
 import {syncSelections,assertIdentity} from './sync-engine.mjs?v=20261023-merge1';
 import {storageKeys,recoverDraft} from './session-store.mjs';
+import {archiveOtherCharacters} from './selection-cleanup.mjs';
 
 'use strict';
 const params=new URLSearchParams(location.search);
@@ -55,6 +56,25 @@ async function put(id,blob){
  });
 }
 function get(id){return new Promise((ok,no)=>{const q=db.transaction('images','readonly').objectStore('images').get(id);q.onsuccess=()=>{const value=q.result;ok(value?.bytes?new Blob([value.bytes],{type:value.type}):value)};q.onerror=()=>no(q.error||Error('画像取得失敗'))})}
+if(workflowLocal){
+ const cleanup=document.createElement('button');cleanup.id='cleanupOtherCharacters';cleanup.textContent='他キャラの保存一覧を整理（今のキャラは残す）';
+ const message=document.createElement('p');message.setAttribute('role','status');
+ $('status').after(cleanup,message);
+ cleanup.onclick=()=>withBusy(async()=>{
+  const current=activeCharacter;
+  const result=await archiveOtherCharacters(state,current,{
+   archive:async record=>{
+    const key='selection-archive:'+crypto.randomUUID();
+    await new Promise((ok,no)=>{const tx=db.transaction('images','readwrite');tx.objectStore('images').put(record,key);tx.oncomplete=ok;tx.onabort=()=>no(tx.error||Error('退避できないため整理を停止しました。'));tx.onerror=()=>{};});
+    const restored=await new Promise((ok,no)=>{const q=db.transaction('images','readonly').objectStore('images').get(key);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error);});
+    if(JSON.stringify(restored)!==JSON.stringify(record))throw Error('退避を照合できず、一覧は変更していません。');
+   },
+   save:next=>saveSelectionState(localStorage,STORE,next)
+  });
+  state=result.state;redraw();updateSyncCount();
+  message.textContent=result.count+'枚を保存一覧から退避しました。今のキャラの画像・選択と、他キャラの画像・履歴は端末に保持しています。Driveから読み込むで残りを再開してください。';
+ });
+}
 function updateRatingStatus(){const items=visible(),t={o:0,h:0,x:0};items.forEach(i=>{if(i.touched&&t[i.rating]!==undefined)t[i.rating]++});$('status').textContent=`表示${items.length}枚（保存済み${state.items.length}枚）/ ◯ ${t.o} / △ ${t.h} / ✕ ${t.x} / 未選抜 ${items.length-t.o-t.h-t.x}`;}
 let renderVersion=0;let urls=[];function clearURLs(){urls.forEach(u=>URL.revokeObjectURL(u));urls=[]}
 function redraw(options={}){return preserveCardPosition($('list'),()=>drawCards(options));}
