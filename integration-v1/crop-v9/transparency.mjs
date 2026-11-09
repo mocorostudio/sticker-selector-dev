@@ -1,10 +1,10 @@
 // Conservative preprocessing of NEW crops. Never rekeys opaque white artwork.
 // A processed image still requires the normal visual inspection.
-export function prepareTransparency(im,{backgroundReference=im}={}){
+export function prepareTransparency(im,{backgroundReference=im,reviewedBackground=null}={}){
  const {width:w,height:h}=im||{},src=im?.data,n=w*h;
  if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||n>16000000||src?.length!==n*4)throw Error('透過処理の画像が不正です');
  const data=new Uint8ClampedArray(src),distance=new Uint16Array(n);distance.fill(65535);
- let weakRemoved=0,hazeRemoved=0,weakIslandRemoved=0;
+ let weakRemoved=0,hazeRemoved=0,weakIslandRemoved=0,reviewedHazeRemoved=0;
  for(let k=0;k<n;k++){
   const p=k*4,a=data[p+3];
   if(a>192)distance[k]=0;
@@ -13,6 +13,15 @@ export function prepareTransparency(im,{backgroundReference=im}={}){
  // Protect antialiased white fur and text rims around the opaque artwork.
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const k=y*w+x;distance[k]=Math.min(distance[k],x?distance[k-1]+1:65535,y?distance[k-w]+1:65535);}
  for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){const k=y*w+x;distance[k]=Math.min(distance[k],x<w-1?distance[k+1]+1:65535,y<h-1?distance[k+w]+1:65535);}
+ // Explicit, source-bound operator review only. Keep opaque artwork and its
+ // three-pixel watercolor/antialias fringe, including white bodies and text.
+ // No color key and no global alpha cutoff; unreviewed regions are unchanged.
+ if(reviewedBackground){
+  const r=reviewedBackground;
+  if(r.kind!=='reviewed-background-regions/v1'||!Array.isArray(r.regions)||!r.regions.length||typeof r.reason!=='string'||!r.reason.trim())throw Error('背景追加除去には確認範囲と理由が必要です');
+  for(const b of r.regions)if(!Array.isArray(b)||b.length!==4||b.some(x=>!Number.isInteger(x))||b[0]<0||b[1]<0||b[2]>w||b[3]>h||b[2]<=b[0]||b[3]<=b[1])throw Error('背景追加除去の範囲が不正です');
+  for(let k=0;k<n;k++){const p=k*4,a=data[p+3],x=k%w,y=Math.floor(k/w);if(a>0&&a<=192&&distance[k]>3&&r.regions.some(b=>x>=b[0]&&y>=b[1]&&x<b[2]&&y<b[3])){data.fill(0,p,p+4);reviewedHazeRemoved++;}}
+ }
  for(let k=0;k<n;k++){const p=k*4;if(data[p+3]<=8&&distance[k]>3){if(data[p+3])weakRemoved++;data.fill(0,p,p+4);}}
  const seen=new Uint8Array(n),queue=new Int32Array(n);let head=0,tail=0,border=0,opaqueBorder=0;
  const candidate=k=>{const p=k*4,a=data[p+3];if(!a)return true;return distance[k]>3&&a<=128&&Math.min(data[p],data[p+1],data[p+2])>=180&&Math.max(data[p],data[p+1],data[p+2])-Math.min(data[p],data[p+1],data[p+2])<=24;};
@@ -52,5 +61,5 @@ export function prepareTransparency(im,{backgroundReference=im}={}){
  // against the pre-isolation source, never that artificial component boundary.
  if(backgroundReference!==im){const r=backgroundReference;if(!Number.isInteger(r?.width)||!Number.isInteger(r?.height)||r.width<1||r.height<1||r.data?.length!==r.width*r.height*4)throw Error('透過判定の元画像が不正です');border=0;opaqueBorder=0;for(let y=0;y<r.height;y++)for(let x=0;x<r.width;x++)if(x===0||y===0||x===r.width-1||y===r.height-1){border++;if(r.data[(y*r.width+x)*4+3]>192)opaqueBorder++;}}
  if(opaqueBorder/border>.9)issues.push('不透明な背景の可能性：白い本体・文字の白フチを保護し、自動の色抜きは保留');
- return {width:w,height:h,data,report:{version:'safe-transparency/v3',alphaHistogram,residualComponents,visualReviewRequired:true,stage:'before-normalization',weakRemoved,hazeRemoved,weakIslandRemoved,removedIslands,diffusePixels,removed:weakRemoved+hazeRemoved+weakIslandRemoved,status:issues.length?'hold':weakRemoved+hazeRemoved+weakIslandRemoved?'processed-needs-visual-review':'checked',issues,opaqueColorKeyApplied:false}};
+ return {width:w,height:h,data,report:{version:'safe-transparency/v3-reviewed-regions1',alphaHistogram,residualComponents,visualReviewRequired:true,stage:'before-normalization',weakRemoved,hazeRemoved,weakIslandRemoved,reviewedHazeRemoved,reviewedBackground:reviewedBackground?structuredClone(reviewedBackground):null,removedIslands,diffusePixels,removed:weakRemoved+hazeRemoved+weakIslandRemoved+reviewedHazeRemoved,status:issues.length?'hold':weakRemoved+hazeRemoved+weakIslandRemoved+reviewedHazeRemoved?'processed-needs-visual-review':'checked',issues,opaqueColorKeyApplied:false}};
 }

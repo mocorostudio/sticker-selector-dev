@@ -33,7 +33,7 @@ await fs.mkdir(path.resolve(outputDir),{recursive:false});
 const attemptId='CROP_'+new Date().toISOString().slice(0,10).replaceAll('-','')+'_'+randomUUID().slice(0,8),entries=[],log=[];
 try{
  for(const {batch:b,bytes} of staged){
-  const source=decode(bytes),prepared=prepareCropBatch(source,3,3);log.push({batchId:b.batchId,sourceSha256:b.sha256,transparencyCleanup:prepared.transparencyCleanup});
+  const source=decode(bytes),prepared=prepareCropBatch(source,3,3,{reviewedBackground:b.reviewedBackground||null});log.push({batchId:b.batchId,sourceSha256:b.sha256,transparencyCleanup:prepared.transparencyCleanup});
   for(const [index,cell] of prepared.cells.entries()){
    const m=candidates.get(b.candidateIds[index]),cleaned=prepareTransparency(cell.pixels,{backgroundReference:source}),content=trim(cleaned),p=placementPlan(content.width,content.height),resized=invoke('normalize',Buffer.from(content.data),[content.width,content.height,p.drawWidth,p.drawHeight,p.x,p.y]),final=prepareTransparency(decode(resized)),png=invoke('encode',Buffer.from(final.data),[final.width,final.height]),pixels=decode(png),qa=inspect(pixels,cell.crossing||cell.sourceTouchesEdge);
    const issues=[...new Set([...prepared.transparencyCleanup.issues,...cleaned.report.issues,...final.report.issues,...qa.issues])];qa.issues=issues;if(issues.length){qa.automatic='fail';qa.status='fail';}

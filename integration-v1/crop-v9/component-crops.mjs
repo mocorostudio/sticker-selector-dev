@@ -39,8 +39,8 @@ export function isolateComponents(image,rows=3,cols=3){
 }
 
 // Run before component ownership grows: low-alpha haze must not join neighboring cells.
-export function prepareCropBatch(image,rows=3,cols=3){
- const prepared=prepareTransparency(image);
+export function prepareCropBatch(image,rows=3,cols=3,options={}){
+ const prepared=prepareTransparency(image,options);
  try{return {cells:isolateComponents(prepared,rows,cols),transparencyCleanup:prepared.report};}
  catch(e){throw Error((prepared.report.issues.length?'透過前処理で未解決：'+prepared.report.issues.join(' ／ ')+'。':'')+e.message);}
 }
