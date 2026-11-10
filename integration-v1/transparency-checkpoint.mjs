@@ -14,3 +14,13 @@ export async function verifySavedTransparency(blob,decode,{expectedSha,stage='pr
  if(proof.status!=='verified')throw Error(label+'：'+proof.issues.join(' ／ '));
  return proof;
 }
+
+// Confirmation copies retain the exact PNG and unresolved evidence. Never a pass.
+export async function inspectConfirmationTransparency(blob,decode,{expectedSha,stage='confirmation',purpose}={}){
+ if(purpose!=='confirmation-only')throw Error('確認用保存の目的を確認できません');
+ const sha256=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(v=>v.toString(16).padStart(2,'0')).join('');
+ if(expectedSha&&sha256!==expectedSha)throw Error('確認用PNGのハッシュが一致しません');
+ const pixels=await decode(blob);
+ const proof=inspectTransparencyCheckpoint(pixels,{sha256,stage});
+ return {...proof,purpose,technicalApproval:false,verificationOnly:true,pixelsUnchanged:true};
+}
