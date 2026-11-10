@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
 import {prepareCropBatch} from '../integration-v1/crop-v9/component-crops.mjs';
+import {assertPreservedPixels} from '../integration-v1/crop-v9/pixel-preservation.mjs';
 import {prepareTransparency} from '../integration-v1/crop-v9/transparency.mjs';
 import {inspectTransparencyCheckpoint} from '../integration-v1/transparency-checkpoint.mjs';
 import {trim,inspect} from '../integration-v1/crop-v9/core.mjs';
@@ -33,15 +34,15 @@ await fs.mkdir(path.resolve(outputDir),{recursive:false});
 const attemptId='CROP_'+new Date().toISOString().slice(0,10).replaceAll('-','')+'_'+randomUUID().slice(0,8),entries=[],log=[];
 try{
  for(const {batch:b,bytes} of staged){
-  const source=decode(bytes),prepared=prepareCropBatch(source,3,3,{reviewedBackground:b.reviewedBackground||null});log.push({batchId:b.batchId,sourceSha256:b.sha256,transparencyCleanup:prepared.transparencyCleanup});
+  const source=decode(bytes),prepared=prepareCropBatch(source,3,3,{reviewedBackground:b.reviewedBackground??null,protectedForeground:b.protectedForeground??null});log.push({batchId:b.batchId,sourceSha256:b.sha256,transparencyCleanup:prepared.transparencyCleanup});
   for(const [index,cell] of prepared.cells.entries()){
-   const m=candidates.get(b.candidateIds[index]),cleaned=prepareTransparency(cell.pixels,{backgroundReference:source}),content=trim(cleaned),p=placementPlan(content.width,content.height),resized=invoke('normalize',Buffer.from(content.data),[content.width,content.height,p.drawWidth,p.drawHeight,p.x,p.y]),final=prepareTransparency(decode(resized)),png=invoke('encode',Buffer.from(final.data),[final.width,final.height]),pixels=decode(png),qa=inspect(pixels,cell.crossing||cell.sourceTouchesEdge);
+   const m=candidates.get(b.candidateIds[index]),cleaned=prepareTransparency(cell.pixels,{backgroundReference:source}),content=trim(cleaned),p=placementPlan(content.width,content.height),resized=invoke('normalize',Buffer.from(content.data),[content.width,content.height,p.drawWidth,p.drawHeight,p.x,p.y]),normalized=decode(resized),final=prepareTransparency(normalized),png=invoke('encode',Buffer.from(final.data),[final.width,final.height]),pixels=decode(png),qa=inspect(pixels,cell.crossing||cell.sourceTouchesEdge);
    const issues=[...new Set([...prepared.transparencyCleanup.issues,...cleaned.report.issues,...final.report.issues,...qa.issues])];qa.issues=issues;if(issues.length){qa.automatic='fail';qa.status='fail';}
    const filename=m.candidateId+'_'+attemptId+'.png',imageId=m.candidateId+'_'+attemptId,sha256=hash(png);
    const record={imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,filename,sourceId:b.sourceFileId,sourceBatchId:b.batchId,sourceSha256:b.sha256,attemptId,decision:'review',review:[],crossing:cell.crossing||cell.sourceTouchesEdge,qa,transparencyCleanup:{source:prepared.transparencyCleanup,cell:cleaned.report,final:final.report},inspection:{scope:'numerical-only',visualReviewRequired:true},bounds:cell.bounds};
    await fs.writeFile(path.join(outputDir,filename),png,{flag:'wx'});
    const saved=await fs.readFile(path.join(outputDir,filename));if(hash(saved)!==sha256)throw Error('保存PNGのハッシュ不一致');
-   const savedPixels=decode(saved),checkpoint=inspectTransparencyCheckpoint(savedPixels,{sha256,stage:'preselection'});record.transparencyCheckpoint=checkpoint;record.transparencyCleanup.saved=checkpoint;
+   const savedPixels=decode(saved);record.pixelPreservation={normalizationCleanup:assertPreservedPixels(normalized,final),pngReadback:assertPreservedPixels(final,savedPixels)};const checkpoint=inspectTransparencyCheckpoint(savedPixels,{sha256,stage:'preselection'});record.transparencyCheckpoint=checkpoint;record.transparencyCleanup.saved=checkpoint;
    if(checkpoint.status!=='verified'){issues.push(...checkpoint.issues);qa.issues=[...new Set(issues)];qa.automatic='fail';qa.status='fail';}
    record.inspection.backgroundReadbackVerified=checkpoint.status==='verified';
    const previewFilename=imageId+'_background-review.png';
@@ -50,7 +51,7 @@ try{
    entries.push({record,path:filename,sha256,technicalStatus:'hold',reason:issues.join(' ／ ')||'切り出し・透過前処理済み。元画像との個別目視検品は未実施。'});
   }
  }
- const result={schema:'animal-stickers-crop-result/v1',characterId:input.characterId,attemptId,masterReference:input.masterReference,masterSheet:input.masterSheet,masterModifiedTime:input.masterModifiedTime,master:input.master,candidateCount:entries.length,formalApproval:false,summary:{pass:0,hold:entries.length,fail:0},entries,log,transparencySummary:{verified:entries.filter(e=>e.record.transparencyCheckpoint?.status==='verified').length,needsRepair:entries.filter(e=>e.record.transparencyCheckpoint?.status!=='verified').length},next:'背景残留は選抜登録前に追加除去・新試行保存・再検査を完了。チャットで元画像と1枚ずつ照合して技術判定。判定確定後に既存Drive引き渡し経路を使用。選抜中の画像は差し替えない。'};
+ const result={schema:'animal-stickers-crop-result/v1',characterId:input.characterId,attemptId,masterReference:input.masterReference,masterSheet:input.masterSheet,masterModifiedTime:input.masterModifiedTime,master:input.master,candidateCount:entries.length,formalApproval:false,summary:{pass:0,hold:entries.length,fail:0},entries,log,transparencySummary:{verified:entries.filter(e=>e.record.transparencyCheckpoint?.status==='verified').length,needsRepair:entries.filter(e=>e.record.transparencyCheckpoint?.status!=='verified').length},next:'判別困難な画素は削らず保持・保留。背景と確認した分離領域のみ共通処理で除去し、新試行保存・再検査。チャットで元画像と1枚ずつ照合して技術判定。判定確定後に既存Drive引き渡し経路を使用。選抜中の画像は差し替えない。'};
  await fs.writeFile(path.join(outputDir,'crop-result.json'),JSON.stringify(result,null,2),{flag:'wx'});
  console.log(JSON.stringify({attemptId,count:entries.length,outputDir:path.resolve(outputDir),formalApproval:false}));
 }catch(e){await fs.writeFile(path.join(outputDir,'execution-failed.json'),JSON.stringify({attemptId,error:e.message,completedEntries:entries,log,formalApproval:false},null,2),{flag:'wx'});throw e;}
