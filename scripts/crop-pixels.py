@@ -25,7 +25,7 @@ elif mode == 'encode':
     w, h = map(int, sys.argv[2:])
     im = Image.frombytes('RGBA', (w, h), raw)
     buf = io.BytesIO()
-    im.save(buf, format='PNG', optimize=False)
+    im.save(buf, format='PNG', optimize=False, dpi=(72, 72))
     sys.stdout.buffer.write(buf.getvalue())
 elif mode == 'normalize':
     w, h, dw, dh, x, y = map(int, sys.argv[2:])

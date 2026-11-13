@@ -20,7 +20,7 @@ test('80 draft ratings including 53 circles save warnings and resume without tec
  assert.equal(plan.images.length,60);assert.deepEqual(plan.counts,{adopted:53,held:7,rejected:20,unrated:0});
  const results=JSON.parse(await plan.manifest.blob.text()).results;
  assert.equal(results.length,80);assert.ok(results.every(r=>r.technicalStatus==='review'&&r.confirmed));
- assert.ok(results[0].technicalWarnings.includes('背景端が不透明'));assert.ok(results[0].technicalWarnings.includes('安全余白10%未満'));assert.ok(results[0].technicalWarnings.includes('区画をまたぐ連結成分・欠けの可能性'));
+ assert.ok(results[0].technicalWarnings.includes('背景端が不透明'));assert.ok(results[0].technicalWarnings.includes('安全余白10px未満'));assert.ok(results[0].technicalWarnings.includes('区画をまたぐ連結成分・欠けの可能性'));
  assert.ok(plan.images.every(e=>e.blob===blob&&e.technicalStatus==='review'));
  const {CandidateExportFixture}=await import('./candidate-export-fixture.mjs');
  const {createExportDrive}=await import('../integration-v1/drive-export.mjs');

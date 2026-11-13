@@ -9,7 +9,7 @@ import {assertPreservedPixels} from '../integration-v1/crop-v9/pixel-preservatio
 import {prepareTransparency} from '../integration-v1/crop-v9/transparency.mjs';
 import {inspectTransparencyCheckpoint} from '../integration-v1/transparency-checkpoint.mjs';
 import {trim,inspect} from '../integration-v1/crop-v9/core.mjs';
-import {placementPlan} from '../integration-v1/crop-v9/placement.mjs';
+import {placementPlan,placementQA} from '../integration-v1/crop-v9/placement.mjs';
 const [inputFile,outputDir]=process.argv.slice(2);
 if(!inputFile||!outputDir)throw Error('INPUT.json NEW_OUTPUT_DIR が必要です');
 const python=process.env.CODEX_PRIMARY_RUNTIME_PYTHON||process.env.PYTHON||'python3',codec=fileURLToPath(new URL('./crop-pixels.py',import.meta.url));
@@ -36,10 +36,10 @@ try{
  for(const {batch:b,bytes} of staged){
   const source=decode(bytes),prepared=prepareCropBatch(source,3,3,{reviewedBackground:b.reviewedBackground??null,protectedForeground:b.protectedForeground??null});log.push({batchId:b.batchId,sourceSha256:b.sha256,transparencyCleanup:prepared.transparencyCleanup});
   for(const [index,cell] of prepared.cells.entries()){
-   const m=candidates.get(b.candidateIds[index]),cleaned=prepareTransparency(cell.pixels,{backgroundReference:source}),content=trim(cleaned),p=placementPlan(content.width,content.height),resized=invoke('normalize',Buffer.from(content.data),[content.width,content.height,p.drawWidth,p.drawHeight,p.x,p.y]),normalized=decode(resized),final=prepareTransparency(normalized),png=invoke('encode',Buffer.from(final.data),[final.width,final.height]),pixels=decode(png),qa=inspect(pixels,cell.crossing||cell.sourceTouchesEdge);
+   const m=candidates.get(b.candidateIds[index]),cleaned=prepareTransparency(cell.pixels,{backgroundReference:source}),content=trim(cleaned),p=placementPlan(content.width,content.height),resized=invoke('normalize',Buffer.from(content.data),[content.width,content.height,p.drawWidth,p.drawHeight,p.x,p.y]),normalized=decode(resized),final=prepareTransparency(normalized),png=invoke('encode',Buffer.from(final.data),[final.width,final.height]),pixels=decode(png),qa=placementQA(inspect(pixels,cell.crossing||cell.sourceTouchesEdge),p);
    const issues=[...new Set([...prepared.transparencyCleanup.issues,...cleaned.report.issues,...final.report.issues,...qa.issues])];qa.issues=issues;if(issues.length){qa.automatic='fail';qa.status='fail';}
    const filename=m.candidateId+'_'+attemptId+'.png',imageId=m.candidateId+'_'+attemptId,sha256=hash(png);
-   const record={imageId,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,filename,sourceId:b.sourceFileId,sourceBatchId:b.batchId,sourceSha256:b.sha256,attemptId,decision:'review',review:[],crossing:cell.crossing||cell.sourceTouchesEdge,qa,transparencyCleanup:{source:prepared.transparencyCleanup,cell:cleaned.report,final:final.report},inspection:{scope:'numerical-only',visualReviewRequired:true},bounds:cell.bounds};
+   const record={imageId,placement:p,candidateId:m.candidateId,phrase:m.phrase,pose:m.pose,filename,sourceId:b.sourceFileId,sourceBatchId:b.batchId,sourceSha256:b.sha256,attemptId,decision:'review',review:[],crossing:cell.crossing||cell.sourceTouchesEdge,qa,transparencyCleanup:{source:prepared.transparencyCleanup,cell:cleaned.report,final:final.report},inspection:{scope:'numerical-only',visualReviewRequired:true},bounds:cell.bounds};
    await fs.writeFile(path.join(outputDir,filename),png,{flag:'wx'});
    const saved=await fs.readFile(path.join(outputDir,filename));if(hash(saved)!==sha256)throw Error('保存PNGのハッシュ不一致');
    const savedPixels=decode(saved);record.pixelPreservation={normalizationCleanup:assertPreservedPixels(normalized,final),pngReadback:assertPreservedPixels(final,savedPixels)};const checkpoint=inspectTransparencyCheckpoint(savedPixels,{sha256,stage:'preselection'});record.transparencyCheckpoint=checkpoint;record.transparencyCleanup.saved=checkpoint;
