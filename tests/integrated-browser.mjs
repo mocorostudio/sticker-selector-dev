@@ -31,7 +31,7 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
  assert.equal(await page.locator('.chosen').count(),0);
  const retained=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('sticker-selector-v9:crop-workflow:')&&!k.endsWith('-visible-ids')).map(k=>JSON.parse(localStorage.getItem(k))).find(v=>v.items)?.items);
- assert.equal(retained.length,18);assert.equal(retained.filter(i=>i.touched).length,1);
+ assert.equal(retained.length,18);assert.equal(retained.filter(i=>i.touched).length,1);assert.ok(retained.every(i=>i.crop.placement?.upscaleRequired===true&&i.technicalPassed!==true));
  // Return to crop editing without creating a second vote or losing the original.
  await page.locator('.card').first().getByRole('button',{name:'切り直す・大きさ／位置を修正'}).click();
  await page.locator('#cropFrame:not([hidden])').waitFor();

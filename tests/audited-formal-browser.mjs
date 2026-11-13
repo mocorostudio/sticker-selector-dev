@@ -22,7 +22,7 @@ try{
  await page.goto(server.url+'/integration-v1/workflow.html?character=char');const crop=page.frameLocator('#cropFrame');await crop.locator('#handoff').waitFor({state:'attached'});
  await page.locator('#loadPending').click();await page.locator('#pendingConnect').click();await page.locator('#pendingCharacter').waitFor();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);if(await page.locator('#drivePending').evaluate(d=>d.open))await page.locator('#drivePending').getByRole('button',{name:'閉じる',exact:true}).click();
  await page.locator('#cropTab').click();
- const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=600;const g=c.getContext('2d');g.fillStyle='#dd6699';for(const y of [100,300,500])for(const x of [100,300,500])g.fillRect(x-35,y-35,70,70);return c.toDataURL().split(',')[1];});
+ const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1200;c.height=1200;const g=c.getContext('2d');g.fillStyle='#dd6699';for(const y of [200,600,1000])for(const x of [200,600,1000])g.fillRect(x-165,y-165,330,330);return c.toDataURL().split(',')[1];});
  await crop.locator('#files').setInputFiles({name:'real-rgba-nine.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});await crop.locator('#run').click();
  await page.locator('#selectionScreen:not([hidden])').waitFor();await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
  await page.locator('.choices label').nth(1).click();

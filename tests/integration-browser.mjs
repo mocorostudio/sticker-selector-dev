@@ -34,7 +34,7 @@ try{for(const [name,type] of [['chromium',chromium],['webkit',webkit]].filter(([
   });
   await page.goto(service.url+'/integration-v1/workflow.html');
   const frame=page.frameLocator('#cropFrame');await frame.locator('#sourceSave').waitFor({state:'attached'});
-  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=600;c.height=600;const ctx=c.getContext('2d');ctx.fillStyle='#795939';for(let y=0;y<3;y++)for(let x=0;x<3;x++)ctx.fillRect(55+x*200,55+y*200,90,90);return c.toDataURL().split(',')[1];});
+  const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1200;c.height=1200;const ctx=c.getContext('2d');ctx.fillStyle='#795939';for(let y=0;y<3;y++)for(let x=0;x<3;x++)ctx.fillRect(35+x*400,35+y*400,330,330);return c.toDataURL().split(',')[1];});
   const bytes=Buffer.from(png,'base64');await frame.locator('#files').setInputFiles({name:'synthetic-grid.png',mimeType:'image/png',buffer:bytes});
   await frame.getByText('3×3元画像PNGをDriveに保存',{exact:true}).click();
   await frame.locator('#sourceCharacter').fill('https://drive.google.com/drive/folders/char');
