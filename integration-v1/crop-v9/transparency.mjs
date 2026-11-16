@@ -68,3 +68,21 @@ export function prepareTransparency(im,{backgroundReference=im,reviewedBackgroun
  const preservation=assertPreservedPixels(im,{width:w,height:h,data},{protectedForeground,reviewedBackground});
  return {width:w,height:h,data,report:{version:'safe-transparency/v4-preserve-lettering',preservation,retainedPixels,protectedForeground:protectedForeground?structuredClone(protectedForeground):null,alphaHistogram,residualComponents,visualReviewRequired:true,stage:'before-normalization',weakRemoved,hazeRemoved,weakIslandRemoved,reviewedHazeRemoved,reviewedBackground:reviewedBackground?structuredClone(reviewedBackground):null,removedIslands,diffusePixels,removed:weakRemoved+hazeRemoved+weakIslandRemoved+reviewedHazeRemoved,status:issues.length?'hold':weakRemoved+hazeRemoved+weakIslandRemoved+reviewedHazeRemoved?'processed-needs-visual-review':'checked',issues,opaqueColorKeyApplied:false}};
 }
+
+// Animated opaque-background extension: explicit operator-reviewed exterior only.
+// Shared with the animation tool. No semantic foreground inference or global key.
+export function removeReviewedExterior(im,{reviewedBackground,protectedForeground,color,tolerance=0}={}){
+ const bg=regionMask(im,reviewedBackground,'reviewed-background-regions/v1'),fg=regionMask(im,protectedForeground,'protected-foreground-regions/v1');
+ if(!reviewedBackground||!protectedForeground||!Array.isArray(color)||color.length!==3||color.some(c=>!Number.isInteger(c)||c<0||c>255)||!Number.isInteger(tolerance)||tolerance<0||tolerance>2)throw Error('確認済みの背景・本体保護領域・背景色が必要です');
+ const {width:w,height:h}=im,n=w*h,data=new Uint8ClampedArray(im.data),q=new Int32Array(n),seen=new Uint8Array(n),distance=new Uint16Array(n);distance.fill(65535);
+ const matches=k=>im.data[k*4+3]===255&&color.every((v,c)=>Math.abs(im.data[k*4+c]-v)<=tolerance);
+ // Preserve a three-pixel moat around every non-background or protected pixel.
+ for(let k=0;k<n;k++)if(fg[k]||(im.data[k*4+3]&&!matches(k)))distance[k]=0;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){let k=y*w+x;distance[k]=Math.min(distance[k],x?distance[k-1]+1:65535,y?distance[k-w]+1:65535)}
+ for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){let k=y*w+x;distance[k]=Math.min(distance[k],x<w-1?distance[k+1]+1:65535,y<h-1?distance[k+w]+1:65535)}
+ let head=0,tail=0,removed=0;const add=k=>{if(!seen[k]&&bg[k]&&!fg[k]&&(im.data[k*4+3]===0||matches(k)&&distance[k]>3)){seen[k]=1;q[tail++]=k}};
+ for(let x=0;x<w;x++){add(x);add((h-1)*w+x)}for(let y=0;y<h;y++){add(y*w);add(y*w+w-1)}
+ while(head<tail){let k=q[head++],x=k%w,y=Math.floor(k/w);if(data[k*4+3]){data.fill(0,k*4,k*4+4);removed++}if(x)add(k-1);if(x<w-1)add(k+1);if(y)add(k-w);if(y<h-1)add(k+w)}
+ const preservation=assertPreservedPixels(im,{width:w,height:h,data},{protectedForeground,reviewedBackground});
+ return {width:w,height:h,data,report:{version:'safe-transparency/exterior-v1',removed,preservation,status:'hold',visualReviewRequired:true,issues:['背景色と本体が同色の場所・輪郭の保護帯・残留は要確認。保護領域と境界は自動判別していません。'],opaqueColorKeyApplied:false,reviewedExteriorApplied:true}};
+}
