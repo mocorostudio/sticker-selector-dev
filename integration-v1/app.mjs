@@ -1,12 +1,12 @@
-import {createPendingDrive} from './drive-pending.mjs?v=20261125-storage1';
-import {byteCache,thumbnail} from './image-preview.mjs';
+import {createPendingDrive} from './drive-pending.mjs?v=20261125-storage2';
+import {byteCache,thumbnail,previewSource} from './image-preview.mjs?v=20261125-storage2';
 import {readSelectionState,saveSelectionState,isStorageQuotaError} from './selection-storage.mjs?v=20261108-quota1';
 import {preserveCardPosition} from './selection-position.mjs';
-import {inspectionSummary,inspectionSummaryFromHash,renderInspectionSummary} from './inspection-summary.mjs?v=20261125-storage1';
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261125-storage1';
-import {initWorkflow} from './integration-ui.mjs?v=20261125-storage1';
+import {inspectionSummary,inspectionSummaryFromHash,renderInspectionSummary} from './inspection-summary.mjs?v=20261125-storage2';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261125-storage2';
+import {initWorkflow} from './integration-ui.mjs?v=20261125-storage2';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
-import {importCrops} from './crop-handoff.mjs?v=20261125-storage1';
+import {importCrops} from './crop-handoff.mjs?v=20261125-storage2';
 import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-scrollqa1';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261023-merge1';
 import {googleTestAuth} from './google-auth.mjs';
@@ -146,7 +146,7 @@ function clearURLs(){
  cards.clear();
 }
 async function showPreview(preview){
- if(preview.url||preview.loading)return;
+ if(preview.img.hasAttribute('src')||preview.loading)return;
  const stamp=preview.stamp, {item,img,host,note}=preview;
  const key=JSON.stringify([item.id,item.imageSource?.sha256,item.inspectionAudit?.reviewedAt,item.inspectionAudit?.decision,item.inspectionAudit?.sha256,item.candidate,item.crop?.pendingDrive?.manifestFileId,item.technicalStatus]);
  preview.loading=true;
@@ -158,9 +158,9 @@ async function showPreview(preview){
    cached={blob:await thumbnail(original),summary:await inspectionSummary(item,original)};
    thumbnails.set(key,cached);
   }
+  const source=await previewSource(cached.blob);
   if(!preview.visible||!img.isConnected||stamp!==preview.stamp)return;
-  preview.url=URL.createObjectURL(cached.blob);
-  img.src=preview.url;
+  img.src=source;
   note.title='';
   if(note.dataset.previewError){note.textContent=cardNote(item);delete note.dataset.previewError;}
   preserveCardPosition($('list'),()=>renderInspectionSummary(host,cached.summary));
