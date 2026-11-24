@@ -9,9 +9,10 @@ export function compactSubmissionSpace(store){
  const keys=Array.from({length:store.length},(_,i)=>store.key(i));let freed=0;
  for(const key of keys){
   if(typeof key!=='string')continue;
-  const submission=/^submission-(?:trial-)?draft:/.test(key),selection=/^sticker-selector-v9:(?:crop-workflow|drive-test):/.test(key);
-  if(!submission&&!selection)continue;
+  const journal=/^submission-(?:trial-)?draft:.*:zip-(?:pending|saved)$/.test(key),submission=!journal&&/^submission-(?:trial-)?draft:/.test(key),selection=/^sticker-selector-v9:(?:crop-workflow|drive-test):/.test(key);
+  if(!submission&&!selection&&!journal)continue;
   let value;try{value=parseStoredJSON(store.getItem(key));}catch{continue;}
+  if(journal&&(!value||typeof value!=='object'))continue;
   if(submission&&(!Array.isArray(value?.draft?.sets)||!value.draft.assignments)||selection&&!Array.isArray(value?.items))continue;
   try{freed+=compactStoredJSON(store,key);}catch(error){if(!isStorageQuotaError(error))throw error;}
  }
@@ -48,3 +49,15 @@ export function reconcileSelectionRatings(draft,items,{characterId,setId}={}){
  next.selectionRatings=ratings;return next;
 }
 
+
+// ZIP snapshots share the lossless codec with drafts. Drive ID reservations stay raw.
+export function submissionJournal(store){
+ const isSnapshot=key=>/^submission-(?:trial-)?draft:.*:zip-(?:pending|saved)$/.test(key);
+ return {
+  readJournal(key){const raw=store.getItem(key);return isSnapshot(key)&&raw!==null?JSON.stringify(parseStoredJSON(raw)):raw;},
+  writeJournal(key,raw){
+   const write=()=>{if(isSnapshot(key))saveStoredJSON(store,key,JSON.parse(raw));else{store.setItem(key,raw);if(store.getItem(key)!==raw)throw Error('端末の再開記録を保存できません。');}};
+   try{write();}catch(error){if(!isStorageQuotaError(error))throw error;compactSubmissionSpace(store);try{write();}catch(retry){if(!isStorageQuotaError(retry))throw retry;throw Error('端末の保存容量が不足しています。選択・編集・再開記録は削除していません。この画面を残してください。');}}
+  }
+ };
+}

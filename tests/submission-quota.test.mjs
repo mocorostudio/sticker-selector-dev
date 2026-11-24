@@ -44,3 +44,17 @@ test('compaction skips corrupt, unrelated and visible-ID records and preserves e
  const before=[...s.map];assert.equal(compactSubmissionSpace(s),0);assert.deepEqual([...s.map],before);
  assert.deepEqual(parseStoredJSON(JSON.stringify(draft())),draft());
 });
+test('eraser edits reclaim ZIP snapshot space and preserve all pending resume data',async()=>{
+ const {submissionJournal}=await import('../integration-v1/submission-store.mjs');
+ const {editArtwork}=await import('../integration-v1/submission-artwork.mjs');
+ const s=new LimitedStorage(),before=draft(),pending={state:'pending',plan:{entries:Array.from({length:1000},(_,i)=>({id:'image-'+i,reason:'検品記録を削除せず全て保持する'.repeat(20)}))},kitDraft:before.draft};
+ s.setItem(key,JSON.stringify(before));s.setItem(key+':zip-pending',JSON.stringify(pending));s.limit=s.size+10;
+ const next={...before,draft:editArtwork(before.draft,'s','erase',{stroke:{radius:9,points:[[.5,.14],[.52,.14]]}})};
+ assert.throws(()=>s.setItem(key,JSON.stringify(next)),{name:'QuotaExceededError'});
+ writeSubmission(s,key,next);
+ assert.deepEqual(readSubmission(s,key),JSON.parse(JSON.stringify(next)));assert.deepEqual(readSubmission(s,key+':previous'),before);
+ const journal=submissionJournal(s);assert.deepEqual(JSON.parse(journal.readJournal(key+':zip-pending')),pending);
+ journal.writeJournal(key+':zip-pending',JSON.stringify({...pending,stage:'retry'}));
+ assert.deepEqual(JSON.parse(journal.readJournal(key+':zip-pending')),{...pending,stage:'retry'});
+ journal.writeJournal('drive-reserved-id','raw-id');assert.equal(journal.readJournal('drive-reserved-id'),'raw-id');
+});

@@ -21,6 +21,10 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - run: node --test tests/selection-storage.test.mjs
       - run: node tests/selection-storage-browser.mjs
+      - name: Eraser retains edits when ZIP resume records fill local storage
+        run: |
+          node tests/artwork-quota-browser.mjs
+          TEST_BROWSER=webkit node tests/artwork-quota-browser.mjs
       - run: node tests/review-display-browser.mjs
       - run: node tests/final-transparency-browser.mjs
       - run: node tests/submission-bytes-browser.mjs
