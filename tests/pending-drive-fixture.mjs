@@ -5,7 +5,8 @@ export class PendingFixture{
  folder(id,name,parent){const f={id,name,mimeType:'application/vnd.google-apps.folder',parents:[parent],version:'1',modifiedTime:'2026-10-24T00:00:00Z'};this.files.set(id,f);return f;}
  put(id,name,parent,mimeType,bytes){this.media.set(id,bytes);const f={id,name,mimeType,parents:[parent],size:String(bytes.byteLength),version:'1',modifiedTime:'2026-10-24T00:00:00Z',capabilities:{canDownload:true}};this.files.set(id,f);return f;}
  saveManifest(){const bytes=new TextEncoder().encode(JSON.stringify(this.manifest));this.put('manifest','selection-manifest_fixture.json',this.historyId||'history','application/json',bytes);}
- async setup(png,count=9){
+ async setup(png,count=9,namespace=''){
+  if(namespace)return this.setupNamespaced(png,count,namespace);
   this.folder('char','05_合成テスト','root');this.folder('pending','00_選抜待ち','char');this.folder('history','03_元画像・生成履歴','char');
   this.files.set('master',{id:'master',name:'Synthetic_Master_v9',mimeType:'application/vnd.google-apps.spreadsheet',parents:['char']});
   this.manifest={schema:PENDING_SCHEMA,characterId:'char',pendingFolderId:'pending',masterReference:'https://docs.google.com/spreadsheets/d/master/edit',entries:[]};
@@ -16,6 +17,29 @@ export class PendingFixture{
    this.manifest.entries.push({driveFileId:'png'+i,sha256,record:{imageId,filename,candidateId,phrase,pose,sourceId:'source',driveSource:{fileId:'source'},hasPixels:true,crossing:false,qa:{automatic:'pass',issues:[]},review:visualChecks.map(()=>true),inspection:{scope:'actual-source',at:'2026-10-24T00:00:00Z'},history:[],sequenceLabel:'01-'+n}});
   }
   this.saveManifest();return this;
+ }
+ async setupNamespaced(png,count,namespace){
+  await this.setup(png,count);
+  const entries=[...this.files.values()];
+  this.files.clear();
+  this.media.clear();
+  for(const file of entries){
+   const oldId=file.id;
+   const updated={...file,id:namespace+oldId,parents:file.parents?.map(p=>p==='root'?p:namespace+p)};
+   if(oldId==='manifest')continue;
+   if(oldId.startsWith('png')){updated.name=namespace+file.name;this.media.set(updated.id,png);}
+   this.files.set(updated.id,updated);
+  }
+  this.manifest.characterId=namespace+'char';
+  this.manifest.pendingFolderId=namespace+'pending';
+  this.manifest.masterReference=this.manifest.masterReference.replace('/master/','/'+namespace+'master/');
+  for(const entry of this.manifest.entries){
+   entry.driveFileId=namespace+entry.driveFileId;
+   entry.record.imageId=namespace+entry.record.imageId;
+   entry.record.filename=namespace+entry.record.filename;
+  }
+  this.put(namespace+'manifest','selection-manifest_fixture.json',namespace+'history','application/json',new TextEncoder().encode(JSON.stringify(this.manifest)));
+  return this;
  }
  async fetch(url,options={}){
   const u=new URL(url);this.calls.push({url,method:options.method,authorization:options.headers?.Authorization});

@@ -1,7 +1,7 @@
-import {restoreEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
+import {restoreEvaluation} from './reselection.mjs?v=20261125-storage1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
-import {createPendingDrive} from './drive-pending.mjs?v=20261108-cohort1';
-import {importCrops} from './crop-handoff.mjs?v=20261108-variants1';
+import {createPendingDrive,pngHash} from './drive-pending.mjs?v=20261125-storage1';
+import {importCrops} from './crop-handoff.mjs?v=20261125-storage1';
 const HIDDEN_CHARACTERS_KEY='sticker-selector:hidden-drive-characters:v1';
 
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
@@ -68,8 +68,8 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
   const ids=api.visible().map(x=>x.id);let received=0;
   progress.hidden=false;report('キャラと検品記録を確認中…');
   try{
-   const result=await drive.load(characterId,{allCandidates:true,decode:api.decode,
-    getCachedBytes:async({record,image,sha256})=>{const old=api.items().find(x=>x.imageId===record.imageId),proof=old?.crop?.pendingDrive;if(!proof||!image.version||proof.version!==String(image.version)||proof.sha256!==sha256||proof.fileId!==image.id)return null;const blob=await api.get(old.id);return blob?blob.arrayBuffer():null;},
+   const result=await drive.load(characterId,{allCandidates:true,decode:api.decode,retainBytes:false,
+    getCachedBytes:async({record,image,sha256})=>{const old=api.items().find(x=>x.imageId===record.imageId),proof=old?.crop?.pendingDrive;if(!proof||!image.version||proof.version!==String(image.version)||proof.sha256!==sha256||proof.fileId!==image.id)return null;const blob=await api.getLocal(old.id);return blob?blob.arrayBuffer():null;},
     onProgress:p=>report(p.stage==='master'?'セリフと検品記録を照合中…':p.character+'：'+p.done+'／'+p.total+'枚読み込み済み。表示された画像から選べます。'),
     onEntry:async({entry:e,master,done,total})=>{
      // A short local save or another operation may finish first; the network
@@ -78,12 +78,31 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
      if(e.record.reviewDisplay&&done===1)ids.length=0; // Change the view only; keep all previous images and unsaved choices.
      const old=api.items().find(x=>x.imageId===e.record.imageId);
      if(old?.driveFileId&&e.record.pendingDrive.fileId&&old.driveFileId!==e.record.pendingDrive.fileId)throw Error('保存済み画像のDrive IDが異なります。選抜は保持しています。');
-     const part=await importCrops([e],{items:api.items,get:api.get,decode:api.decode,write:async(item,blob)=>{await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}}},master,{forSelection:!!e.record.trialSelection||e.record.draftSelection===true||e.record.reviewDisplay===true});
+     const proof=e.record.pendingDrive;
+     if(old?.imageSource?.sha256&&old.imageSource.sha256!==proof.sha256)throw Error('保存済み原寸画像のハッシュが異なります。');
+     const setSource=item=>{
+      restoreEvaluation(item,e.savedEvaluation);
+      if(proof.fileId)item.driveFileId=proof.fileId;
+      item.characterId=characterId;
+      item.crop.pendingDrive=structuredClone(proof);
+      item.imageSource=structuredClone(proof);
+     };
+     const part=await importCrops([e],{
+      items:api.items,decode:api.decode,
+      verifyImage:async item=>{
+       const local=await api.getLocal(item.id);
+       const confirmedHash=local?await pngHash(await local.arrayBuffer()):item.imageSource?.sha256;
+       if(confirmedHash!==proof.sha256)throw Error('保存済みPNGとDrive画像の内容が一致しません。');
+      },
+      write:async item=>{
+       setSource(item);
+       api.items().push(item);
+       try{await api.save();}catch(error){api.replaceItems(api.items().filter(x=>x!==item));throw error;}
+      }
+     },master,{forSelection:!!e.record.trialSelection||e.record.draftSelection===true||e.record.reviewDisplay===true});
      if(part.errors.length)throw Error(part.errors.map(x=>x.message).join(' / '));
-     const item=api.items().find(x=>x.imageId===e.record.imageId);
-     restoreEvaluation(item,e.savedEvaluation);
-     if(e.record.pendingDrive.fileId)item.driveFileId=e.record.pendingDrive.fileId;item.characterId=characterId;item.crop.pendingDrive=structuredClone(e.record.pendingDrive);
-     api.save();for(const id of part.ids)if(!ids.includes(id))ids.push(id);
+     if(old){setSource(old);await api.save();}
+     for(const id of part.ids)if(!ids.includes(id))ids.push(id);
      api.setView(ids,false,{forceReplace:true});api.redraw({appendOnly:true});received=done;
      if(dialog.open)dialog.close();report(done+'／'+total+'枚読み込み済み。残りを読み込みながら選べます。');
     }});
@@ -97,6 +116,8 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
   characters=[];showHidden=false;renderCharacters();
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
   drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,reviewCohort:/^G[1-3]$/.test(params.get('cohort')||'')?params.get('cohort'):null,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
+  api.setImageReader((proof,name)=>drive.original(proof,name));
+  api.retryPreviews();
   status.textContent='指定キャラと選抜待ちを確認しています…';characters=await drive.characters({preferredId:target});
   renderCharacters(target);
   if(!characters.length){status.textContent='「00_選抜待ち」のあるキャラが見つかりません。画像を保存したGoogleアカウントで接続してください。';return;}

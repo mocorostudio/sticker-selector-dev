@@ -29,7 +29,7 @@ export function initDriveExport(api,{authFactory=googleTestAuth,driveFactory=cre
   if(formal.length){
    const account=await drive.account(),groups=new Map();for(const item of formal){if(!item.characterId)throw Error('正式登録するキャラが不明です');if(!groups.has(item.characterId))groups.set(item.characterId,[]);groups.get(item.characterId).push(item);}
    for(const [characterId,items] of groups){status.textContent='検品済み画像を00_選抜待ちへ保存・照合中…';const result=await drive.registerPending(structuredClone(items),{accountId:account.permissionId,characterId,get:api.get,decode:api.decode});
-    for(const item of items){const entry=result.entries.find(e=>e.record.imageId===item.imageId);item.formalDriveRegistration={characterId,folderId:result.pendingFolderId,fileId:entry.driveFileId,manifestFileId:result.manifestFileId,sha256:entry.sha256};}api.save();
+    for(const item of items){const entry=result.entries.find(e=>e.record.imageId===item.imageId);item.formalDriveRegistration={characterId,folderId:result.pendingFolderId,fileId:entry.driveFileId,manifestFileId:result.manifestFileId,sha256:entry.sha256};}await api.save();
    }
    if(!api.visible().some(x=>x.touched)){record('complete');label();status.textContent='検品済み'+formal.length+'枚を00_選抜待ちへ保存・照合しました。好みの画像を選べます。';return;}
   }

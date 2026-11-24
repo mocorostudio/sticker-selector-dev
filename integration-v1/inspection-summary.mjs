@@ -7,7 +7,11 @@ const summary=(status,detail,source)=>({status,label:{fail:'× 不合格',review
 // Display only: never changes votes, technical approval, or submission eligibility.
 export async function inspectionSummary(item,blob){
  if(!blob)return summary('unknown',['画像を取得できないため検品記録を照合できません。'],'unverified');
- const sha=await pngHash(blob),audit=item.inspectionAudit;
+ return inspectionSummaryFromHash(item,await pngHash(blob));
+}
+
+export function inspectionSummaryFromHash(item,sha){
+ const audit=item.inspectionAudit;
  if(audit){
   if(audit.imageId!==item.imageId||audit.identity!==inspectionIdentity(item)||audit.sha256!==sha)return summary('unknown',['画像または候補情報が変わっています。検品記録の再確認が必要です。'],'stale');
   const detail=reasons(audit.comment,audit.qa?.issues);

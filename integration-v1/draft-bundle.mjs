@@ -12,11 +12,31 @@ export function validateDraft(value,{characterId,pendingFolderId,masters,history
  }
  return match[1];
 }
-export async function unpackDraft(bytes,entries){
- if(!globalThis.JSZip)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';s.onload=resolve;s.onerror=()=>reject(Error('画像ZIPの読込準備に失敗しました。'));document.head.append(s);});
- const zip=await globalThis.JSZip.loadAsync(bytes),expected=new Set(entries.map(e=>e.filename));
+let scriptReady;
+async function openArchive(bytes){
+ if(!globalThis.JSZip)await (scriptReady??=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';s.onload=resolve;s.onerror=()=>reject(Error('画像ZIPの読込準備に失敗しました。'));document.head.append(s);}).catch(error=>{scriptReady=null;throw error;}));
+ return globalThis.JSZip.loadAsync(bytes);
+}
+export async function readDraftImage(bytes,filename){
+ const zip=await openArchive(bytes),file=zip.file(filename);
+ if(!file)throw Error('画像ZIPにPNGがありません。');
+ const png=await file.async('arraybuffer');
+ if(png.byteLength>15e6)throw Error('画像が大きすぎます。');
+ return png;
+}
+export async function unpackDraft(bytes,entries,{stream=false}={}){
+ const zip=await openArchive(bytes),expected=new Set(entries.map(e=>e.filename));
  if(Object.values(zip.files).some(e=>!e.dir&&!expected.has(e.name)))throw Error('仮選抜ZIPに記録外のファイルがあります。');
- const result=new Map();let total=0;
- for(const e of entries){const file=zip.file(e.filename);if(!file)throw Error('仮選抜ZIPに画像が不足しています。');const png=await file.async('arraybuffer');total+=png.byteLength;if(png.byteLength>15e6||total>150e6)throw Error('仮選抜ZIPが大きすぎます。');result.set(e.filename,png);}
+ if(entries.some(e=>!zip.file(e.filename)))throw Error('仮選抜ZIPに画像が不足しています。');
+ let total=0;
+ const read=async name=>{
+  const png=await zip.file(name).async('arraybuffer');
+  total+=png.byteLength;
+  if(png.byteLength>15e6||total>150e6)throw Error('仮選抜ZIPが大きすぎます。');
+  return png;
+ };
+ if(stream)return {get:read};
+ const result=new Map();
+ for(const e of entries)result.set(e.filename,await read(e.filename));
  return result;
 }

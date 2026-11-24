@@ -16,6 +16,6 @@ export function restoreEvaluation(item,evaluation){
  if(incoming&&incoming.imageId===item.imageId&&incoming.identity===inspectionIdentity(item)&&(!local||Date.parse(incoming.reviewedAt||incoming.at)>Date.parse(local.reviewedAt||local.at))){
   item.inspectionAudit=structuredClone(incoming);item.inspectionHistory=structuredClone(evaluation.inspectionHistory||[]);
  }
- if(item.touched||!['o','h','x'].includes(evaluation.rating))return false;
+ if(item.touched||item.commentEditedLocally||!['o','h','x'].includes(evaluation.rating))return false;
  item.rating=evaluation.rating;item.comment=evaluation.comment;item.revision=evaluation.revision;item.touched=true;item.selectionHistory=structuredClone(evaluation.selectionHistory);return true;
 }

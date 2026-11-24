@@ -2,12 +2,12 @@ import {initBulkFormal} from './bulk-formal.mjs?v=20261106-batch1';
 import {stageCandidateAssignments} from './inspection-core.mjs?v=20261107-alpha1';
 import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261104-report1';
 import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261104-report1';
-import {initInspection} from './inspection-ui.mjs?v=20261108-early1';
-import {initSubmission} from './submission-ui.mjs?v=20261124-save2';
-import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261108-variants1';
+import {initInspection} from './inspection-ui.mjs?v=20261125-storage1';
+import {initSubmission} from './submission-ui.mjs?v=20261125-storage1';
+import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261125-storage1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261108-issue9';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261124-picker1';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261125-storage1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261125-storage1';
 import {gate} from './crop-v9/core.mjs';
 export function initWorkflow(api){
  initInspection(api);
@@ -48,14 +48,14 @@ export function initWorkflow(api){
      // Verify the exact parent PNG before changing any candidate metadata.
      if(!Array.isArray(entries)||entries.length!==9)throw Error('9画像が必要です');
      for(const {item} of staged){const e=entries.find(e=>e.record?.imageId===item.imageId),blob=await api.get(item.id);if(!e||!(e.png instanceof ArrayBuffer)||!blob)throw Error('検品対象PNGがありません');const a=new Uint8Array(await blob.arrayBuffer()),b=new Uint8Array(e.png);if(a.length!==b.length||!a.every((v,i)=>v===b[i]))throw Error('保存済みPNGと不一致');}
-     const before=api.items();api.replaceItems(before.map(x=>staged.find(s=>s.item===x)?.next||x));try{api.save();}catch(e){api.replaceItems(before);throw e;}
+     const before=api.items();api.replaceItems(before.map(x=>staged.find(s=>s.item===x)?.next||x));try{await api.save();}catch(e){api.replaceItems(before);throw e;}
      const needsInspection=staged.some(({next})=>next.inspectionAudit?.decision!=='pass');
      reply({bound:true,needsInspection});if(needsInspection){show('selection');window.dispatchEvent(new CustomEvent('workflow-inspect',{detail:{imageId:staged[0].item.imageId}}));}return;
     }
     data={...data,...await prepareAuditedFormalPayload({records:entries.map(e=>e.record),pngs:entries.map(e=>e.png),assignments:data.assignments,characterId:data.characterId,items:api.items(),master:current.master})};entries=data.entries;
    }
    const verified=data.verifiedHandoff===true;let master,manifest=data.manifest;if(verified){const characterId=data.characterId||new URLSearchParams(location.search).get('character');if(!/^[A-Za-z0-9_-]{1,256}$/.test(characterId||''))throw Error('対象キャラのDriveフォルダIDが必要です');const prepared=await prepareNineCellHandoff({pending:liveMaster?{masterForCharacter:async()=>liveMaster}:pending,characterId,entries,assignments:data.assignments});master=prepared.master;manifest=prepared.manifest;}else{master=await fetch('./crop-v9/master.json').then(r=>{if(!r.ok)throw Error('旧候補マスター読込失敗');return r.json();});}let result;
-   await api.withBusy(async()=>{result=await (data.verifiedHandoff===true?importVerifiedCrops:importCrops)(entries,{items:api.items,get:api.get,decode:api.decode,promote:async(item,record)=>{const before={...item};const history=[...(item.crop?.history||[])];for(const h of record.history||[])if(!history.some(x=>JSON.stringify(x)===JSON.stringify(h)))history.push(h);const unchanged=item.crop?.pngSha256===record.pngSha256&&item.technicalPassed===true;Object.assign(item,{formalRegistrationHistory:unchanged?item.formalRegistrationHistory:[...(item.formalRegistrationHistory||[]),{at:new Date().toISOString(),previousCrop:structuredClone(item.crop),manifest:structuredClone(manifest)}],characterId:data.characterId,crop:structuredClone({...item.crop,...record,history}),technicalPassed:true,technicalStatus:'pass',technicalScope:'actual-source',masterSource:manifest.masterReference,candidateManifest:structuredClone(manifest)});try{api.save();}catch(e){Object.keys(item).forEach(k=>delete item[k]);Object.assign(item,before);throw e;}},write:async(item,blob)=>{const characterId=data.characterId||api.characterId?.();if(characterId)item.characterId=characterId;await api.put(item.id,blob);api.items().push(item);try{api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},master,...(data.verifiedHandoff===true?[manifest]:[{forSelection:event.data.forSelection===true}]));if(result.ids.length){api.setView(result.ids,event.data.append===true);api.redraw();}});
+   await api.withBusy(async()=>{result=await (data.verifiedHandoff===true?importVerifiedCrops:importCrops)(entries,{items:api.items,get:api.get,decode:api.decode,promote:async(item,record)=>{const before={...item};const history=[...(item.crop?.history||[])];for(const h of record.history||[])if(!history.some(x=>JSON.stringify(x)===JSON.stringify(h)))history.push(h);const unchanged=item.crop?.pngSha256===record.pngSha256&&item.technicalPassed===true;Object.assign(item,{formalRegistrationHistory:unchanged?item.formalRegistrationHistory:[...(item.formalRegistrationHistory||[]),{at:new Date().toISOString(),previousCrop:structuredClone(item.crop),manifest:structuredClone(manifest)}],characterId:data.characterId,crop:structuredClone({...item.crop,...record,history}),technicalPassed:true,technicalStatus:'pass',technicalScope:'actual-source',masterSource:manifest.masterReference,candidateManifest:structuredClone(manifest)});try{await api.save();}catch(e){Object.keys(item).forEach(k=>delete item[k]);Object.assign(item,before);throw e;}},write:async(item,blob)=>{const characterId=data.characterId||api.characterId?.();if(characterId)item.characterId=characterId;await api.put(item.id,blob);api.items().push(item);try{await api.save();}catch(e){api.replaceItems(api.items().filter(x=>x!==item));throw e;}}},master,...(data.verifiedHandoff===true?[manifest]:[{forSelection:event.data.forSelection===true}]));if(result.ids.length){api.setView(result.ids,event.data.append===true);api.redraw();}});
    if(!result)throw Error('受け渡しを完了できませんでした');reply(result);if(result.ids.length){show('selection');$('driveStatus').textContent='切り出しから追加 '+result.added+'枚／取込済み '+result.existing+'枚／失敗 '+result.errors.length+'件。技術検品が未完了の画像は仮選別のみで、採用予定・保留へのPNG保存は停止します。';}
   }catch(e){reply({error:e.message});}finally{importing=false;}
  });

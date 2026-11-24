@@ -1,6 +1,6 @@
 import {validateReviewDisplay,assertReviewMaster,reviewDisplayRecord} from './review-display.mjs?v=20261108-variants1';
-import {savedEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
-import {validateDraft,unpackDraft} from './draft-bundle.mjs?v=20261025-direct2';
+import {savedEvaluation} from './reselection.mjs?v=20261125-storage1';
+import {validateDraft,unpackDraft,readDraftImage} from './draft-bundle.mjs?v=20261125-storage1';
 import {gate,inspect} from './crop-v9/core.mjs?v=20261107-alpha1';
 const FILES='https://www.googleapis.com/drive/v3/files',SHEETS='https://sheets.googleapis.com/v4/spreadsheets';
 const FOLDER='application/vnd.google-apps.folder',SHEET='application/vnd.google-apps.spreadsheet';
@@ -76,7 +76,34 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
   const range="'"+sheetName.replaceAll("'","''")+"'!A1:"+String.fromCharCode(64+Math.min(sheetName==='116候補マスター'?7:26,grid.columnCount))+Math.min(grid.rowCount,2000);
   return readMasterRows((await json(SHEETS+'/'+id(spreadsheetId)+'/values/'+encodeURIComponent(range))).values);
  }
+ // Keep at most one compressed archive (30 MB), shared by concurrent previews.
+ let currentArchive;
+ async function original(proof,filename){
+  let png;
+  if(proof.archiveFileId){
+   const key=JSON.stringify([proof.archiveFileId,proof.folderId,proof.archiveSha256]);
+   if(currentArchive?.key!==key){
+    const load=(async()=>{
+     const file=await meta(proof.archiveFileId);
+     if(!inFolder(file,proof.folderId)||file.mimeType!=='application/zip')throw Error('画像ZIPの保存先が一致しません。');
+     const raw=await retry(()=>bytes(file,30000000));
+     if(await pngHash(raw)!==proof.archiveSha256)throw Error('画像ZIPのハッシュが一致しません。');
+     return raw;
+    })();
+    currentArchive={key,load};
+    load.catch(()=>{if(currentArchive?.load===load)currentArchive=null;});
+   }
+   png=await readDraftImage(await currentArchive.load,filename);
+  }else{
+   const file=await meta(proof.fileId);
+   if(file.name!==filename||file.mimeType!=='image/png')throw Error('原寸画像の名前・形式が一致しません。');
+   png=await retry(()=>bytes(file,15000000));
+  }
+  if(await pngHash(png)!==proof.sha256)throw Error('原寸画像のハッシュが一致しません。');
+  return new Blob([png],{type:'image/png'});
+ }
  return {
+  original,
   // Read-only discovery. Refuse ambiguous or unparseable character masters;
   // never fall back to the historical shared 116-candidate sheet.
   async masterForCharacter(characterId){
@@ -119,7 +146,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
    for(const f of pending){if(f.parents?.length!==1||out.some(x=>x.id===f.parents[0]))continue;const parent=await meta(f.parents[0]);if(validFolder(parent))out.push({id:parent.id,name:parent.name});}
    return out.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
   },
-  async load(characterId,{allCandidates=false,decode,onProgress=()=>{},onEntry=async()=>{},getCachedBytes=async()=>null}){
+  async load(characterId,{allCandidates=false,decode,onProgress=()=>{},onEntry=async()=>{},getCachedBytes=async()=>null,retainBytes=true}){
    id(characterId);const character=await meta(characterId);if(!validFolder(character))throw Error('キャラのフォルダを確認できません。');
    const children=await list('trashed = false and '+quote(characterId)+' in parents');
    function folder(name){const found=children.filter(f=>validFolder(f)&&f.name===name&&inFolder(f,characterId));if(found.length!==1)throw Error(name+'がないか重複しています。');return found[0];}
@@ -142,13 +169,15 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
      const master=[...new Map([[value.masterSheet,primary],...variantMasters])].flatMap(([masterSheet,rows])=>rows.map(r=>({...r,masterSheet})));
      const archive=await meta(value.archive.fileId);if(!inFolder(archive,history.id)||archive.mimeType!=='application/zip')throw Error('全候補画像の保存先が一致しません。');
      const archiveBytes=await retry(()=>bytes(archive,30000000));if(await pngHash(archiveBytes)!==value.archive.sha256)throw Error('全候補画像のZIPが変更されています。');
-     const files=await unpack(archiveBytes,value.entries),entries=[];
+     currentArchive={key:JSON.stringify([archive.id,history.id,value.archive.sha256]),load:Promise.resolve(archiveBytes)};
+     const files=await unpack(archiveBytes,value.entries,{stream:!retainBytes}),entries=[];
      for(const e of value.entries){
-      const png=files.get(e.filename);if(!png||await pngHash(png)!==e.sha256)throw Error('全候補PNGのハッシュが一致しません。');
+      const png=await files.get(e.filename);if(!png||await pngHash(png)!==e.sha256)throw Error('全候補PNGのハッシュが一致しません。');
       const decoded=await decode(new Blob([png],{type:'image/png'})),qa=inspect(decoded,false);if(decoded.width!==370||decoded.height!==320||qa.issues.includes('空画像'))throw Error('全候補PNGのサイズ・描画を確認できません。');
       const record=reviewDisplayRecord(e,{qa,characterId,historyId:history.id,archiveId:archive.id,manifestId:file.id,masterReference:value.masterReference});
       const entry={record,png,savedEvaluation:evaluationDocument?savedEvaluation(evaluationDocument,record,characterId):null};
-      await onEntry({entry,character,master,done:entries.length+1,total:value.entries.length});entries.push(entry);onProgress({stage:'images',done:entries.length,total:value.entries.length,character:character.name});
+      record.pendingDrive.archiveSha256=value.archive.sha256;
+      await onEntry({entry,character,master,done:entries.length+1,total:value.entries.length});entries.push(retainBytes?entry:{record});onProgress({stage:'images',done:entries.length,total:value.entries.length,character:character.name});
      }
      return {character,entries,master,skipped:0,reviewDisplay:true};
     }
@@ -164,11 +193,12 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
     for(const e of value.entries){const m=master.find(m=>m.candidateId===e.candidateId);if(!m||m.phrase!==e.phrase||m.pose!==e.pose)throw Error('仮選抜記録のセリフ・ポーズが最新マスターと一致しません。');}
     const archive=await meta(value.archive.fileId);if(!inFolder(archive,history.id)||archive.mimeType!=='application/zip')throw Error('仮選抜ZIPの保存先が一致しません。');
     const archiveBytes=await retry(()=>bytes(archive,30000000));if(await pngHash(archiveBytes)!==value.archive.sha256)throw Error('仮選抜ZIPが変更されています。');
-    const files=await unpack(archiveBytes,value.entries),entries=[];
-    for(const e of value.entries){const png=files.get(e.filename);if(!png||await pngHash(png)!==e.sha256)throw Error('仮選抜PNGの照合に失敗しました。');
+     currentArchive={key:JSON.stringify([archive.id,history.id,value.archive.sha256]),load:Promise.resolve(archiveBytes)};
+    const files=await unpack(archiveBytes,value.entries,{stream:!retainBytes}),entries=[];
+    for(const e of value.entries){const png=await files.get(e.filename);if(!png||await pngHash(png)!==e.sha256)throw Error('仮選抜PNGの照合に失敗しました。');
      const decoded=await decode(new Blob([png],{type:'image/png'})),qa=inspect(decoded,false);if(decoded.width!==370||decoded.height!==320||qa.issues.includes('空画像'))throw Error('仮選抜PNGのサイズ・描画を確認できません。');
-     const record={...e,hasPixels:true,crossing:false,qa,review:[],decision:'review',draftSelection:true,masterReference:value.masterReference,cropReview:{confirmed:true,imageId:e.imageId},pendingDrive:{characterId,folderId:history.id,archiveFileId:archive.id,manifestFileId:drafts[0].id,sha256:e.sha256}};
-     const verified={record,png,savedEvaluation:evaluationDocument?savedEvaluation(evaluationDocument,record,characterId):null};await onEntry({entry:verified,character,master,done:entries.length+1,total:value.entries.length});entries.push(verified);onProgress({stage:'images',done:entries.length,total:value.entries.length,character:character.name});
+     const record={...e,hasPixels:true,crossing:false,qa,review:[],decision:'review',draftSelection:true,masterReference:value.masterReference,cropReview:{confirmed:true,imageId:e.imageId},pendingDrive:{characterId,folderId:history.id,archiveFileId:archive.id,manifestFileId:drafts[0].id,sha256:e.sha256,archiveSha256:value.archive.sha256}};
+     const verified={record,png,savedEvaluation:evaluationDocument?savedEvaluation(evaluationDocument,record,characterId):null};await onEntry({entry:verified,character,master,done:entries.length+1,total:value.entries.length});entries.push(retainBytes?verified:{record:verified.record});onProgress({stage:'images',done:entries.length,total:value.entries.length,character:character.name});
     }
     return {character,entries,master,skipped:0,draft:true};
     }
@@ -202,7 +232,7 @@ export function createPendingDrive({getToken,fetchImpl=globalThis.fetch,onUnauth
     const qa=inspect(await decode(new Blob([png],{type:'image/png'})),entry.record.crossing);if(gate({...entry.record,qa})!=='pass'&&!(includeTrials&&trialEligible({...entry.record,qa})))throw Error('PNGの再検品に合格していません。');
     const verified={record:{...entry.record,qa,masterReference,pendingDrive:{characterId,folderId:image.parents[0],fileId:image.id,manifestFileId,sha256:entry.sha256,version:String(image.version||'')}},png};
     if(evaluationDocument)verified.savedEvaluation=savedEvaluation(evaluationDocument,verified.record,characterId);
-    await onEntry({entry:verified,character,master:[...masterCache.values()].flat(),done:done+1,total:planned.length});entries.push(verified);
+    await onEntry({entry:verified,character,master:[...masterCache.values()].flat(),done:done+1,total:planned.length});entries.push(retainBytes?verified:{record:verified.record});
     onProgress({stage:'images',done:++done,total:planned.length,character:character.name});
    }
    return {character,entries,master:[...masterCache.values()].flat(),skipped:images.length-entries.length};

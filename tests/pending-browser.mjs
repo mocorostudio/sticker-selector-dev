@@ -49,7 +49,22 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   await page.locator('#selectionScreen details summary').first().click();await page.locator('#importMode').selectOption('append');await page.locator('#selectionScreen details summary').first().click();
   const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();};
   await load();await page.locator('#drivePending').waitFor({state:'hidden'});await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();
-  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9&&[...document.querySelectorAll('.stage img')].every(im=>im.naturalWidth===370&&im.naturalHeight===320));
+  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9&&document.querySelector('.stage img').naturalWidth===160);
+  assert.equal(await page.locator('.stage img').last().getAttribute('src'),null);
+  await page.locator('.stage img').last().scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].at(-1).naturalWidth===160);
+  await page.waitForFunction(()=>!document.querySelector('.stage img').hasAttribute('src'));
+  await page.locator('.stage img').first().scrollIntoViewIfNeeded();
+  await page.waitForFunction(()=>document.querySelector('.stage img').naturalWidth===160);
+  await page.locator('.stage img').first().click();
+  await page.waitForFunction(()=>document.querySelector('#zoomimg').naturalWidth===370);
+  await page.locator('#close').click();
+  const imageKeys=await page.evaluate(dbName=>new Promise((resolve,reject)=>{
+   const open=indexedDB.open(dbName);
+   open.onsuccess=()=>{const db=open.result,req=db.transaction('images').objectStore('images').getAllKeys();req.onsuccess=()=>{db.close();resolve(req.result);};req.onerror=()=>reject(req.error);};
+   open.onerror=()=>reject(open.error);
+  }),keys.db);
+  assert.deepEqual(imageKeys,[]);
   assert.equal(await page.locator('.chosen').count(),0);assert.equal(await page.locator('#error').textContent(),'');
   assert.equal(await page.evaluate(()=>window.fixtureScope),'https://www.googleapis.com/auth/drive.readonly');
   const saved=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),keys.store);
@@ -69,8 +84,66 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   assert.deepEqual((await saved()).items.find(x=>x.id===old.id),old);
   await page.goto(url);await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
   assert.equal(await page.evaluate(()=>localStorage.getItem('sticker-selector-v9')),legacy);assert.equal(await page.evaluate(()=>JSON.stringify(localStorage).includes('pending-fixture-token')),false);
+  if(!process.env.TEST_PENDING_MANIFEST){
+   const legacyState=await saved();
+   await page.evaluate(({dbName,oldId})=>new Promise((resolve,reject)=>{
+    const open=indexedDB.open(dbName);
+    open.onerror=()=>reject(open.error);
+    open.onsuccess=()=>{
+     const db=open.result,tx=db.transaction('images','readwrite');
+     tx.objectStore('images').put({bytes:new Uint8Array([7,8,9]).buffer,type:'image/png'},oldId);
+     tx.oncomplete=()=>{db.close();resolve();};tx.onabort=()=>reject(tx.error);
+    };
+   }),{dbName:keys.db,oldId:old.id});
+   await page.addInitScript(store=>{
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){
+     if(key===store){
+      const decoded=JSON.parse(value);
+      if(decoded.items?.length>15||decoded.schema==='animal-stickers-selection-state/packed-v1')throw new DOMException('The quota has been exceeded','QuotaExceededError');
+     }
+     return original.call(this,key,value);
+    };
+   },keys.store);
+   for(const namespace of ['product-a_','product-b_']){
+    const product=await new PendingFixture().setup(new Uint8Array(Buffer.from(raw,'base64')),81,namespace);
+    for(const e of product.files)fixture.files.set(...e);
+    for(const e of product.media)fixture.media.set(...e);
+    fixture.rows=product.rows;
+    await page.goto(service.url+'/integration-v1/workflow.html?view=selection&character='+namespace+'char');
+    await load();
+    await page.locator('#drivePendingProgress').filter({hasText:'81枚の読み込みが完了'}).waitFor({timeout:90000});
+    assert.equal(await page.locator('.card').count(),81);
+    await page.locator('.choices label').first().click();
+    await page.locator('.comment').first().fill(namespace+' draft');
+    await page.waitForFunction(({dbName,store,comment})=>new Promise(resolve=>{
+     const open=indexedDB.open(dbName);
+     open.onsuccess=()=>{const db=open.result,r=db.transaction('images').objectStore('images').get('selection-state:'+store);r.onsuccess=()=>{db.close();resolve(r.result?.items.some(i=>i.comment===comment));};};
+    }),{dbName:keys.db,store:keys.store,comment:namespace+' draft'});
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelectorAll('.card').length===81);
+    assert.equal(await page.locator('.comment').first().inputValue(),namespace+' draft');
+   }
+   const stored=await page.evaluate(({dbName,store,oldId})=>new Promise((resolve,reject)=>{
+    const open=indexedDB.open(dbName);
+    open.onerror=()=>reject(open.error);
+    open.onsuccess=()=>{
+     const db=open.result,tx=db.transaction('images'),images=tx.objectStore('images'),state=images.get('selection-state:'+store),legacy=images.get(oldId),keys=[];
+     const request=images.openKeyCursor();
+     request.onsuccess=()=>{const cursor=request.result;if(cursor){keys.push(cursor.key);cursor.continue();}};
+     tx.oncomplete=()=>{db.close();resolve({keys,state:state.result,legacy:[...new Uint8Array(legacy.result.bytes)]});};tx.onabort=()=>reject(tx.error);
+    };
+   }),{dbName:keys.db,store:keys.store,oldId:old.id});
+   assert.equal(stored.state?.items.length,172);
+   assert.deepEqual(stored.keys.sort(),[old.id,'selection-state:'+keys.store].sort());
+   assert.deepEqual(stored.legacy,[7,8,9]);
+   assert.deepEqual(stored.state.items.find(i=>i.id===old.id),old);
+   assert.equal(stored.state.items.filter(i=>i.touched).length,4);
+   assert.deepEqual((await saved()).items.slice(0,legacyState.items.length),legacyState.items);
+   console.log('PASS two 81-image products under injected quota after 15 items; legacy image and choices preserved; zero new persisted images.');
+  }
   assert.ok(fixture.calls.every(c=>c.method==='GET'));assert.deepEqual(external,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
-  await fs.mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/pending-'+engine+(process.env.TEST_PENDING_MANIFEST?'-private':'')+'.png',fullPage:true});await page.screenshot({path:'test-results/pending-'+engine+'-viewport.png'});
+  await fs.mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/pending-'+engine+(process.env.TEST_PENDING_MANIFEST?'-private':'')+'.png',fullPage:!!process.env.TEST_PENDING_MANIFEST});await page.screenshot({path:'test-results/pending-'+engine+'-viewport.png'});
   console.log('PASS '+engine+' Drive pending: Google readonly -> live master + reviewed PNGs -> nine unrated cards; repeat/read/reload retain choices; auth expiry preserves work; no Drive writes or ZIP transfer.');
   await context.close();
  }finally{await browser.close();}

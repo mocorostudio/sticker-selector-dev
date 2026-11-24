@@ -2,7 +2,7 @@ import {gate,inspect} from './crop-v9/core.mjs?v=20261107-alpha1';
 import {validateCandidateManifest} from './candidate-manifest.mjs';
 const signature=[137,80,78,71,13,10,26,10];
 const equal=(a,b)=>a.length===b.length&&a.every((v,i)=>v===b[i]);
-// No remote IO. The adapter persists PNG + metadata, then reads both back.
+// The adapter reads back metadata and verifies the persisted image source.
 export async function importCrops(entries,adapter,master,{forSelection=false}={}){
  if(!Array.isArray(entries)||entries.length>130)throw Error('受け渡し件数が不正です');
  const result={ids:[],added:0,existing:0,errors:[]};
@@ -22,14 +22,17 @@ export async function importCrops(entries,adapter,master,{forSelection=false}={}
   if(items.some(x=>x.name===r.filename&&x.imageId!==r.imageId))throw Error('ファイル名が既存画像と重複');
   if(old){
    if(old.id!==id||old.origin!=='crop-local'||old.candidate!==r.candidateId||old.phrase!==r.phrase||old.pose!==r.pose||old.name!==r.filename)throw Error('既存画像IDの情報が不一致');
-   const stored=await adapter.get(id);if(!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('既存PNGと内容が不一致');
+   if(adapter.verifyImage)await adapter.verifyImage(old,bytes);
+   else{const stored=await adapter.get(id);if(!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('既存PNGと内容が不一致');}
    result.existing++;
   }else{
    const {pixels,...metadata}=r;
    const item={id,imageId:r.imageId,candidate:r.candidateId,attemptId:r.imageId,name:r.filename,sequenceLabel:r.sequenceLabel,phrase:r.phrase,pose:r.pose,origin:'crop-local',technicalPassed:gate({...r,qa:actualQA})==='pass',technicalStatus:gate({...r,qa:actualQA}),technicalScope:r.inspection?.scope==='actual-source'?'actual-source':'local-test',masterSource:r.masterReference||'unverified-master',crop:structuredClone({...metadata,qa:actualQA}),saveState:'local',rating:'o',touched:false,comment:'',selectionHistory:[]};
    await adapter.write(item,blob);
-   const check=adapter.items().find(x=>x.id===id),stored=await adapter.get(id);
-   if(!check||check.imageId!==r.imageId||check.candidate!==r.candidateId||check.name!==r.filename||!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('端末保存の再照合に失敗');
+   const check=adapter.items().find(x=>x.id===id);
+   if(!check||check.imageId!==r.imageId||check.candidate!==r.candidateId||check.name!==r.filename)throw Error('端末保存の再照合に失敗');
+   if(adapter.verifyImage)await adapter.verifyImage(check,bytes);
+   else{const stored=await adapter.get(id);if(!stored||!equal(new Uint8Array(await stored.arrayBuffer()),bytes))throw Error('端末保存の再照合に失敗');}
    result.added++;
   }
   result.ids.push(id);

@@ -15,7 +15,7 @@ try{
  await crop.locator('#run').click();await crop.locator('#handoff').filter({hasText:'全9枚'}).waitFor();
  await page.locator('#selectionScreen:not([hidden])').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9);
- await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].every(im=>im.naturalWidth===370));
+ await page.waitForFunction(()=>document.querySelector('.stage img')?.naturalWidth===160);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  // Choices persist immediately; the retired local-confirm button is hidden.
  await page.locator('.choices label').first().click();

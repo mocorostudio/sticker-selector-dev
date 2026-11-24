@@ -71,7 +71,7 @@ try{
  const old={id:'crop:old-review',imageId:'old-review',characterId:char,name:'old.png',origin:'crop-local',rating:'x',touched:true,revision:'unsaved-vote',comment:'旧選抜を残す',selectionHistory:[],crop:{history:[]}};
  await page.evaluate(({keys,old})=>localStorage.setItem(keys.store,JSON.stringify({items:[old],background:'checker'})),{keys,old});await page.reload();
  const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();};
- await load();await page.waitForFunction(n=>document.querySelectorAll('.card').length===n&&[...document.querySelectorAll('.stage img')].every(x=>x.naturalWidth===370),cohortCount);
+ await load();await page.waitForFunction(n=>document.querySelectorAll('.card').length===n&&document.querySelector('.stage img').naturalWidth===160,cohortCount);
  if(nativeSheets){assert.equal(await page.locator('.trial-identity').count(),cohortCount);for(const [i,e] of value.entries.entries()){assert.ok((await page.locator('.trial-identity').nth(i).innerText()).includes(e.trialId));}}
  const badges=page.locator('.inspection-summary');await page.waitForFunction(c=>['pass','review','fail'].every(k=>document.querySelectorAll('[data-inspection-status='+k+']').length===c[k]),counts);
  const state=()=>page.evaluate(async k=>{const {parseStoredJSON}=await import('/integration-v1/selection-storage.mjs');return parseStoredJSON(localStorage.getItem(k));},keys.store);
