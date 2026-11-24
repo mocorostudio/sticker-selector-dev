@@ -7,7 +7,7 @@ import {initSubmission} from './submission-ui.mjs?v=20261122-safeselection1';
 import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261108-variants1';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
 import {initDriveExport} from './drive-export-ui.mjs?v=20261108-issue9';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261108-cohort1';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261124-picker1';
 import {gate} from './crop-v9/core.mjs';
 export function initWorkflow(api){
  initInspection(api);

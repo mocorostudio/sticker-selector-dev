@@ -2,6 +2,8 @@ import {restoreEvaluation} from './reselection.mjs?v=20261030-reviewlabels1';
 import {googleTestAuth} from './google-auth.mjs?v=20261023-merge1';
 import {createPendingDrive} from './drive-pending.mjs?v=20261108-cohort1';
 import {importCrops} from './crop-handoff.mjs?v=20261108-variants1';
+const HIDDEN_CHARACTERS_KEY='sticker-selector:hidden-drive-characters:v1';
+
 export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const dialog=document.createElement('dialog');dialog.id='drivePending';dialog.setAttribute('aria-labelledby','drivePendingTitle');
  const title=document.createElement('h2');title.id='drivePendingTitle';title.textContent='Driveから読み込む';
@@ -11,14 +13,53 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  const label=document.createElement('label');label.textContent='② キャラを選ぶ';label.hidden=true;
  const select=document.createElement('select');select.id='pendingCharacter';label.append(select);
  const load=document.createElement('button');load.id='pendingLoad';load.textContent='③ 選んだキャラを読み込む';load.hidden=true;
+ const visibility=document.createElement('div');visibility.hidden=true;
+ const hide=document.createElement('button');hide.textContent='選んだキャラを一覧から隠す';
+ const toggle=document.createElement('button');toggle.setAttribute('aria-pressed','false');
+ visibility.append(hide,toggle);
  const close=document.createElement('button');close.textContent='閉じる';close.onclick=()=>dialog.close();
- dialog.append(title,description,status,connect,label,load,close);document.body.append(dialog);
+ dialog.append(title,description,status,connect,label,load,visibility,close);document.body.append(dialog);
  const params=new URLSearchParams(location.search),target=params.get('character'),includeTrials=params.get('selectionMode')==='trial';
  if(includeTrials)description.textContent='外周線を残した試用画像も読み込みます。◯△✕は試用選抜として記録し、申請用の合格にはしません。';
  let auth,ready=false,token='',drive,busy=false;
- const controls=()=>{connect.disabled=busy||!ready;select.disabled=busy;load.disabled=busy||!select.value;close.disabled=busy;dialog.setAttribute('aria-busy',String(busy));};
+ let characters=[],showHidden=false,hiddenIds=new Set();
+ try{
+  const saved=JSON.parse(localStorage.getItem(HIDDEN_CHARACTERS_KEY)||'[]');
+  if(Array.isArray(saved))hiddenIds=new Set(saved.filter(id=>typeof id==='string'));
+ }catch{}
+ const controls=()=>{
+  connect.disabled=busy||!ready;select.disabled=busy;load.disabled=busy||!select.value;
+  close.disabled=busy;hide.disabled=busy||!select.value;toggle.disabled=busy;
+  hide.textContent=hiddenIds.has(select.value)?'選んだキャラを一覧に戻す':'選んだキャラを一覧から隠す';
+  dialog.setAttribute('aria-busy',String(busy));
+ };
  dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();});
- select.onchange=()=>{api.setCharacter(select.value);controls();};
+ select.onchange=controls;
+ function renderCharacters(preferred=select.value){
+  const filtered=characters.filter(c=>showHidden||!hiddenIds.has(c.id));
+  const hiddenCount=characters.length-characters.filter(c=>!hiddenIds.has(c.id)).length;
+  select.replaceChildren(...filtered.map(c=>new Option(c.name+(hiddenIds.has(c.id)?'（非表示）':''),c.id)));
+  if(filtered.some(c=>c.id===preferred))select.value=preferred;
+  label.hidden=load.hidden=hide.hidden=filtered.length===0;
+  visibility.hidden=characters.length===0;
+  toggle.hidden=hiddenCount===0;
+  toggle.textContent=showHidden?'非表示のキャラを隠す':'非表示のキャラを表示（'+hiddenCount+'件）';
+  toggle.setAttribute('aria-pressed',String(showHidden));
+  status.textContent=filtered.length?'②キャラを選び、③読み込みを押してください。':'表示中のキャラはありません。非表示のキャラを表示できます。';
+  controls();
+ }
+ hide.onclick=()=>{
+  const selected=characters.find(c=>c.id===select.value);if(busy||!selected)return;
+  const next=new Set(hiddenIds);
+  const wasHidden=next.delete(selected.id);if(!wasHidden)next.add(selected.id);
+  try{localStorage.setItem(HIDDEN_CHARACTERS_KEY,JSON.stringify([...next]));}
+  catch{status.textContent='このブラウザに一覧の設定を保存できませんでした。';return;}
+  hiddenIds=next;
+  if(!characters.some(c=>hiddenIds.has(c.id)))showHidden=false;
+  renderCharacters(selected.id);
+  status.textContent=selected.name+(wasHidden?'を一覧に戻しました。':'を一覧から隠しました。');
+ };
+ toggle.onclick=()=>{showHidden=!showHidden;renderCharacters();};
  const progress=document.createElement('p');progress.id='drivePendingProgress';progress.setAttribute('role','status');progress.setAttribute('aria-live','polite');progress.hidden=true;document.getElementById('list').before(progress);
  const report=text=>{status.textContent=text;progress.textContent=text;};
  async function read(characterId){
@@ -53,18 +94,19 @@ export function initDrivePending(api,{onLoaded=()=>{}}={}){
  }
  async function run(action){if(busy)return;busy=true;controls();try{await action();}catch(e){if(!e.pendingReported)report(e.message||'読み込めませんでした。もう一度お試しください。');}finally{busy=false;controls();}}
  connect.onclick=()=>run(async()=>{
+  characters=[];showHidden=false;renderCharacters();
   status.textContent='Googleに接続中…';auth.disconnect();token='';drive=null;token=await auth.getToken();
   drive=createPendingDrive({getToken:()=>token,onUnauthorized:()=>{token='';auth.disconnect();},includeTrials,reviewCohort:/^G[1-3]$/.test(params.get('cohort')||'')?params.get('cohort'):null,onRetry:p=>report('通信が遅れているため再試行中（'+p.attempt+'／'+p.max+'）。表示済みの画像は選べます。')});
-  status.textContent='指定キャラと選抜待ちを確認しています…';const characters=await drive.characters({preferredId:target});
-  select.replaceChildren(...characters.map(c=>new Option(c.name,c.id)));label.hidden=load.hidden=characters.length===0;
+  status.textContent='指定キャラと選抜待ちを確認しています…';characters=await drive.characters({preferredId:target});
+  renderCharacters(target);
   if(!characters.length){status.textContent='「00_選抜待ち」のあるキャラが見つかりません。画像を保存したGoogleアカウントで接続してください。';return;}
-  if(target&&characters.some(c=>c.id===target))select.value=target;
-  if(characters.length===1||target&&select.value===target){await read(select.value);return;}
-  status.textContent='接続できました。②キャラを選び、③読み込みを押してください。';
+  if(target&&characters.some(c=>c.id===target)){await read(target);return;}
  });
  load.onclick=()=>run(()=>read(select.value));
  function open(){
-  if(dialog.open)return;status.textContent=ready?'Googleに接続すると画像を読み込みます。':'Google接続を準備中…';dialog.showModal();controls();
+  if(dialog.open)return;
+  if(showHidden){showHidden=false;renderCharacters();}
+  status.textContent=ready?'Googleに接続すると画像を読み込みます。':'Google接続を準備中…';dialog.showModal();controls();
   if(!auth){auth=googleTestAuth({readOnly:true});auth.ready.then(()=>{ready=true;controls();if(dialog.open)status.textContent='①Googleに接続し、画像を保存したアカウントを選んでください。';}).catch(e=>status.textContent=e.message);}
  }
  return {open,masterForCharacter:async characterId=>{if(!drive)throw Error('Google Driveへ読み取り専用で接続し、対象キャラを選択してください。');return drive.masterForCharacter(characterId);}};
