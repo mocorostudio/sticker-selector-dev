@@ -1,4 +1,4 @@
-import {verifySavedTransparency,inspectConfirmationTransparency} from './transparency-checkpoint.mjs?v=20261110-confirmation1';
+import {verifySavedTransparency,inspectConfirmationTransparency} from './transparency-checkpoint.mjs?v=20261124-save2';
 import {finalizeTransparency} from './final-transparency.mjs?v=20261108-fringe3';
 import {auditedCandidateBinding} from './inspection-core.mjs?v=20261108-early1';
 import {normalizeSubmissionPng,inspectSubmissionZip} from './submission-validation.mjs?v=20261108-issue9';

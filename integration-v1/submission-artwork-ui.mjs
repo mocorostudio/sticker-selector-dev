@@ -1,4 +1,4 @@
-import {inspectConfirmationTransparency} from './transparency-checkpoint.mjs?v=20261110-confirmation1';
+import {inspectConfirmationTransparency} from './transparency-checkpoint.mjs?v=20261124-save2';
 import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
 import {orderedFiles} from './submission-order.mjs?v=20261024-order1';
 import {selectedArtwork,chooseArtwork,editArtwork,validateStroke,alphaBounds,fitArtwork,resizeArtwork} from './submission-artwork.mjs?v=20261030-crop1';

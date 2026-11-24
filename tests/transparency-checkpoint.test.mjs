@@ -26,3 +26,9 @@ test('new checkpointed sources reach ZIP without late cleanup; altered evidence 
  assert.ok(result.archives[0].mapping.every(x=>x.transparencyCleanup.verificationOnly===true));assert.deepEqual(items,before);
  items[0].crop.transparencyCheckpoint={...proof,sha256:'0'.repeat(64)};await assert.rejects(prepareSelectionZip(plan,{items,get:async()=>blob,decode:async()=>validPixels()}),/検査後にPNGが変わっています/);
 });
+test('identical confirmation PNGs reuse inspection evidence for deterministic repeat saves; changed bytes are rejected',async()=>{
+ const {inspectConfirmationTransparency}=await import('../integration-v1/transparency-checkpoint.mjs');const blob=pngFixture(370,320,{color:133});let decodes=0;const decode=async()=>{decodes++;return validPixels();};
+ const a=await inspectConfirmationTransparency(blob,decode,{purpose:'confirmation-only'});const b=await inspectConfirmationTransparency(blob,decode,{purpose:'confirmation-only',expectedSha:a.sha256});assert.deepEqual(a,b);assert.equal(decodes,2);assert.equal(b.technicalApproval,false);assert.equal(b.visualReviewRequired,true);
+ a.issues.push('caller mutation');assert.equal((await inspectConfirmationTransparency(blob,decode,{purpose:'confirmation-only'})).issues.includes('caller mutation'),false);
+ await assert.rejects(inspectConfirmationTransparency(pngFixture(370,320,{color:134}),decode,{purpose:'confirmation-only',expectedSha:b.sha256}),/一致しません/);
+});

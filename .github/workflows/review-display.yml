@@ -29,6 +29,8 @@ jobs:
       - run: node tests/final-transparency-browser.mjs
       - run: node tests/submission-bytes-browser.mjs
       - run: node tests/confirmation-kit-browser.mjs
+      - name: Save complete ZIP with full localStorage in WebKit
+        run: FULL_JOURNAL_TEST=1 TEST_BROWSER=webkit node tests/confirmation-kit-browser.mjs
       - name: Ninety image attempts retain votes, reasons, order and artwork
         run: REVIEW_VARIANTS_TEST=1 node tests/confirmation-kit-browser.mjs
       - run: node tests/products-browser.mjs
