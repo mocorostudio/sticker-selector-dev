@@ -4,7 +4,7 @@ import {readSelectionState,saveSelectionState,isStorageQuotaError} from './selec
 import {preserveCardPosition} from './selection-position.mjs';
 import {inspectionSummary,inspectionSummaryFromHash,renderInspectionSummary} from './inspection-summary.mjs?v=20261125-storage6';
 import {isLocalConfirmed} from './crop-handoff.mjs?v=20261125-storage6';
-import {initWorkflow} from './integration-ui.mjs?v=20261125-draftquota1';
+import {initWorkflow} from './integration-ui.mjs?v=20261125-exportquota1';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
 import {importCrops} from './crop-handoff.mjs?v=20261125-storage6';
 import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-scrollqa1';
