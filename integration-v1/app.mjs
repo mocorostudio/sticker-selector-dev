@@ -210,12 +210,14 @@ function drawCards({appendOnly=false}={}){const current=visible(),previous=[...$
  };
 })}
 
-async function validatePNG(blob){
+async function openPNG(blob){
  if(!blob.size||blob.size>15e6)throw Error('PNGサイズ不正');
  const signature=new Uint8Array(await blob.slice(0,8).arrayBuffer());
  if([137,80,78,71,13,10,26,10].some((v,i)=>signature[i]!==v))throw Error('PNG形式不正');
- const u=URL.createObjectURL(blob);try{await new Promise((ok,no)=>{const im=new Image();im.onload=ok;im.onerror=()=>no(Error('画像を表示できません'));im.src=u})}finally{URL.revokeObjectURL(u)}
+ try{return await createImageBitmap(blob);}
+ catch{throw Error('画像を表示できません');}
 }
+async function validatePNG(blob){(await openPNG(blob)).close();}
 async function addPNG(blob,name){
  if(!name.toLowerCase().endsWith('.png'))return null;
  await validatePNG(blob);
@@ -307,7 +309,18 @@ $('sync').onclick=()=>withBusy(async()=>{
 if(adapter)$('mode').textContent=adapter.mode==='drive-test'?'実Driveテスト：既存のテストPNG3枚のみ。制作用データは対象外です。':'模擬Driveモード：本番データには接続しません';
 if(auth){$('loadPending').textContent='テスト画像を読み込む';$('disconnect').hidden=false;$('disconnect').onclick=()=>{auth.disconnect();driveMessage('Google接続を端末内で解除しました。画像と評価は保持しています。')};auth.ready.then(()=>driveMessage('Google認証の準備ができました。「テスト画像を読み込む」を押してください。')).catch(e=>driveMessage(errorText(e)));}
 
-async function decodeCropPNG(blob){await validatePNG(blob);const url=URL.createObjectURL(blob);try{const im=new Image();im.src=url;await im.decode();if(im.width!==370||im.height!==320)throw Error('切り出しPNGの寸法が不正');const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);return c.getContext('2d').getImageData(0,0,c.width,c.height);}finally{URL.revokeObjectURL(url);}}
+async function decodeCropPNG(blob){
+ const image=await openPNG(blob);
+ try{
+  if(image.width!==370||image.height!==320)throw Error('切り出しPNGの寸法が不正');
+  const canvas=document.createElement('canvas');
+  canvas.width=image.width;
+  canvas.height=image.height;
+  const context=canvas.getContext('2d');
+  context.drawImage(image,0,0);
+  return context.getImageData(0,0,canvas.width,canvas.height);
+ }finally{image.close();}
+}
 if(workflowLocal)workflow=initWorkflow({ready:dbReady,characterId:()=>activeCharacter,items:()=>state.items,replaceItems:items=>{state.items=items},visible,put,get,getLocal,setImageReader:reader=>{imageReader=reader;},connectImageReader:token=>{imageReader=createPendingDrive({getToken:()=>token}).original;},retryPreviews:()=>{for(const preview of cards.values())if(preview.visible)void showPreview(preview);},save,setView,setCharacter,redraw,withBusy,isBusy:()=>busy,decode:decodeCropPNG});
 
 
