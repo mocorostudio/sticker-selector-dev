@@ -1,4 +1,4 @@
-import {byteCache,previewSource} from './image-preview.mjs?v=20261125-storage2';
+import {byteCache,previewSource} from './image-preview.mjs?v=20261125-storage3';
 import {inspectConfirmationTransparency} from './transparency-checkpoint.mjs?v=20261124-save2';
 import {withPngDpi} from './png-density.mjs?v=20261030-dpi1';
 import {orderedFiles} from './submission-order.mjs?v=20261024-order1';

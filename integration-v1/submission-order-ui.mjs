@@ -1,4 +1,4 @@
-import {previewSource} from './image-preview.mjs?v=20261125-storage2';
+import {previewSource} from './image-preview.mjs?v=20261125-storage3';
 import {orderedFiles,recommendedFiles,changeOrder,moveBefore,undoOrder} from './submission-order.mjs?v=20261024-order1';
 export function initSubmissionOrder({getDraft,getFiles,getSetId,commit,loadPreview,isLocked,button,container,selectionParts}){
  const host=document.createElement('section');host.id='submissionOrderScreen';host.hidden=true;
