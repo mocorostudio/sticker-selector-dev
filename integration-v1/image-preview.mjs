@@ -39,12 +39,3 @@ export async function thumbnail(blob){
   return canvas.toDataURL('image/webp',0.78);
  }finally{image.close();}
 }
-
-export function previewSource(blob){
- return new Promise((resolve,reject)=>{
-  const reader=new FileReader();
-  reader.onload=()=>resolve(reader.result);
-  reader.onerror=()=>reject(reader.error);
-  reader.readAsDataURL(blob);
- });
-}

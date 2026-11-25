@@ -2,12 +2,12 @@ import {initBulkFormal} from './bulk-formal.mjs?v=20261106-batch1';
 import {stageCandidateAssignments} from './inspection-core.mjs?v=20261107-alpha1';
 import {prepareAuditedFormalPayload} from './crop-v9/formal-sender.mjs?v=20261104-report1';
 import {prepareNineCellHandoff} from './strict-handoff-bridge.mjs?v=20261104-report1';
-import {initInspection} from './inspection-ui.mjs?v=20261125-storage5';
-import {initSubmission} from './submission-ui.mjs?v=20261125-storage5';
-import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261125-storage5';
+import {initInspection} from './inspection-ui.mjs?v=20261125-storage6';
+import {initSubmission} from './submission-ui.mjs?v=20261125-storage6';
+import {importCrops,importVerifiedCrops} from './crop-handoff.mjs?v=20261125-storage6';
 import {completeSelection} from './selection-completion.mjs?v=20261023-merge1';
-import {initDriveExport} from './drive-export-ui.mjs?v=20261125-storage5';
-import {initDrivePending} from './drive-pending-ui.mjs?v=20261125-storage5';
+import {initDriveExport} from './drive-export-ui.mjs?v=20261125-storage6';
+import {initDrivePending} from './drive-pending-ui.mjs?v=20261125-storage6';
 import {gate} from './crop-v9/core.mjs';
 export function initWorkflow(api){
  initInspection(api);
