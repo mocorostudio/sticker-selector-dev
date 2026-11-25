@@ -1,12 +1,12 @@
-import {createPendingDrive} from './drive-pending.mjs?v=20261125-storage3';
-import {byteCache,thumbnail,previewSource} from './image-preview.mjs?v=20261125-storage3';
+import {createPendingDrive} from './drive-pending.mjs?v=20261125-storage5';
+import {byteCache,thumbnail} from './image-preview.mjs?v=20261125-storage5';
 import {readSelectionState,saveSelectionState,isStorageQuotaError} from './selection-storage.mjs?v=20261108-quota1';
 import {preserveCardPosition} from './selection-position.mjs';
-import {inspectionSummary,inspectionSummaryFromHash,renderInspectionSummary} from './inspection-summary.mjs?v=20261125-storage3';
-import {isLocalConfirmed} from './crop-handoff.mjs?v=20261125-storage3';
-import {initWorkflow} from './integration-ui.mjs?v=20261125-storage3';
+import {inspectionSummary,inspectionSummaryFromHash,renderInspectionSummary} from './inspection-summary.mjs?v=20261125-storage5';
+import {isLocalConfirmed} from './crop-handoff.mjs?v=20261125-storage5';
+import {initWorkflow} from './integration-ui.mjs?v=20261125-storage5';
 import {selectionView} from './selection-view.mjs?v=20261024-character1';
-import {importCrops} from './crop-handoff.mjs?v=20261125-storage3';
+import {importCrops} from './crop-handoff.mjs?v=20261125-storage5';
 import {reviewedBundleFromDrive,importReviewedCrops} from './reviewed-bundle.mjs?v=20261106-scrollqa1';
 import {GoogleTestDriveAdapter} from './google-test-drive.mjs?v=20261023-merge1';
 import {googleTestAuth} from './google-auth.mjs';
@@ -123,7 +123,7 @@ if(workflowLocal){
 }
 function updateRatingStatus(){const items=visible(),t={o:0,h:0,x:0};items.forEach(i=>{if(i.touched&&t[i.rating]!==undefined)t[i.rating]++});$('status').textContent=`表示${items.length}枚（保存済み${state.items.length}枚）/ ◯ ${t.o} / △ ${t.h} / ✕ ${t.x} / 未選抜 ${items.length-t.o-t.h-t.x}`;}
 let renderVersion=0,zoomURL;
-const thumbnails=byteCache(4*1024*1024);
+const thumbnails=byteCache(4*1024*1024,entry=>entry.src.length*2);
 const cards=new Map();
 const previews=new IntersectionObserver(entries=>{
  for(const entry of entries){
@@ -155,12 +155,12 @@ async function showPreview(preview){
   if(!cached){
    const original=await get(item.id);
    if(!original)throw Error('画像を再追加してください。');
-   cached={blob:await thumbnail(original),summary:await inspectionSummary(item,original)};
+   if(!preview.visible||!img.isConnected||stamp!==preview.stamp)return;
+   cached={src:await thumbnail(original),summary:await inspectionSummary(item,original)};
    thumbnails.set(key,cached);
   }
-  const source=await previewSource(cached.blob);
   if(!preview.visible||!img.isConnected||stamp!==preview.stamp)return;
-  img.src=source;
+  img.src=cached.src;
   note.title='';
   if(note.dataset.previewError){note.textContent=cardNote(item);delete note.dataset.previewError;}
   preserveCardPosition($('list'),()=>renderInspectionSummary(host,cached.summary));

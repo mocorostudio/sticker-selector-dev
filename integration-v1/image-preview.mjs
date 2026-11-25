@@ -36,7 +36,7 @@ export async function thumbnail(blob){
   canvas.width=Math.max(1,Math.round(image.width*scale));
   canvas.height=Math.max(1,Math.round(image.height*scale));
   canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
-  return await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('サムネイルを作成できません。')),'image/webp',0.78));
+  return canvas.toDataURL('image/webp',0.78);
  }finally{image.close();}
 }
 

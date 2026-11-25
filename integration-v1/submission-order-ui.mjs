@@ -1,4 +1,3 @@
-import {previewSource} from './image-preview.mjs?v=20261125-storage3';
 import {orderedFiles,recommendedFiles,changeOrder,moveBefore,undoOrder} from './submission-order.mjs?v=20261024-order1';
 export function initSubmissionOrder({getDraft,getFiles,getSetId,commit,loadPreview,isLocked,button,container,selectionParts}){
  const host=document.createElement('section');host.id='submissionOrderScreen';host.hidden=true;
@@ -10,7 +9,7 @@ export function initSubmissionOrder({getDraft,getFiles,getSetId,commit,loadPrevi
  function render({preserveScroll=false}={}){const previousY=window.scrollY;const draft=getDraft(),files=getFiles(),setId=getSetId(),ordered=orderedFiles(draft,files,setId),locked=isLocked();button.disabled=locked||!ordered.length;button.textContent=host.hidden?'並び順を整える':'選ぶ画面に戻る';if(host.hidden)return;const current=++version;grid.replaceChildren();if(source&&!ordered.some(f=>f.id===source))source=null;
   $('submissionOrderSuggest').disabled=locked||ordered.length<2;$('submissionOrderUndo').disabled=locked||!draft.orderUndo?.[setId]?.length;$('submissionOrderMove').hidden=!source;
   for(const [index,file] of ordered.entries()){const card=document.createElement('button');card.className='submission-order-card';card.dataset.imageId=file.id;card.disabled=locked;card.setAttribute('aria-pressed',String(file.id===source));card.setAttribute('aria-label',(index+1)+'番 '+(file.phrase||file.name)+(source?' の前へ移動':' を動かす'));const number=document.createElement('strong');number.textContent=String(index+1).padStart(2,'0');const image=document.createElement('img');image.alt=file.phrase||file.name;image.loading='lazy';const name=document.createElement('small');name.textContent=file.phrase||file.name;card.append(number,image,name);card.onclick=()=>{if(isLocked())return;if(source===file.id){source=null;status.textContent='移動をやめました。';render({preserveScroll:true});}else if(source){apply(moveBefore(getDraft(),getFiles(),getSetId(),source,file.id),'並び順を自動保存しました。この順番でZIPに入ります。');}else{source=file.id;status.textContent=(index+1)+'番を移動中。入れたい位置の画像をタップするか、「先頭へ」「最後へ」を押してください。';render({preserveScroll:true});}};grid.append(card);
-   loadPreview(file).then(previewSource).then(src=>{if(current===version&&image.isConnected)image.src=src;}).catch(()=>{if(current===version)name.textContent='画像を読み込めません。選ぶ画面で確認してください。';});
+   loadPreview(file).then(src=>{if(current===version&&image.isConnected)image.src=src;}).catch(()=>{if(current===version)name.textContent='画像を読み込めません。選ぶ画面で確認してください。';});
   }
   if(preserveScroll)window.scrollTo(0,previousY);
  }
