@@ -21,7 +21,7 @@ try{
  const upload=async()=>{await page.locator('#files').setInputFiles({name:'reviewed.zip',mimeType:'application/zip',buffer:zipBytes});await page.waitForFunction(()=>!document.querySelector('#files').disabled);};
  await upload();await page.waitForFunction(()=>!document.querySelector('#selectionScreen').hidden||document.querySelector('#error').textContent).catch(async e=>{console.log(JSON.stringify(await page.evaluate(()=>({error:document.querySelector('#error').textContent,cards:document.querySelectorAll('.card').length,tabDisabled:document.querySelector('#selectionTab').disabled,zip:!!window.JSZip}))),errors);throw e;});
  assert.equal(await page.locator('#error').textContent(),'');await page.locator('#selectionScreen:not([hidden])').waitFor();
- await page.waitForFunction(n=>document.querySelectorAll('.stage img').length===n&&document.querySelector('.stage img')?.naturalWidth===160,manifest.entries.length);
+ await page.waitForFunction(n=>document.querySelectorAll('.stage img').length===n&&document.querySelector('.stage img')?.naturalWidth===370,manifest.entries.length);
  assert.equal(await page.locator('.chosen').count(),0);assert.equal(await page.locator('#error').textContent(),'');
  const state=()=>page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('sticker-selector-v9:crop-workflow:')&&!k.endsWith('-visible-ids')).map(k=>JSON.parse(localStorage.getItem(k))).find(v=>v.items));
  const initial=await state();assert.equal(initial.items.length,manifest.entries.length);assert.ok(initial.items.every(x=>x.technicalPassed&&x.technicalScope==='actual-source'&&!x.touched));

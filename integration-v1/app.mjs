@@ -1,5 +1,5 @@
 import {createPendingDrive} from './drive-pending.mjs?v=20261125-storage6';
-import {byteCache,thumbnail} from './image-preview.mjs?v=20261125-storage6';
+import {byteCache,thumbnail} from './image-preview.mjs?v=20261125-sharp1';
 import {readSelectionState,saveSelectionState,isStorageQuotaError} from './selection-storage.mjs?v=20261108-quota1';
 import {preserveCardPosition} from './selection-position.mjs';
 import {inspectionSummary,inspectionSummaryFromHash,renderInspectionSummary} from './inspection-summary.mjs?v=20261125-storage6';
@@ -156,7 +156,7 @@ async function showPreview(preview){
    const original=await get(item.id);
    if(!original)throw Error('画像を再追加してください。');
    if(!preview.visible||!img.isConnected||stamp!==preview.stamp)return;
-   cached={src:await thumbnail(original),summary:await inspectionSummary(item,original)};
+   cached={src:await thumbnail(original,{maxSize:370,mimeType:'image/png'}),summary:await inspectionSummary(item,original)};
    thumbnails.set(key,cached);
   }
   if(!preview.visible||!img.isConnected||stamp!==preview.stamp)return;

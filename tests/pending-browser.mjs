@@ -49,13 +49,13 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   await page.locator('#selectionScreen details summary').first().click();await page.locator('#importMode').selectOption('append');await page.locator('#selectionScreen details summary').first().click();
   const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();};
   await load();await page.locator('#drivePending').waitFor({state:'hidden'});await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();
-  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9&&document.querySelector('.stage img').naturalWidth===160);
+  await page.waitForFunction(()=>document.querySelectorAll('.card').length===9&&document.querySelector('.stage img').naturalWidth===370);
   assert.equal(await page.locator('.stage img').last().getAttribute('src'),null);
   await page.locator('.stage img').last().scrollIntoViewIfNeeded();
-  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].at(-1).naturalWidth===160);
+  await page.waitForFunction(()=>[...document.querySelectorAll('.stage img')].at(-1).naturalWidth===370);
   await page.waitForFunction(()=>!document.querySelector('.stage img').hasAttribute('src'));
   await page.locator('.stage img').first().scrollIntoViewIfNeeded();
-  await page.waitForFunction(()=>document.querySelector('.stage img').naturalWidth===160);
+  await page.waitForFunction(()=>document.querySelector('.stage img').naturalWidth===370);
   await page.locator('.stage img').first().click();
   await page.waitForFunction(()=>document.querySelector('#zoomimg').naturalWidth===370);
   await page.locator('#close').click();

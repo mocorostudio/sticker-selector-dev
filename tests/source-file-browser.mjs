@@ -22,7 +22,7 @@ try{
  });
  assert.equal(results.length,9);assert.ok(results.every(r=>r.hasPixels&&r.review.length===0));
  await crop.locator('#handoff').click();await page.locator('#selectionScreen').waitFor({state:'visible'});
- await page.waitForFunction(()=>document.querySelectorAll('.stage img').length===9&&document.querySelector('.stage img')?.naturalWidth===160);
+ await page.waitForFunction(()=>document.querySelectorAll('.stage img').length===9&&document.querySelector('.stage img')?.naturalWidth===370);
  assert.equal(await page.locator('.chosen').count(),0);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  const items=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('sticker-selector-v9:crop-workflow:')&&!k.endsWith('-visible-ids')).map(k=>JSON.parse(localStorage.getItem(k))).find(v=>v.items)?.items);

@@ -51,7 +51,7 @@ try{
  const old={id:'crop:old-review',imageId:'old-review',characterId:char,name:'old.png',origin:'crop-local',rating:'x',touched:true,revision:'unsaved-vote',comment:'旧選抜を残す',selectionHistory:[],crop:{history:[]}};
  await page.evaluate(({keys,old})=>localStorage.setItem(keys.store,JSON.stringify({items:[old],background:'checker'})),{keys,old});await page.reload();
  const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();};
- await load();await page.waitForFunction(()=>document.querySelectorAll('.card').length===81&&document.querySelector('.stage img')?.naturalWidth===160);
+ await load();await page.waitForFunction(()=>document.querySelectorAll('.card').length===81&&document.querySelector('.stage img')?.naturalWidth===370);
  const badges=page.locator('.inspection-summary');await page.waitForFunction(()=>document.querySelectorAll('[data-inspection-status="pass"]').length===60&&document.querySelectorAll('[data-inspection-status="review"]').length===3&&document.querySelectorAll('[data-inspection-status="fail"]').length===18);
  const state=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),keys.store);
  for(let i=0;i<81;i++){if(value.entries[i].technicalReview.status==='pass'){assert.equal(await badges.nth(i).innerText(),'合格');assert.ok((await badges.nth(i).boundingBox()).height<55);}else assert.ok((await badges.nth(i).innerText()).includes(value.entries[i].technicalReview.reason));}

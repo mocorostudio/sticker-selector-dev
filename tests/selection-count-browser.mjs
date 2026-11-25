@@ -51,7 +51,7 @@ try{for(const [engine,type] of [['chromium',chromium],['webkit',webkit]].filter(
   await page.locator('#selectionScreen details summary').first().click();await page.locator('#importMode').selectOption('append');await page.locator('#selectionScreen details summary').first().click();
   const load=async()=>{await page.locator('#loadPending').click();await page.waitForFunction(()=>!document.querySelector('#pendingConnect').disabled);await page.locator('#pendingConnect').click();};
   await load();await page.locator('#drivePending').waitFor({state:'hidden'});await page.locator('#drivePendingProgress').filter({hasText:'読み込みが完了'}).waitFor();
-  await page.waitForFunction(()=>document.querySelectorAll('.card').length===72&&document.querySelector('.stage img')?.naturalWidth===160);
+  await page.waitForFunction(()=>document.querySelectorAll('.card').length===72&&document.querySelector('.stage img')?.naturalWidth===370);
   assert.equal(await page.locator('.chosen').count(),0);assert.equal(await page.locator('#error').textContent(),'');
   assert.equal(await page.evaluate(()=>window.fixtureScope),'https://www.googleapis.com/auth/drive.readonly');
   const saved=()=>page.evaluate(k=>JSON.parse(localStorage.getItem(k)),keys.store);
